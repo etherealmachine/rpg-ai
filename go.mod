@@ -1,0 +1,9 @@
+module github.com/etherealmachine/rpg.ai
+
+go 1.12
+
+require (
+	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/websocket v1.4.1
+	golang.org/x/tools v0.0.0-20200220155224-947cbf191135 // indirect
+)
