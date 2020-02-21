@@ -53,6 +53,7 @@ class Context {
   onReadyFns: Function[] = [];
   setState?: Function;
 
+  motd?: Monster;
   players: { [key: string]: Player } = {};
   encounter: Array<Monster | Player> = [];
   currentIndex: number = 0;
@@ -125,12 +126,12 @@ class Context {
 
   welcomeMsg() {
     const monsterNames = Object.keys(this.compendium.monsters);
-    const motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
+    this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
     let encounter = '';
     if (this.encounter.length > 0) {
       encounter = `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
     }
-    return `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${motd.name}\r\n${encounter}`;
+    return `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd.name}\r\n${encounter}`;
   }
 
   search(query: string, kinds?: string[]): CompendiumItem[] {

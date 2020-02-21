@@ -1,7 +1,14 @@
 import React from 'react';
 import { Button } from '@material-ui/core';
 
+import Context from './Context';
+
+interface ConnectionProps {
+  context: Context;
+}
+
 interface ConnectionState {
+  host?: boolean;
   sessionCode?: string;
   signalServer?: WebSocket;
   conn: RTCPeerConnection;
@@ -18,9 +25,9 @@ interface RTCMsg {
   candidates?: RTCIceCandidateInit[];
 }
 
-class Connection extends React.Component<any, ConnectionState> {
+class Connection extends React.Component<ConnectionProps, ConnectionState> {
 
-  constructor(props: void) {
+  constructor(props: ConnectionProps) {
     super(props);
     const conn = new RTCPeerConnection();
     conn.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
@@ -37,13 +44,12 @@ class Connection extends React.Component<any, ConnectionState> {
     }
     conn.ondatachannel = (event) => {
       (window as any).recvChan = event.channel;
-      event.channel.onmessage = (event) => { console.log(event.data); };
+      event.channel.onmessage = (event) => { this.handleMessage(JSON.parse(event.data)); };
       event.channel.onopen = () => {
-        console.log('open');
+        this.handleConnectionEstablished();
         this.forceUpdate();
       }
       event.channel.onclose = () => {
-        console.log('close');
         this.forceUpdate();
       }
       event.channel.onerror = (err) => { console.error("datachannel error:", err) };
@@ -55,13 +61,11 @@ class Connection extends React.Component<any, ConnectionState> {
     };
     const chan = conn.createDataChannel("sendDatachannel");
     (window as any).sendChan = chan;
-    chan.onmessage = (event) => { console.log(event.data); };
+    chan.onmessage = (event) => { this.handleMessage(JSON.parse(event.data)); };
     chan.onopen = () => {
-      console.log('open');
       this.forceUpdate();
     }
     chan.onclose = () => {
-      console.log('close');
       this.forceUpdate();
     }
     chan.onerror = (err) => { console.error("datachannel error:", err) };
@@ -77,23 +81,37 @@ class Connection extends React.Component<any, ConnectionState> {
     }
   }
 
+  handleConnectionEstablished() {
+    if (this.state.host) {
+      this.state.sendChan.send(JSON.stringify(this.props.context));
+    }
+  }
+
+  handleMessage(msg: any) {
+    console.log(msg);
+  }
+
   connectSession() {
     let host = false;
     let sessionCode = this.state.sessionCode;
     if (!this.state.sessionCode) {
       host = true;
-      sessionCode = "dark-orc";
+      sessionCode = this.props.context.motd?.name.replace(/ /g, '-').toLowerCase();
     }
-    const signalServer = new WebSocket(`ws://localhost:8000/session/${sessionCode}`);
+    const protocol = document.location.protocol === 'https' ? 'wss' : 'ws';
+    const hostname = document.location.host.includes('localhost') ? 'localhost:8000' : document.location.host;
+    const signalServer = new WebSocket(`${protocol}://${hostname}/session/${sessionCode}`);
     signalServer.onopen = () => {
       this.setState({
         ...this.state,
+        host: host,
         sessionCode: sessionCode,
         signalServer: signalServer,
       });
     }
     signalServer.onclose = () => this.forceUpdate();
     signalServer.onmessage = async (event) => {
+      console.log(event);
       const msg = (JSON.parse(event.data) as RTCMsg);
       if (host && msg.peers === 2) {
         const offer = await this.createOffer();
@@ -116,6 +134,7 @@ class Connection extends React.Component<any, ConnectionState> {
   }
 
   async createOffer() {
+    console.log('create offer');
     const offer = await this.state.conn.createOffer();
     await this.state.conn.setLocalDescription(offer);
     this.setState({
@@ -126,9 +145,11 @@ class Connection extends React.Component<any, ConnectionState> {
   }
 
   async createAnswer(offer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
-    candidates.forEach((c) => this.state.conn.addIceCandidate(c));
+    console.log('create answer');
+    await Promise.all(candidates.map((c) => this.state.conn.addIceCandidate(c)));
     await this.state.conn.setRemoteDescription(offer);
     const answer = await this.state.conn.createAnswer();
+    console.log(this.state.host, this.state.conn.localDescription, this.state.conn.signalingState, this.state.conn.connectionState);
     await this.state.conn.setLocalDescription(answer);
     this.setState({
       ...this.state,
@@ -138,10 +159,9 @@ class Connection extends React.Component<any, ConnectionState> {
   }
 
   async handleAnswer(answer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
-    if (this.state.conn.signalingState !== 'stable') {
-      await this.state.conn.setRemoteDescription(answer);
-    }
+    console.log('handle answer');
     await Promise.all(candidates.map((c) => this.state.conn.addIceCandidate(c)));
+    await this.state.conn.setRemoteDescription(answer);
     this.setState({
       ...this.state,
       answer: answer,

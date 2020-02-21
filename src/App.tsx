@@ -23,7 +23,7 @@ class App extends React.Component<any, AppState> {
   render() {
     return (
       <div className="App">
-        <Connection />
+        <Connection context={this.state.context} />
         <Display context={this.state.context} />
         <Shell context={this.state.context} />
       </div>
