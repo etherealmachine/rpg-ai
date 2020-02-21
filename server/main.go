@@ -133,9 +133,9 @@ func main() {
 		port = "8000"
 	}
 
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/session/{code}", sessionHandler)
-	r.Handle("/", http.FileServer(http.Dir("build")))
+	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 	http.Handle("/", r)
 
 	srv := &http.Server{
