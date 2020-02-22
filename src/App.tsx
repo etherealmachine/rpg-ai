@@ -1,8 +1,6 @@
 import React from 'react';
 import './App.css';
-import { SnackbarProvider } from 'notistack';
 
-import Connection from './Connection';
 import Display from './Display';
 import Shell from './Shell';
 import Context from './Context';
@@ -28,13 +26,10 @@ class App extends React.Component<any, AppState> {
 
   render() {
     return (
-      <SnackbarProvider maxSnack={3}>
-        <div className="App">
-          <Connection context={this.state.context} />
-          <Display context={this.state.context} />
-          <Shell context={this.state.context} />
-        </div>
-      </SnackbarProvider>
+      <div className="App">
+        <Display context={this.state.context} />
+        <Shell context={this.state.context} />
+      </div>
     );
   }
 }

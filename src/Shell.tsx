@@ -3,6 +3,7 @@ import './App.css';
 
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import Session from './Session';
 import Context from './Context';
 import TerminalCodes from './TerminalCodes';
 
@@ -24,6 +25,8 @@ interface ShellState {
 
 class Shell extends React.Component<ShellProps, ShellState> {
 
+  runningCommand: boolean = false;
+  session: Session = new Session();
   term: XTerm;
   fitAddon: FitAddon;
   termEl: HTMLElement | null | undefined;
@@ -41,6 +44,9 @@ class Shell extends React.Component<ShellProps, ShellState> {
       history: [],
       suggestions: [],
     };
+    this.session.onEvent = this.handleSessionEvent.bind(this);
+    this.session.onError = this.handleSessionError.bind(this);
+    this.session.onConnect = this.handleSessionConnect.bind(this);
   }
 
   componentDidMount() {
@@ -166,18 +172,39 @@ class Shell extends React.Component<ShellProps, ShellState> {
           suggestions: suggestions,
         });
       }
+    } else if (c === 3) { // CTRL-C
+      this.runningCommand = false;
     } else {
       this.addCharacter(data);
     }
-    this.displayPrompt();
+    if (!this.runningCommand) {
+      this.displayPrompt();
+    }
+  }
+
+  handleSessionEvent(event: string) {
+    this.write(event);
+    this.write('\r\n');
+  }
+
+  handleSessionError(error: string) {
+    this.write(TerminalCodes.Red);
+    this.write(error);
+    this.write(TerminalCodes.Reset);
+    this.write('\r\n');
+    this.runningCommand = false;
+  }
+
+  handleSessionConnect() {
+    this.write(TerminalCodes.Green);
+    this.write('connection established');
+    this.write(TerminalCodes.Reset);
+    this.write('\r\n');
+    this.runningCommand = false;
   }
 
   write(buf: string) {
     this.term.write(buf);
-  }
-
-  read(): string {
-    return '';
   }
 
   displayPrompt() {
@@ -209,6 +236,14 @@ class Shell extends React.Component<ShellProps, ShellState> {
     } else if (commandBuffer === 'clear') {
       this.term.write(TerminalCodes.SetPosition(1, 1));
       this.term.write(TerminalCodes.ClearScreen(2));
+    } else if (commandBuffer.startsWith('host ')) {
+      const sessionCode = commandBuffer.split(' ')[1];
+      this.session.connectSession(sessionCode, true);
+      this.runningCommand = true;
+    } else if (commandBuffer.startsWith('join ')) {
+      const sessionCode = commandBuffer.split(' ')[1];
+      this.session.connectSession(sessionCode, false);
+      this.runningCommand = true;
     } else {
       context.execute(commandBuffer);
       if (context.prompt.output) {

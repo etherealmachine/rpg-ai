@@ -1,9 +1,6 @@
 import { Compendium, CompendiumItem, Monster, Player } from './Compendium';
 import TerminalCodes from './TerminalCodes';
-import Sync from './Connection';
 import Levenshtein from 'fast-levenshtein';
-
-(window as any).Sync = Sync;
 
 interface Command extends Function {
   command: string;
@@ -65,7 +62,7 @@ class Context {
     });
   }
 
-  toJSON() {
+  asJSON() {
     return JSON.stringify(this, [
       'players',
       'encounter',
@@ -108,7 +105,7 @@ class Context {
     } else {
       this.prompt = result;
     }
-    window.localStorage.setItem("context", this.toJSON());
+    window.localStorage.setItem("context", this.asJSON());
     this.onChangeFns.forEach((fn) => fn(this));
   }
 

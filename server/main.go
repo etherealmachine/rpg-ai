@@ -73,11 +73,11 @@ func (s *Session) RemovePeer(conn *websocket.Conn) {
 	}
 }
 
-func (s *Session) Broadcast(m *RTCMsg, conn *websocket.Conn) {
+func (s *Session) Broadcast(m *RTCMsg, exceptTo *websocket.Conn) {
 	s.Lock()
 	var failed []*websocket.Conn
 	for e := s.Peers.Front(); e != nil; e = e.Next() {
-		if e.Value != conn {
+		if e.Value != exceptTo {
 			if err := e.Value.(*websocket.Conn).WriteJSON(m); err != nil {
 				failed = append(failed, e.Value.(*websocket.Conn))
 			}
@@ -111,8 +111,8 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("adding peer to %q", sessionCode)
 	session.AddPeer(conn)
-	msg := new(RTCMsg)
 	for {
+		msg := new(RTCMsg)
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			log.Println(err)

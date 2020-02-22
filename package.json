@@ -17,7 +17,6 @@
     "@types/react-qr-reader": "^2.1.2",
     "classnames": "^2.2.6",
     "fast-levenshtein": "^2.0.6",
-    "notistack": "^0.9.7",
     "qrcode.react": "^1.0.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
