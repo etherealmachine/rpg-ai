@@ -21,11 +21,6 @@ function command(command: string, help: string) {
 
 const DEFAULT_PROMPT = `${TerminalCodes.Red}${TerminalCodes.Bold}rpg.ai > ${TerminalCodes.Reset}`;
 
-function fetchFromLocalStorage(name: string, def: any): any {
-  const s = window.localStorage.getItem(name);
-  return s ? JSON.parse(s) : def;
-}
-
 function roll(d: number, count?: number): number {
   let sum = 0;
   if (count === undefined) count = 1;
@@ -50,8 +45,7 @@ class Context {
     prompt: DEFAULT_PROMPT,
   };
   compendium: Compendium = new Compendium();
-  onReadyFns: Function[] = [];
-  setState?: Function;
+  onChangeFns: ((c: Context) => void)[] = [];
 
   motd?: Monster;
   players: { [key: string]: Player } = {};
@@ -60,20 +54,28 @@ class Context {
   bookmarks: { [key: string]: CompendiumItem } = {};
 
   constructor(compendium: string) {
-    this.players = fetchFromLocalStorage("players", this.players);
-    this.encounter = fetchFromLocalStorage("encounter", this.encounter);
-    this.bookmarks = fetchFromLocalStorage("bookmarks", this.bookmarks);
-    this.currentIndex = fetchFromLocalStorage("currentIndex", this.currentIndex);
+    const savedState = window.localStorage.getItem('context');
+    if (savedState) {
+      Object.assign(this, JSON.parse(savedState));
+    }
     this.compendium.load(compendium).then(() => {
-      this.onReadyFns.forEach((fn) => fn());
+      const monsterNames = Object.keys(this.compendium.monsters);
+      this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
+      this.onChangeFns.forEach((fn) => fn(this));
     });
   }
 
-  onReady(fn: Function) {
-    if (this.compendium.loaded) {
-      fn();
-    }
-    this.onReadyFns.push(fn);
+  toJSON() {
+    return JSON.stringify(this, [
+      'players',
+      'encounter',
+      'currentIndex',
+      'bookmarks',
+    ]);
+  }
+
+  onChange(fn: (c: Context) => void) {
+    this.onChangeFns.push(fn);
   }
 
   execute(commandLine: string) {
@@ -106,15 +108,8 @@ class Context {
     } else {
       this.prompt = result;
     }
-    window.localStorage.setItem("players", JSON.stringify(this.players));
-    window.localStorage.setItem("encounter", JSON.stringify(this.encounter));
-    window.localStorage.setItem("bookmarks", JSON.stringify(this.bookmarks));
-    window.localStorage.setItem("currentIndex", JSON.stringify(this.currentIndex));
-    if (this.setState !== undefined) {
-      this.setState({
-        context: this,
-      });
-    }
+    window.localStorage.setItem("context", this.toJSON());
+    this.onChangeFns.forEach((fn) => fn(this));
   }
 
   suggestions(partial: string): Array<string> {
@@ -125,13 +120,11 @@ class Context {
   }
 
   welcomeMsg() {
-    const monsterNames = Object.keys(this.compendium.monsters);
-    this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
     let encounter = '';
     if (this.encounter.length > 0) {
       encounter = `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
     }
-    return `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd.name}\r\n${encounter}`;
+    return `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd?.name}\r\n${encounter}`;
   }
 
   search(query: string, kinds?: string[]): CompendiumItem[] {

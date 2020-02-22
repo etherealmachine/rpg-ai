@@ -13,6 +13,7 @@ interface ShellProps {
 }
 
 interface ShellState {
+  initialized: boolean;
   commandBuffer: string;
   tmpBuffer: string;
   cursor: number;
@@ -32,6 +33,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term = new XTerm();
     this.fitAddon = new FitAddon();
     this.state = {
+      initialized: false,
       commandBuffer: "",
       tmpBuffer: "",
       cursor: 0,
@@ -49,9 +51,15 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term.open(this.termEl);
     this.term.onData(this.handleData.bind(this));
     this.fitAddon.fit();
-    this.props.context.onReady(() => {
-      this.term.write(this.props.context.welcomeMsg());
-      this.displayPrompt();
+    this.props.context.onChange((c: Context) => {
+      if (!this.state.initialized) {
+        this.setState({
+          ...this.state,
+          initialized: true,
+        });
+        this.term.write(this.props.context.welcomeMsg());
+        this.displayPrompt();
+      }
     });
   }
 

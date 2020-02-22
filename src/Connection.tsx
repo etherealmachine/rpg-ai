@@ -1,22 +1,21 @@
 import React from 'react';
-import { Button } from '@material-ui/core';
+import { Checkbox, Button, FormControl, FormGroup, TextField } from '@material-ui/core';
+import { withSnackbar, WithSnackbarProps } from 'notistack';
 
 import Context from './Context';
 
-interface ConnectionProps {
+interface ConnectionProps extends WithSnackbarProps {
   context: Context;
 }
 
 interface ConnectionState {
-  host?: boolean;
-  sessionCode?: string;
+  host: boolean;
+  sessionCode: string;
   signalServer?: WebSocket;
-  conn: RTCPeerConnection;
-  sendChan: RTCDataChannel;
+  conn?: RTCPeerConnection;
+  sendChan?: RTCDataChannel;
   recvChan?: RTCDataChannel;
   candidates: RTCIceCandidate[];
-  offer?: RTCSessionDescriptionInit;
-  answer?: RTCSessionDescriptionInit;
 }
 
 interface RTCMsg {
@@ -29,165 +28,179 @@ class Connection extends React.Component<ConnectionProps, ConnectionState> {
 
   constructor(props: ConnectionProps) {
     super(props);
-    const conn = new RTCPeerConnection();
-    conn.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-      if (!event || !event.candidate) return;
-      if (this.state.signalServer?.readyState === 1) {
-        this.state.signalServer.send(JSON.stringify({
-          candidates: [event.candidate],
-        }));
+    this.props.context.onChange((context: Context) => {
+      if (context.motd) {
+        this.setState({
+          ...this.state,
+          sessionCode: context.motd.name,
+        });
       }
-      this.setState({
-        ...this.state,
-        candidates: this.state.candidates.concat([event.candidate]),
-      });
-    }
-    conn.ondatachannel = (event) => {
-      (window as any).recvChan = event.channel;
-      event.channel.onmessage = (event) => { this.handleMessage(JSON.parse(event.data)); };
-      event.channel.onopen = () => {
-        this.handleConnectionEstablished();
-        this.forceUpdate();
-      }
-      event.channel.onclose = () => {
-        this.forceUpdate();
-      }
-      event.channel.onerror = (err) => { console.error("datachannel error:", err) };
-      this.state.signalServer?.close();
-      this.setState({
-        ...this.state,
-        recvChan: event.channel,
-      });
-    };
-    const chan = conn.createDataChannel("sendDatachannel");
-    (window as any).sendChan = chan;
-    chan.onmessage = (event) => { this.handleMessage(JSON.parse(event.data)); };
-    chan.onopen = () => {
-      this.forceUpdate();
-    }
-    chan.onclose = () => {
-      this.forceUpdate();
-    }
-    chan.onerror = (err) => { console.error("datachannel error:", err) };
-    let sessionCode = new URLSearchParams(document.location.search).get("sessionCode");
+    });
     this.state = {
-      sessionCode: sessionCode === null ? undefined : sessionCode,
-      conn: conn,
-      sendChan: chan,
+      host: false,
+      sessionCode: '',
       candidates: [],
-    };
-    if (new URLSearchParams(document.location.search).get("sessionCode")) {
-      this.connectSession();
     }
   }
 
-  handleConnectionEstablished() {
-    if (this.state.host) {
-      this.state.sendChan.send(JSON.stringify(this.props.context));
-    }
+  setupRTCConnection() {
+    const conn = new RTCPeerConnection();
+    conn.onicecandidate = this.handleIceCandidate.bind(this);
+    conn.ondatachannel = this.handleDataChannel.bind(this);
+    const chan = conn.createDataChannel("sendDatachannel");
+    chan.onmessage = this.handleChannelMessage.bind(this);
+    chan.onopen = this.handleChannelOpen.bind(this);
+    chan.onclose = this.handleChannelClose.bind(this);
+    chan.onerror = this.handleChannelError.bind(this);
   }
 
-  handleMessage(msg: any) {
-    console.log(msg);
+  handleIceCandidate(event: RTCPeerConnectionIceEvent) {
+    if (!event || !event.candidate) return;
+    if (this.state.signalServer?.readyState === 1) {
+      this.state.signalServer.send(JSON.stringify({
+        candidates: [event.candidate],
+      }));
+    }
+    this.setState({
+      ...this.state,
+      candidates: this.state.candidates.concat([event.candidate]),
+    });
+  }
+
+  handleDataChannel(event: RTCDataChannelEvent) {
+    event.channel.onmessage = this.handleChannelMessage.bind(this);
+    event.channel.onopen = this.handleChannelOpen.bind(this);
+    event.channel.onclose = this.handleChannelClose.bind(this);
+    event.channel.onerror = this.handleChannelError.bind(this);
+  }
+
+  handleChannelOpen(event: Event) {
+  }
+
+  handleChannelClose(event: Event) {
+  }
+
+  handleChannelError(error: RTCErrorEvent) {
+  }
+
+  handleChannelMessage(event: MessageEvent) {
+    console.log(event);
   }
 
   connectSession() {
-    let host = false;
-    let sessionCode = this.state.sessionCode;
-    if (!this.state.sessionCode) {
-      host = true;
-      sessionCode = this.props.context.motd?.name.replace(/ /g, '-').toLowerCase();
+    const { sessionCode } = this.state;
+    if (!sessionCode) {
+      this.props.enqueueSnackbar('Invalid session code');
+      return;
     }
+    this.setupSignalServer(sessionCode);
+  }
+
+  setupSignalServer(sessionCode: string) {
     const protocol = document.location.protocol === 'https' ? 'wss' : 'ws';
     const hostname = document.location.host.includes('localhost') ? 'localhost:8000' : document.location.host;
     const signalServer = new WebSocket(`${protocol}://${hostname}/session/${sessionCode}`);
-    signalServer.onopen = () => {
-      this.setState({
-        ...this.state,
-        host: host,
-        sessionCode: sessionCode,
-        signalServer: signalServer,
-      });
-    }
-    signalServer.onclose = () => this.forceUpdate();
-    signalServer.onmessage = async (event) => {
-      console.log(event);
-      const msg = (JSON.parse(event.data) as RTCMsg);
-      if (host && msg.peers === 2) {
-        const offer = await this.createOffer();
-        signalServer.send(JSON.stringify({
-          offer: offer,
-          candidates: this.state.candidates,
-        }));
-      } else if (msg.offer) {
-        if (host) {
-          await this.handleAnswer(msg.offer, msg.candidates || []);
-        } else {
-          const answer = await this.createAnswer(msg.offer, msg.candidates || []);
-          signalServer.send(JSON.stringify({
-            offer: answer,
-            candidates: this.state.candidates,
-          }));
-        }
-      }
-    }
+    signalServer.onopen = this.handleSignalServerOpen.bind(this);
+    signalServer.onclose = this.handleSignalServerClose.bind(this);
+    signalServer.onerror = this.handleSignalServerError.bind(this);
+    signalServer.onmessage = this.handleSignalServerMessage.bind(this);
+  }
+
+  handleSignalServerOpen(event: Event) {
+
+  }
+
+  handleSignalServerClose(event: Event) {
+
+  }
+
+  handleSignalServerError(event: Event) {
+
+  }
+
+  handleSignalServerMessage(event: Event) {
+
   }
 
   async createOffer() {
-    console.log('create offer');
-    const offer = await this.state.conn.createOffer();
-    await this.state.conn.setLocalDescription(offer);
-    this.setState({
-      ...this.state,
-      offer: offer,
-    });
+    const { conn } = this.state;
+    if (conn === undefined) {
+      throw new Error('tried to create offer on undefined RTC connection');
+    }
+    const offer = await conn.createOffer();
+    await conn.setLocalDescription(offer);
     return offer;
   }
 
   async createAnswer(offer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
-    console.log('create answer');
-    await Promise.all(candidates.map((c) => this.state.conn.addIceCandidate(c)));
-    await this.state.conn.setRemoteDescription(offer);
-    const answer = await this.state.conn.createAnswer();
-    console.log(this.state.host, this.state.conn.localDescription, this.state.conn.signalingState, this.state.conn.connectionState);
-    await this.state.conn.setLocalDescription(answer);
-    this.setState({
-      ...this.state,
-      answer: answer,
-    });
+    const { conn } = this.state;
+    if (conn === undefined) {
+      throw new Error('tried to create answer on undefined RTC connection');
+    }
+    await Promise.all(candidates.map((c) => conn.addIceCandidate(c)));
+    await conn.setRemoteDescription(offer);
+    const answer = await conn.createAnswer();
+    await conn.setLocalDescription(answer);
     return answer;
   }
 
   async handleAnswer(answer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
-    console.log('handle answer');
-    await Promise.all(candidates.map((c) => this.state.conn.addIceCandidate(c)));
-    await this.state.conn.setRemoteDescription(answer);
+    const { conn } = this.state;
+    if (conn === undefined) {
+      throw new Error('tried to handle answer on undefined RTC connection');
+    }
+    await Promise.all(candidates.map((c) => conn.addIceCandidate(c)));
+    await conn.setRemoteDescription(answer);
+  }
+
+  handleSessionCodeChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({
       ...this.state,
-      answer: answer,
+      sessionCode: event.target.value,
     });
   }
 
-  render() {
+  handleHostChange(event: React.ChangeEvent<HTMLInputElement>) {
+    this.setState({
+      ...this.state,
+      host: event.target.checked,
+    });
+  }
+
+  renderWaitingForPeer() {
+    return <div>Waiting for peer</div>;
+  }
+
+  renderEstablishingRTC() {
+    return <div>Connecting to peer</div>;
+  }
+
+  renderConnectionEstablished() {
+    return <div>Connection established</div>;
+  }
+
+  renderSessionConnect() {
     const {
+      host,
       sessionCode,
-      sendChan,
-      recvChan,
-      signalServer,
-      offer,
-      answer,
     } = this.state;
-    return (<div>
-      <div>{sessionCode}</div>
-      <div>{sendChan.readyState}</div>
-      <div>{recvChan?.readyState}</div>
-      <div>{signalServer?.readyState}</div>
-      <div>{offer && "sent offer"}</div>
-      <div>{answer && "sent answer"}</div>
-      <Button onClick={this.connectSession.bind(this)}>Start Session</Button>
-    </div>);
+    return (<FormControl>
+      <FormGroup row={true}>
+        <Checkbox
+          checked={host}
+          onChange={this.handleHostChange.bind(this)}
+          value="primary"
+        />
+        <TextField style={{ width: "200px" }} value={sessionCode} onChange={this.handleSessionCodeChange.bind(this)} />
+      </FormGroup>
+      <Button onClick={this.connectSession.bind(this)}>Connect To Session</Button>
+    </FormControl>);
+  }
+
+  render() {
+    return this.renderSessionConnect();
   }
 
 }
 
-export default Connection;
+export default withSnackbar(Connection);
