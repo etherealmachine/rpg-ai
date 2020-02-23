@@ -95,7 +95,7 @@ class GameState implements Executable {
       }
     }
     if (command === undefined) {
-      stderr.write(`unknown command: ${commandLine}\n`);
+      stderr.write(`unknown command: ${commandLine}\r\n`);
       return 1;
     }
     let result;
@@ -109,11 +109,11 @@ class GameState implements Executable {
     if (typeof result === 'string') {
       this.inputRequest = undefined;
       stdout.write(result);
-      stdout.write('\n');
+      stdout.write('\r\n');
     } else if (result) {
       this.inputRequest = result;
       stdout.write(result.output);
-      stdout.write('\n');
+      stdout.write('\r\n');
     } else {
       return 1;
     }
