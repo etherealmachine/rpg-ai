@@ -14,11 +14,29 @@ class Session {
   recvChan?: RTCDataChannel;
   candidates: RTCIceCandidate[] = [];
 
-  onEvent: (event: string) => void = () => { };
-  onError: (handleSignalServerError: string) => void = () => { };
-  onConnect: () => void = () => { };
+  public onEvent: (event: string) => void = () => { };
+  public onError: (handleSignalServerError: string) => void = () => { };
+  public onConnect: () => void = () => { };
+  public onMessage: (msg: any) => void = () => { };
 
-  setup() {
+  public connect(sessionCode: string, host: boolean) {
+    this.host = host;
+    this.setup();
+    this.setupSignalServer(sessionCode);
+  }
+
+  public send(obj: any) {
+    this.sendChan?.send(JSON.stringify(obj));
+  }
+
+  public teardown() {
+    this.conn?.close();
+    this.sendChan?.close();
+    this.recvChan?.close();
+    this.signalServer?.close();
+  }
+
+  private setup() {
     this.conn = new RTCPeerConnection();
     this.conn.onicecandidate = this.handleIceCandidate.bind(this);
     this.conn.ondatachannel = this.handleDataChannel.bind(this);
@@ -29,21 +47,7 @@ class Session {
     this.sendChan.onerror = this.handleChannelError.bind(this);
   }
 
-  teardown() {
-    this.host = undefined;
-    this.sessionCode = undefined;
-    this.conn?.close();
-    this.sendChan?.close();
-    this.recvChan?.close();
-    this.signalServer?.close();
-    this.conn = undefined;
-    this.signalServer = undefined;
-    this.sendChan = undefined;
-    this.recvChan = undefined;
-    this.candidates = [];
-  }
-
-  handleIceCandidate(event: RTCPeerConnectionIceEvent) {
+  private handleIceCandidate(event: RTCPeerConnectionIceEvent) {
     if (!event || !event.candidate) return;
     if (this.signalServer?.readyState === 1) {
       this.signalServer.send(JSON.stringify({
@@ -53,7 +57,7 @@ class Session {
     this.candidates.push(event.candidate);
   }
 
-  handleDataChannel(event: RTCDataChannelEvent) {
+  private handleDataChannel(event: RTCDataChannelEvent) {
     this.recvChan = event.channel;
     this.recvChan.onmessage = this.handleChannelMessage.bind(this);
     this.recvChan.onopen = this.handleChannelOpen.bind(this);
@@ -61,31 +65,26 @@ class Session {
     this.recvChan.onerror = this.handleChannelError.bind(this);
   }
 
-  handleChannelOpen(event: Event) {
+  private handleChannelOpen(event: Event) {
     if (this.sendChan?.readyState === 'open' && this.recvChan?.readyState === 'open') {
       this.onConnect();
     }
   }
 
-  handleChannelClose(event: Event) {
+  private handleChannelClose(event: Event) {
     this.onError("session lost");
     this.teardown();
   }
 
-  handleChannelError(error: RTCErrorEvent) {
+  private handleChannelError(error: RTCErrorEvent) {
     this.onError(`${error}`);
   }
 
-  handleChannelMessage(event: MessageEvent) {
+  private handleChannelMessage(event: MessageEvent) {
+    this.onMessage(JSON.parse(event.data));
   }
 
-  connectSession(sessionCode: string, host: boolean) {
-    this.host = host;
-    this.setup();
-    this.setupSignalServer(sessionCode);
-  }
-
-  setupSignalServer(sessionCode: string) {
+  private setupSignalServer(sessionCode: string) {
     const protocol = document.location.protocol === 'https' ? 'wss' : 'ws';
     const hostname = document.location.host.includes('localhost') ? 'localhost:8000' : document.location.host;
     this.signalServer = new WebSocket(`${protocol}://${hostname}/session/${sessionCode}`);
@@ -95,19 +94,19 @@ class Session {
     this.signalServer.onmessage = this.handleSignalServerMessage.bind(this);
   }
 
-  handleSignalServerOpen(event: Event) {
+  private handleSignalServerOpen(event: Event) {
     this.onEvent("waiting for peer");
   }
 
-  handleSignalServerClose(event: Event) {
+  private handleSignalServerClose(event: Event) {
     this.onError('signal server closed unexpectedly');
   }
 
-  handleSignalServerError(event: Event) {
-    this.onError(`signal server error: ${event}`);
+  private handleSignalServerError(event: Event) {
+    this.onError(`error connecting to signal server`);
   }
 
-  async handleSignalServerMessage(event: MessageEvent) {
+  private async handleSignalServerMessage(event: MessageEvent) {
     const msg = JSON.parse(event.data) as RTCMsg;
     if (msg.peers === 2 && this.host) {
       this.onEvent("found a peer, sending offer");
@@ -132,7 +131,7 @@ class Session {
     }
   }
 
-  async createOffer() {
+  private async createOffer() {
     if (this.conn === undefined) {
       this.onError('tried to create offer on undefined RTC connection');
       return;
@@ -142,7 +141,7 @@ class Session {
     return offer;
   }
 
-  async createAnswer(offer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
+  private async createAnswer(offer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
     if (this.conn === undefined) {
       this.onError('tried to create answer on undefined RTC connection');
       return;
@@ -154,7 +153,7 @@ class Session {
     return answer;
   }
 
-  async handleAnswer(answer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
+  private async handleAnswer(answer: RTCSessionDescriptionInit, candidates: RTCIceCandidateInit[]) {
     if (this.conn === undefined) {
       this.onError('tried to handle answer on undefined RTC connection');
       return;

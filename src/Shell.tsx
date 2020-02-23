@@ -7,11 +7,16 @@ import TerminalCodes from './TerminalCodes';
 
 import 'xterm/css/xterm.css'
 
+export interface Writer {
+  write(buf: string): void;
+}
+
 export interface Executable {
-  startup(): void;
+  startup(): string;
   prompt(): string;
-  execute(commandLine: string): string | undefined;
+  execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number>;
   suggestions(commandLine: string): string[];
+  recv(buf: string): void;
 }
 
 interface ShellProps {
@@ -19,7 +24,7 @@ interface ShellProps {
 }
 
 interface ShellState {
-  runningCommand: boolean;
+  running?: Executable;
   commandBuffer: string;
   tmpBuffer: string;
   cursor: number;
@@ -39,7 +44,6 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term = new XTerm();
     this.fitAddon = new FitAddon();
     this.state = {
-      runningCommand: false,
       commandBuffer: "",
       tmpBuffer: "",
       cursor: 0,
@@ -57,7 +61,8 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term.open(this.termEl);
     this.term.onData(this.handleData.bind(this));
     this.fitAddon.fit();
-    this.props.program.startup();
+    this.write(this.props.program.startup());
+    this.write('\r\n');
     this.displayPrompt();
   }
 
@@ -166,12 +171,13 @@ class Shell extends React.Component<ShellProps, ShellState> {
       }
     } else if (c === 3) { // CTRL-C
       this.setState({
-        runningCommand: false,
+        ...this.state,
+        running: undefined,
       });
     } else {
       this.addCharacter(data);
     }
-    if (!this.state.runningCommand) {
+    if (!this.state.running) {
       this.displayPrompt();
     }
   }
@@ -199,9 +205,13 @@ class Shell extends React.Component<ShellProps, ShellState> {
     }
   }
 
-  runCommand() {
+  async runCommand() {
     const { program } = this.props;
     const { commandBuffer, history } = this.state;
+    if (this.state.running) {
+      this.state.running.recv(commandBuffer);
+      return;
+    }
     this.term.write(TerminalCodes.ClearScreen(0));
     this.term.write('\r\n');
     if (commandBuffer === 'history') {
@@ -210,17 +220,18 @@ class Shell extends React.Component<ShellProps, ShellState> {
       this.term.write(TerminalCodes.SetPosition(1, 1));
       this.term.write(TerminalCodes.ClearScreen(2));
     } else {
-      const result = program.execute(commandBuffer);
+      this.setState({
+        ...this.state,
+        running: program,
+      });
+      await program.execute(commandBuffer, this, this);
       if (commandBuffer !== history[history.length - 1]) {
         history.push(commandBuffer);
-      }
-      if (result) {
-        this.write(result);
-        this.write('\r\n');
       }
     }
     this.setState({
       ...this.state,
+      running: undefined,
       commandBuffer: "",
       historyIndex: history.length,
       history: history,

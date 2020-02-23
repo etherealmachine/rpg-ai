@@ -1,6 +1,7 @@
 import { Compendium, CompendiumItem, Monster, Player } from './Compendium';
 import TerminalCodes from '../TerminalCodes';
-import { Executable } from '../Shell';
+import { Executable, Writer } from '../Shell';
+import Session from '../Session';
 import Levenshtein from 'fast-levenshtein';
 
 interface Command extends Function {
@@ -40,6 +41,7 @@ interface InputRequest {
 
 class GameState implements Executable {
   compendium: Compendium = new Compendium();
+  onChange: Function;
 
   motd: Monster;
   players: { [key: string]: Player } = {};
@@ -48,20 +50,23 @@ class GameState implements Executable {
   bookmarks: { [key: string]: CompendiumItem } = {};
 
   inputRequest?: InputRequest;
+  stdout?: Writer;
+  stderr?: Writer;
 
-  constructor(compendium: Compendium) {
+  constructor(compendium: Compendium, onChange: Function) {
     this.compendium = compendium;
+    this.onChange = onChange;
     const monsterNames = Object.keys(this.compendium.monsters);
     this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
   }
 
   toJSON() {
-    return JSON.stringify(this, [
-      'players',
-      'encounter',
-      'currentIndex',
-      'bookmarks',
-    ]);
+    return {
+      players: this.players,
+      encounter: this.encounter,
+      currentIndex: this.currentIndex,
+      bookmarks: this.bookmarks,
+    };
   }
 
   prompt() {
@@ -69,8 +74,14 @@ class GameState implements Executable {
     return DEFAULT_PROMPT;
   }
 
-  execute(commandLine: string): string | undefined {
+  recv(commandLine: string) {
+    console.log(commandLine);
+  }
+
+  async execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number> {
     let command = undefined;
+    this.stdout = stdout;
+    this.stderr = stderr;
 
     if (this.inputRequest) {
       command = this.inputRequest.callback;
@@ -84,16 +95,31 @@ class GameState implements Executable {
       }
     }
     if (command === undefined) {
-      return `unknown command: ${commandLine}`;
+      stderr.write(`unknown command: ${commandLine}\n`);
+      return 1;
     }
-    const result = command.call(this, commandLine);
+    let result;
+    try {
+      result = await command.call(this, commandLine);
+    } catch {
+      this.stdout = undefined;
+      this.stderr = undefined;
+      return 1;
+    }
     if (typeof result === 'string') {
       this.inputRequest = undefined;
-      return result;
-    } else {
+      stdout.write(result);
+      stdout.write('\n');
+    } else if (result) {
       this.inputRequest = result;
-      return result.output;
+      stdout.write(result.output);
+      stdout.write('\n');
+    } else {
+      return 1;
     }
+    this.session?.send(this);
+    this.onChange();
+    return 0;
   }
 
   suggestions(partial: string): Array<string> {
@@ -439,6 +465,59 @@ class GameState implements Executable {
       return `does a ${toHit} hit? ${dmg} points of ${dmgType} damage`;
     }
     return `I don't know how to perform "${action}"`;
+  }
+
+  session?: Session;
+
+  @command('host', 'host a new session')
+  host(code: string): Promise<void> {
+    if (this.session) {
+      this.session.teardown();
+    }
+    this.session = new Session();
+    return new Promise((resolve, reject) => {
+      this.attachSessionHandlers(resolve, reject);
+      this.session?.connect(code, true);
+    });
+  }
+
+  @command('join', 'join an existing session')
+  join(code: string): Promise<void> {
+    if (this.session) {
+      this.session.teardown();
+    }
+    this.session = new Session();
+    this.session.onMessage = (msg: any) => {
+      Object.assign(this, msg);
+      this.onChange();
+    };
+    return new Promise((resolve, reject) => {
+      this.attachSessionHandlers(resolve, reject);
+      this.session?.connect(code, false);
+    });
+  }
+
+  attachSessionHandlers(resolve: () => void, reject: () => void) {
+    if (!this.session) return;
+    this.session.onEvent = (event) => {
+      this.stdout?.write(event);
+      this.stdout?.write('\r\n')
+    };
+    this.session.onError = (error) => {
+      this.stderr?.write(TerminalCodes.Red);
+      this.stderr?.write(error);
+      this.stderr?.write(TerminalCodes.Reset);
+      this.stdout?.write('\r\n');
+      reject();
+    };
+    this.session.onConnect = () => {
+      this.stderr?.write(TerminalCodes.Green);
+      this.stderr?.write('connection established!');
+      this.stderr?.write(TerminalCodes.Reset);
+      this.stdout?.write('\r\n');
+      this.session?.send(this);
+      resolve();
+    };
   }
 
 }

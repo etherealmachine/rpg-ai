@@ -17,7 +17,9 @@ class App extends React.Component<any, AppState> {
     const compendium = new Compendium();
     compendium.load("dnd5e").then(() => {
       this.setState({
-        game: new GameState(compendium),
+        game: new GameState(compendium, () => {
+          this.setState(this.state);
+        }),
       })
     });
     this.state = {};
