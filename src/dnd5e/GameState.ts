@@ -1,5 +1,6 @@
 import { Compendium, CompendiumItem, Monster, Player } from './Compendium';
-import TerminalCodes from './TerminalCodes';
+import TerminalCodes from '../TerminalCodes';
+import { Executable } from '../Shell';
 import Levenshtein from 'fast-levenshtein';
 
 interface Command extends Function {
@@ -31,38 +32,30 @@ function repr(e: Monster | Player, index: number): string {
   return `${index + 1}. ${e.name}`;
 }
 
-interface Prompt {
+interface InputRequest {
+  output: string;
   prompt: string;
-  callback?: Function;
-  output?: string;
+  callback: Function;
 }
 
-class Context {
-  prompt: Prompt = {
-    prompt: DEFAULT_PROMPT,
-  };
+class GameState implements Executable {
   compendium: Compendium = new Compendium();
-  onChangeFns: ((c: Context) => void)[] = [];
 
-  motd?: Monster;
+  motd: Monster;
   players: { [key: string]: Player } = {};
   encounter: Array<Monster | Player> = [];
   currentIndex: number = 0;
   bookmarks: { [key: string]: CompendiumItem } = {};
 
-  constructor(compendium: string) {
-    const savedState = window.localStorage.getItem('context');
-    if (savedState) {
-      Object.assign(this, JSON.parse(savedState));
-    }
-    this.compendium.load(compendium).then(() => {
-      const monsterNames = Object.keys(this.compendium.monsters);
-      this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
-      this.onChangeFns.forEach((fn) => fn(this));
-    });
+  inputRequest?: InputRequest;
+
+  constructor(compendium: Compendium) {
+    this.compendium = compendium;
+    const monsterNames = Object.keys(this.compendium.monsters);
+    this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
   }
 
-  asJSON() {
+  toJSON() {
     return JSON.stringify(this, [
       'players',
       'encounter',
@@ -71,15 +64,16 @@ class Context {
     ]);
   }
 
-  onChange(fn: (c: Context) => void) {
-    this.onChangeFns.push(fn);
+  prompt() {
+    if (this.inputRequest) return this.inputRequest.prompt;
+    return DEFAULT_PROMPT;
   }
 
-  execute(commandLine: string) {
+  execute(commandLine: string): string | undefined {
     let command = undefined;
 
-    if (this.prompt.callback) {
-      command = this.prompt.callback;
+    if (this.inputRequest) {
+      command = this.inputRequest.callback;
     } else {
       for (const key of commands.keys()) {
         if (commandLine.startsWith(key)) {
@@ -90,23 +84,16 @@ class Context {
       }
     }
     if (command === undefined) {
-      this.prompt = {
-        prompt: DEFAULT_PROMPT,
-        output: `unknown command: ${commandLine}`,
-      }
-      return;
+      return `unknown command: ${commandLine}`;
     }
     const result = command.call(this, commandLine);
     if (typeof result === 'string') {
-      this.prompt = {
-        prompt: DEFAULT_PROMPT,
-        output: result,
-      }
+      this.inputRequest = undefined;
+      return result;
     } else {
-      this.prompt = result;
+      this.inputRequest = result;
+      return result.output;
     }
-    window.localStorage.setItem("context", this.asJSON());
-    this.onChangeFns.forEach((fn) => fn(this));
   }
 
   suggestions(partial: string): Array<string> {
@@ -116,7 +103,7 @@ class Context {
     return this.search(partial).map((item) => item.name).slice(0, 10);
   }
 
-  welcomeMsg() {
+  startup() {
     let encounter = '';
     if (this.encounter.length > 0) {
       encounter = `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
@@ -291,7 +278,7 @@ class Context {
     return this.listEncounter();
   }
 
-  collectInitiative(initiative: string | number): Prompt | string {
+  collectInitiative(initiative: string | number): InputRequest | string {
     if (typeof initiative === 'string') {
       initiative = parseInt(initiative);
     }
@@ -300,6 +287,7 @@ class Context {
     neededPlayers = this.encounter.filter((item) => item.kind === 'player' && item.initiative === undefined);
     if (neededPlayers.length > 0) {
       return {
+        output: '',
         prompt: `initiative for ${neededPlayers[0].name}? `,
         callback: this.collectInitiative.bind(this),
       };
@@ -455,4 +443,4 @@ class Context {
 
 }
 
-export default Context
+export default GameState

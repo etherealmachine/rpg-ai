@@ -3,18 +3,23 @@ import './App.css';
 
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
-import Session from './Session';
-import Context from './Context';
 import TerminalCodes from './TerminalCodes';
 
 import 'xterm/css/xterm.css'
 
+export interface Executable {
+  startup(): void;
+  prompt(): string;
+  execute(commandLine: string): string | undefined;
+  suggestions(commandLine: string): string[];
+}
+
 interface ShellProps {
-  context: Context;
+  program: Executable;
 }
 
 interface ShellState {
-  initialized: boolean;
+  runningCommand: boolean;
   commandBuffer: string;
   tmpBuffer: string;
   cursor: number;
@@ -25,8 +30,6 @@ interface ShellState {
 
 class Shell extends React.Component<ShellProps, ShellState> {
 
-  runningCommand: boolean = false;
-  session: Session = new Session();
   term: XTerm;
   fitAddon: FitAddon;
   termEl: HTMLElement | null | undefined;
@@ -36,7 +39,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term = new XTerm();
     this.fitAddon = new FitAddon();
     this.state = {
-      initialized: false,
+      runningCommand: false,
       commandBuffer: "",
       tmpBuffer: "",
       cursor: 0,
@@ -44,9 +47,6 @@ class Shell extends React.Component<ShellProps, ShellState> {
       history: [],
       suggestions: [],
     };
-    this.session.onEvent = this.handleSessionEvent.bind(this);
-    this.session.onError = this.handleSessionError.bind(this);
-    this.session.onConnect = this.handleSessionConnect.bind(this);
   }
 
   componentDidMount() {
@@ -57,16 +57,8 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term.open(this.termEl);
     this.term.onData(this.handleData.bind(this));
     this.fitAddon.fit();
-    this.props.context.onChange((c: Context) => {
-      if (!this.state.initialized) {
-        this.setState({
-          ...this.state,
-          initialized: true,
-        });
-        this.term.write(this.props.context.welcomeMsg());
-        this.displayPrompt();
-      }
-    });
+    this.props.program.startup();
+    this.displayPrompt();
   }
 
   up() {
@@ -160,7 +152,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
     } else if (c === 13) { // CR
       this.runCommand();
     } else if (c === 9) { // TAB
-      const suggestions = this.props.context.suggestions(this.state.commandBuffer);
+      const suggestions = this.props.program.suggestions(this.state.commandBuffer);
       if (suggestions.length === 1) {
         this.setState({
           ...this.state,
@@ -173,34 +165,15 @@ class Shell extends React.Component<ShellProps, ShellState> {
         });
       }
     } else if (c === 3) { // CTRL-C
-      this.runningCommand = false;
+      this.setState({
+        runningCommand: false,
+      });
     } else {
       this.addCharacter(data);
     }
-    if (!this.runningCommand) {
+    if (!this.state.runningCommand) {
       this.displayPrompt();
     }
-  }
-
-  handleSessionEvent(event: string) {
-    this.write(event);
-    this.write('\r\n');
-  }
-
-  handleSessionError(error: string) {
-    this.write(TerminalCodes.Red);
-    this.write(error);
-    this.write(TerminalCodes.Reset);
-    this.write('\r\n');
-    this.runningCommand = false;
-  }
-
-  handleSessionConnect() {
-    this.write(TerminalCodes.Green);
-    this.write('connection established');
-    this.write(TerminalCodes.Reset);
-    this.write('\r\n');
-    this.runningCommand = false;
   }
 
   write(buf: string) {
@@ -209,7 +182,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   displayPrompt() {
     this.term.write(TerminalCodes.SetColumn(0));
-    this.term.write(this.props.context.prompt.prompt);
+    this.term.write(this.props.program.prompt());
     this.term.write(TerminalCodes.ClearLine(0));
     this.term.write(this.state.commandBuffer);
     this.term.write(TerminalCodes.ClearScreen(0));
@@ -227,7 +200,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
   }
 
   runCommand() {
-    const { context } = this.props;
+    const { program } = this.props;
     const { commandBuffer, history } = this.state;
     this.term.write(TerminalCodes.ClearScreen(0));
     this.term.write('\r\n');
@@ -236,22 +209,14 @@ class Shell extends React.Component<ShellProps, ShellState> {
     } else if (commandBuffer === 'clear') {
       this.term.write(TerminalCodes.SetPosition(1, 1));
       this.term.write(TerminalCodes.ClearScreen(2));
-    } else if (commandBuffer.startsWith('host ')) {
-      const sessionCode = commandBuffer.split(' ')[1];
-      this.session.connectSession(sessionCode, true);
-      this.runningCommand = true;
-    } else if (commandBuffer.startsWith('join ')) {
-      const sessionCode = commandBuffer.split(' ')[1];
-      this.session.connectSession(sessionCode, false);
-      this.runningCommand = true;
     } else {
-      context.execute(commandBuffer);
-      if (context.prompt.output) {
-        this.term.write(context.prompt.output);
-        this.term.write('\r\n');
-      }
+      const result = program.execute(commandBuffer);
       if (commandBuffer !== history[history.length - 1]) {
         history.push(commandBuffer);
+      }
+      if (result) {
+        this.write(result);
+        this.write('\r\n');
       }
     }
     this.setState({
@@ -262,6 +227,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
       cursor: 0,
       suggestions: [],
     });
+    this.displayPrompt();
   }
 
   render() {

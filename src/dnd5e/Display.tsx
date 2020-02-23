@@ -1,5 +1,4 @@
 import React from 'react';
-import './App.css';
 import { makeStyles } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
@@ -9,11 +8,11 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
-import MonsterCard from './cards/MonsterCard';
-import Context from './Context';
+import MonsterCard from './MonsterCard';
+import GameState from './GameState';
 
 interface DisplayProps {
-  context: Context;
+  game: GameState;
 }
 
 const useStyles = makeStyles({
@@ -33,8 +32,8 @@ const useStyles = makeStyles({
 
 export default function Display(props: DisplayProps) {
   const classes = useStyles();
-  const curr = props.context.encounter[props.context.currentIndex];
-  const rows = props.context.encounter.map((e, index) => <TableRow key={index} className={index === props.context.currentIndex ? classes.highlight : ''}>
+  const curr = props.game.encounter[props.game.currentIndex];
+  const rows = props.game.encounter.map((e, index) => <TableRow key={index} className={index === props.game.currentIndex ? classes.highlight : ''}>
     <TableCell align="left">{index + 1}</TableCell>
     <TableCell component="th" scope="row">{e.name}</TableCell>
     <TableCell align="right">{e.initiative}</TableCell>

@@ -1,34 +1,36 @@
 import React from 'react';
 import './App.css';
 
-import Display from './Display';
+import GameState from './dnd5e/GameState';
+import Display from './dnd5e/Display';
 import Shell from './Shell';
-import Context from './Context';
+import { Compendium } from './dnd5e/Compendium';
 
 interface AppState {
-  context: Context;
+  game?: GameState;
 }
 
 class App extends React.Component<any, AppState> {
 
   constructor(props: any) {
     super(props);
-    this.state = {
-      context: new Context("dnd5e"),
-    };
-    this.state.context.onChange((context) => {
+    const compendium = new Compendium();
+    compendium.load("dnd5e").then(() => {
       this.setState({
-        ...this.state,
-        context: context,
-      });
+        game: new GameState(compendium),
+      })
     });
+    this.state = {};
   }
 
   render() {
+    if (!this.state.game) {
+      return <div>Loading...</div>;
+    }
     return (
       <div className="App">
-        <Display context={this.state.context} />
-        <Shell context={this.state.context} />
+        <Display game={this.state.game} />
+        <Shell program={this.state.game} />
       </div>
     );
   }
