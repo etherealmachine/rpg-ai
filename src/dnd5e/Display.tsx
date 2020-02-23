@@ -36,7 +36,7 @@ export default function Display(props: DisplayProps) {
   const rows = props.game.encounter.map((e, index) => <TableRow key={index} className={index === props.game.currentIndex ? classes.highlight : ''}>
     <TableCell align="left">{index + 1}</TableCell>
     <TableCell component="th" scope="row">{e.name}</TableCell>
-    <TableCell align="right">{e.initiative}</TableCell>
+    <TableCell align="right">{e.status?.initiative}</TableCell>
     <TableCell align="right">{('hp' in e) ? e.hp : ''}</TableCell>
     <TableCell align="right">{('ac' in e) ? e.ac : ''}</TableCell>
   </TableRow>);

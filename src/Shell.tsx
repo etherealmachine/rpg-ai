@@ -13,8 +13,9 @@ export interface Writer {
 
 export interface Executable {
   startup(): string;
-  prompt(): string;
+  prompt?(): string | undefined;
   execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number>;
+  cancel(): void;
   suggestions(commandLine: string): string[];
   recv(buf: string): void;
 }
@@ -32,6 +33,8 @@ interface ShellState {
   history: string[];
   suggestions: string[];
 }
+
+const DEFAULT_PROMPT = `${TerminalCodes.Red}${TerminalCodes.Bold}rpg.ai > ${TerminalCodes.Reset}`;
 
 class Shell extends React.Component<ShellProps, ShellState> {
 
@@ -169,7 +172,8 @@ class Shell extends React.Component<ShellProps, ShellState> {
           suggestions: suggestions,
         });
       }
-    } else if (c === 3) { // CTRL-C
+    } else if (c === 3 && this.state.running) { // CTRL-C
+      this.state.running.cancel();
       this.setState({
         ...this.state,
         running: undefined,
@@ -188,7 +192,12 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   displayPrompt() {
     this.term.write(TerminalCodes.SetColumn(0));
-    this.term.write(this.props.program.prompt());
+    const prompt = this.props.program.prompt?.call(this.props.program);
+    if (prompt) {
+      this.term.write(prompt);
+    } else {
+      this.term.write(DEFAULT_PROMPT);
+    }
     this.term.write(TerminalCodes.ClearLine(0));
     this.term.write(this.state.commandBuffer);
     this.term.write(TerminalCodes.ClearScreen(0));
@@ -210,6 +219,13 @@ class Shell extends React.Component<ShellProps, ShellState> {
     const { commandBuffer, history } = this.state;
     if (this.state.running) {
       this.state.running.recv(commandBuffer);
+      this.setState({
+        ...this.state,
+        commandBuffer: "",
+        tmpBuffer: "",
+        cursor: 0,
+        suggestions: [],
+      });
       return;
     }
     this.term.write(TerminalCodes.ClearScreen(0));
@@ -223,6 +239,10 @@ class Shell extends React.Component<ShellProps, ShellState> {
       this.setState({
         ...this.state,
         running: program,
+        commandBuffer: "",
+        tmpBuffer: "",
+        cursor: 0,
+        suggestions: [],
       });
       await program.execute(commandBuffer, this, this);
       if (commandBuffer !== history[history.length - 1]) {
@@ -232,11 +252,8 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.setState({
       ...this.state,
       running: undefined,
-      commandBuffer: "",
       historyIndex: history.length,
       history: history,
-      cursor: 0,
-      suggestions: [],
     });
     this.displayPrompt();
   }

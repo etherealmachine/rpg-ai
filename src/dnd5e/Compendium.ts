@@ -8,8 +8,10 @@ export interface NameTextPair {
 export interface Player {
   name: string;
   kind: 'player'
-  initiative?: number
   level?: number;
+  status?: {
+    initiative: number
+  }
 }
 
 
@@ -17,10 +19,9 @@ export interface Monster {
   name: string
   kind: 'monster'
   imageURL: string
-  initiative?: number;
   cr: string | number
   ac: string | number
-  hp: string | number
+  hp: string
   passive: number
   size: string
   speed: string
@@ -48,6 +49,14 @@ export interface Monster {
   spells?: string
   slots?: string
   compendium: { [key: string]: any }
+  status?: {
+    hp: number,
+    initiative: number;
+    actions: NameTextPair[],
+    reactions: NameTextPair[],
+    legendaries: NameTextPair[],
+    conditions: NameTextPair[],
+  }
 }
 
 export interface Spell {

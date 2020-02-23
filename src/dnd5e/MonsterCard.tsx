@@ -82,7 +82,7 @@ class MonsterCard extends React.Component<Props> {
     </div>;
   }
 
-  public render() {
+  public renderFull() {
     const {
       classes,
       name,

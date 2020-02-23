@@ -18,8 +18,6 @@ function command(command: string, help: string) {
   };
 }
 
-const DEFAULT_PROMPT = `${TerminalCodes.Red}${TerminalCodes.Bold}rpg.ai > ${TerminalCodes.Reset}`;
-
 function roll(d: number, count?: number): number {
   let sum = 0;
   if (count === undefined) count = 1;
@@ -69,13 +67,8 @@ class GameState implements Executable {
     };
   }
 
-  prompt() {
-    if (this.inputRequest) return this.inputRequest.prompt;
-    return DEFAULT_PROMPT;
-  }
-
   recv(commandLine: string) {
-    console.log(commandLine);
+    this.stderr?.write(`cannot process "${commandLine}" - command in progress\r\n`);
   }
 
   async execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number> {
@@ -120,6 +113,15 @@ class GameState implements Executable {
     this.session?.send(this);
     this.onChange();
     return 0;
+  }
+
+  cancel(): void {
+    if (this.session) {
+      this.session.teardown();
+      this.session = undefined;
+      this.stdout = undefined;
+      this.stderr = undefined;
+    }
   }
 
   suggestions(partial: string): Array<string> {
@@ -178,7 +180,7 @@ class GameState implements Executable {
 
   @command('new', 'start a new encounter')
   newEncounter() {
-    Object.values(this.players).forEach((player) => { player.initiative = undefined; });
+    Object.values(this.players).forEach((player) => { player.status = { initiative: NaN }; });
     this.encounter = [];
     return "started new encounter";
   }
@@ -235,13 +237,15 @@ class GameState implements Executable {
       return `no match found for ${query}`;
     }
     const monster = JSON.parse(JSON.stringify(results[0]));
-    monster.initiative = roll(20) + Compendium.modifier(monster.dex);
     const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
+    monster.status = {
+      initiative: roll(20) + Compendium.modifier(monster.dex),
+    };
     if (m) {
       const num = parseInt(m[1]);
       const die = parseInt(m[2]);
       const bonus = parseInt(m[4]);
-      monster.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
+      monster.status.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
     }
     this.encounter.push(monster);
     return `added ${monster.name}`;
@@ -286,13 +290,9 @@ class GameState implements Executable {
   @command('init', 'roll initiative')
   rollInitiative() {
     let rolls = '';
-    this.encounter.forEach((item) => {
-      if (item.kind === 'monster' && item.initiative === undefined) {
-        item.initiative = roll(20) + Compendium.modifier(item.dex);
-        rolls += `${item.name} rolled a ${item.initiative}\r\n`;
-      }
+    const neededPlayers = this.encounter.filter((item) => {
+      return item.kind === 'player' && item.status && isNaN(item.status.initiative);
     });
-    const neededPlayers = this.encounter.filter((item) => item.kind === 'player' && item.initiative === undefined);
     if (neededPlayers.length > 0) {
       return {
         output: rolls,
@@ -300,7 +300,9 @@ class GameState implements Executable {
         callback: this.collectInitiative.bind(this),
       };
     }
-    this.encounter.sort((a, b) => (b.initiative || 0) - (a.initiative || 0));
+    this.encounter.sort((a, b) => {
+      return (b.status?.initiative || 0) - (a.status?.initiative || 0);
+    });
     return this.listEncounter();
   }
 
@@ -384,18 +386,10 @@ class GameState implements Executable {
   }
 
   damageMonster(monster: Monster, points: number, dmgType: string): number {
+    if (!monster.status) return NaN;
     const damageMultipler = Compendium.damageMultiplier(monster, dmgType);
     const damage = Math.floor(points * damageMultipler);
-    if (typeof monster.hp === 'string') {
-      const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
-      if (m) {
-        const num = parseInt(m[1]);
-        const die = parseInt(m[2]);
-        const bonus = parseInt(m[4]);
-        monster.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
-      }
-    }
-    (monster.hp as number) -= damage;
+    monster.status.hp -= damage;
     return damage;
   }
 
