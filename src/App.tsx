@@ -8,6 +8,7 @@ import { Compendium } from './dnd5e/Compendium';
 
 interface AppState {
   game?: GameState;
+  displayOnly: boolean;
 }
 
 class App extends React.Component<any, AppState> {
@@ -16,13 +17,23 @@ class App extends React.Component<any, AppState> {
     super(props);
     const compendium = new Compendium();
     compendium.load("dnd5e").then(() => {
+      const game = new GameState(compendium, () => {
+        this.setState({
+          ...this.state,
+          game: game,
+        });
+      });
       this.setState({
-        game: new GameState(compendium, () => {
-          this.setState(this.state);
-        }),
-      })
+        game: game,
+        displayOnly: window.location.search !== '',
+      });
+      if (window.location.search) {
+        game.join(window.location.search.slice(1));
+      }
     });
-    this.state = {};
+    this.state = {
+      displayOnly: true,
+    };
   }
 
   render() {
@@ -32,7 +43,7 @@ class App extends React.Component<any, AppState> {
     return (
       <div className="App">
         <Display game={this.state.game} />
-        <Shell program={this.state.game} />
+        {!this.state.displayOnly && <Shell program={this.state.game} />}
       </div>
     );
   }
