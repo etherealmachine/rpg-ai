@@ -1,6 +1,6 @@
 import { Compendium, CompendiumItem, Monster, Player } from './Compendium';
 import TerminalCodes from '../TerminalCodes';
-import { Executable, Writer } from '../Shell';
+import { Executable, Reader, Writer } from '../Shell';
 import Session from '../Session';
 import Levenshtein from 'fast-levenshtein';
 
@@ -31,12 +31,6 @@ function repr(e: Monster | Player, index: number): string {
   return `${index + 1}. ${e.name}`;
 }
 
-interface InputRequest {
-  output: string;
-  prompt: string;
-  callback: Function;
-}
-
 class GameState implements Executable {
   compendium: Compendium = new Compendium();
   onChange: Function;
@@ -47,7 +41,7 @@ class GameState implements Executable {
   currentIndex: number = 0;
   bookmarks: { [key: string]: CompendiumItem } = {};
 
-  inputRequest?: InputRequest;
+  stdin?: Reader;
   stdout?: Writer;
   stderr?: Writer;
 
@@ -67,24 +61,17 @@ class GameState implements Executable {
     };
   }
 
-  recv(commandLine: string) {
-    this.stderr?.write(`cannot process "${commandLine}" - command in progress\r\n`);
-  }
-
-  async execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number> {
+  async execute(commandLine: string, stdin: Reader, stdout: Writer, stderr: Writer): Promise<number> {
     let command = undefined;
+    this.stdin = stdin;
     this.stdout = stdout;
     this.stderr = stderr;
 
-    if (this.inputRequest) {
-      command = this.inputRequest.callback;
-    } else {
-      for (const key of commands.keys()) {
-        if (commandLine.startsWith(key)) {
-          command = commands.get(key);
-          commandLine = commandLine.replace(key, '').trim();
-          break;
-        }
+    for (const key of commands.keys()) {
+      if (commandLine.startsWith(key)) {
+        command = commands.get(key);
+        commandLine = commandLine.replace(key, '').trim();
+        break;
       }
     }
     if (command === undefined) {
@@ -95,20 +82,23 @@ class GameState implements Executable {
     try {
       result = await command.call(this, commandLine);
     } catch {
+      this.stdin = undefined;
       this.stdout = undefined;
       this.stderr = undefined;
       return 1;
     }
     if (typeof result === 'string') {
-      this.inputRequest = undefined;
       stdout.write(result);
       stdout.write('\r\n');
-    } else if (result) {
-      this.inputRequest = result;
-      stdout.write(result.output);
-      stdout.write('\r\n');
-    } else {
-      return 1;
+    } else if (result instanceof Promise) {
+      try {
+        result = await result;
+      } catch {
+        this.stdin = undefined;
+        this.stdout = undefined;
+        this.stderr = undefined;
+        return 1;
+      }
     }
     this.session?.send(this);
     this.onChange();
@@ -119,6 +109,7 @@ class GameState implements Executable {
     if (this.session) {
       this.session.teardown();
       this.session = undefined;
+      this.stdin = undefined;
       this.stdout = undefined;
       this.stderr = undefined;
     }
@@ -200,18 +191,16 @@ class GameState implements Executable {
   }
 
   @command('reset', 'clear all saved state')
-  reset() {
-    return {
-      prompt: "are you sure (y/n)? ",
-      callback: (answer: string) => {
-        if (answer === 'y') {
-          this.bookmarks = {};
-          this.encounter = [];
-          this.players = {};
-          return 'cleared all saved state';
-        }
-        return "cancelled clearing bookmarks";
-      }
+  async reset() {
+    this.stdout?.write("are you sure (y/n)? ");
+    const response = await this.stdin?.read();
+    if (response === 'y') {
+      this.bookmarks = {};
+      this.encounter = [];
+      this.players = {};
+      return '\r\ncleared all saved state';
+    } else {
+      return "\r\ncancelled clearing bookmarks";
     };
   }
 
@@ -220,6 +209,9 @@ class GameState implements Executable {
     this.players[name] = {
       name: name,
       kind: 'player',
+      status: {
+        initiative: NaN,
+      },
     };
     return `added player ${name}`;
   }
@@ -288,40 +280,17 @@ class GameState implements Executable {
   }
 
   @command('init', 'roll initiative')
-  rollInitiative() {
-    let rolls = '';
-    const neededPlayers = this.encounter.filter((item) => {
-      return item.kind === 'player' && item.status && isNaN(item.status.initiative);
-    });
-    if (neededPlayers.length > 0) {
-      return {
-        output: rolls,
-        prompt: `initiative for ${neededPlayers[0].name}? `,
-        callback: this.collectInitiative.bind(this),
-      };
-    }
+  async rollInitiative() {
+    await Promise.all(this.encounter.map(async (e) => {
+      if (e.kind === 'player' && e.status && isNaN(e.status.initiative)) {
+        this.stdout?.write(`initiative for ${e.name}? `);
+        if (!this.stdin) return;
+        e.status.initiative = parseInt(await this.stdin.read());
+      }
+    }));
     this.encounter.sort((a, b) => {
       return (b.status?.initiative || 0) - (a.status?.initiative || 0);
     });
-    return this.listEncounter();
-  }
-
-  collectInitiative(initiative: string | number): InputRequest | string {
-    if (typeof initiative === 'string') {
-      initiative = parseInt(initiative);
-    }
-    let neededPlayers = this.encounter.filter((item) => item.kind === 'player' && item.initiative === undefined);
-    neededPlayers[0].initiative = initiative;
-    neededPlayers = this.encounter.filter((item) => item.kind === 'player' && item.initiative === undefined);
-    if (neededPlayers.length > 0) {
-      return {
-        output: '',
-        prompt: `initiative for ${neededPlayers[0].name}? `,
-        callback: this.collectInitiative.bind(this),
-      };
-    }
-    this.encounter.sort((a, b) => (b.initiative || 0) - (a.initiative || 0));
-    return this.listEncounter();
   }
 
   @command('curr', 'show the current turn')

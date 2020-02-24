@@ -11,13 +11,16 @@ export interface Writer {
   write(buf: string): void;
 }
 
+export interface Reader {
+  read(): Promise<string>;
+}
+
 export interface Executable {
   startup(): string;
   prompt?(): string | undefined;
-  execute(commandLine: string, stdout: Writer, stderr: Writer): Promise<number>;
+  execute(commandLine: string, stdin: Reader, stdout: Writer, stderr: Writer): Promise<number>;
   cancel(): void;
   suggestions(commandLine: string): string[];
-  recv(buf: string): void;
 }
 
 interface ShellProps {
@@ -41,6 +44,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
   term: XTerm;
   fitAddon: FitAddon;
   termEl: HTMLElement | null | undefined;
+  reader?: (buf: string) => void;
 
   constructor(props: any) {
     super(props);
@@ -158,7 +162,18 @@ class Shell extends React.Component<ShellProps, ShellState> {
     } else if (c === 127) { // DEL
       this.delete();
     } else if (c === 13) { // CR
-      this.runCommand();
+      if (this.reader) {
+        this.reader(this.state.commandBuffer);
+        this.reader = undefined;
+        this.setState({
+          ...this.state,
+          cursor: 0,
+          commandBuffer: "",
+          tmpBuffer: "",
+        });
+      } else {
+        this.runCommand();
+      }
     } else if (c === 9) { // TAB
       const suggestions = this.props.program.suggestions(this.state.commandBuffer);
       if (suggestions.length === 1) {
@@ -180,6 +195,9 @@ class Shell extends React.Component<ShellProps, ShellState> {
       });
     } else {
       this.addCharacter(data);
+      if (this.state.running) {
+        this.write(data);
+      }
     }
     if (!this.state.running) {
       this.displayPrompt();
@@ -188,6 +206,12 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   write(buf: string) {
     this.term.write(buf);
+  }
+
+  read(): Promise<string> {
+    return new Promise<string>((resolve) => {
+      this.reader = resolve;
+    });
   }
 
   displayPrompt() {
@@ -217,17 +241,6 @@ class Shell extends React.Component<ShellProps, ShellState> {
   async runCommand() {
     const { program } = this.props;
     const { commandBuffer, history } = this.state;
-    if (this.state.running) {
-      this.state.running.recv(commandBuffer);
-      this.setState({
-        ...this.state,
-        commandBuffer: "",
-        tmpBuffer: "",
-        cursor: 0,
-        suggestions: [],
-      });
-      return;
-    }
     this.term.write(TerminalCodes.ClearScreen(0));
     this.term.write('\r\n');
     if (commandBuffer === 'history') {
@@ -244,7 +257,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
         cursor: 0,
         suggestions: [],
       });
-      await program.execute(commandBuffer, this, this);
+      await program.execute(commandBuffer, this, this, this);
       if (commandBuffer !== history[history.length - 1]) {
         history.push(commandBuffer);
       }
@@ -252,6 +265,9 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.setState({
       ...this.state,
       running: undefined,
+      commandBuffer: "",
+      tmpBuffer: "",
+      cursor: 0,
       historyIndex: history.length,
       history: history,
     });
