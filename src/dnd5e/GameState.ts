@@ -33,7 +33,7 @@ function repr(e: Monster | Player, index: number): string {
 
 class GameState implements Executable {
   compendium: Compendium = new Compendium();
-  onChange: Function;
+  onChange: (g: GameState) => void;
 
   motd: Monster;
   players: { [key: string]: Player } = {};
@@ -45,7 +45,7 @@ class GameState implements Executable {
   stdout?: Writer;
   stderr?: Writer;
 
-  constructor(compendium: Compendium, onChange: Function) {
+  constructor(compendium: Compendium, onChange: (g: GameState) => void) {
     this.compendium = compendium;
     this.onChange = onChange;
     const monsterNames = Object.keys(this.compendium.monsters);
@@ -101,7 +101,7 @@ class GameState implements Executable {
       }
     }
     this.session?.send(this);
-    this.onChange();
+    this.onChange(this);
     return 0;
   }
 
@@ -452,7 +452,7 @@ class GameState implements Executable {
     this.session = new Session();
     this.session.onMessage = (msg: any) => {
       Object.assign(this, msg);
-      this.onChange();
+      this.onChange(this);
     };
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);

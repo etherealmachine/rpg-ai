@@ -17,12 +17,11 @@ class App extends React.Component<any, AppState> {
     super(props);
     const compendium = new Compendium();
     compendium.load("dnd5e").then(() => {
-      const game = new GameState(compendium, () => {
-        this.setState({
-          ...this.state,
-          game: game,
-        });
-      });
+      const game = new GameState(compendium, this.gameStateChanged.bind(this));
+      const storedState = window.localStorage.getItem("gamestate");
+      if (storedState) {
+        Object.assign(game, storedState);
+      }
       this.setState({
         game: game,
         displayOnly: window.location.search !== '',
@@ -34,6 +33,14 @@ class App extends React.Component<any, AppState> {
     this.state = {
       displayOnly: true,
     };
+  }
+
+  gameStateChanged(game: GameState) {
+    this.setState({
+      ...this.state,
+      game: game,
+    });
+    window.localStorage.setItem("gamestate", JSON.stringify(game));
   }
 
   render() {
