@@ -51,6 +51,7 @@ export interface Monster {
   compendium: { [key: string]: any }
   status?: {
     hp: number,
+    maxHP: number,
     initiative: number;
     actions: NameTextPair[],
     reactions: NameTextPair[],

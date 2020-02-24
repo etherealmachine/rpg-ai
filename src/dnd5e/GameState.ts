@@ -32,6 +32,7 @@ function repr(e: Monster | Player, index: number): string {
 }
 
 class GameState implements Executable {
+  mode: string = "dm";
   compendium: Compendium = new Compendium();
   onChange: (g: GameState) => void;
 
@@ -234,15 +235,16 @@ class GameState implements Executable {
       return `no match found for ${query}`;
     }
     const monster = JSON.parse(JSON.stringify(results[0]));
-    const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
     monster.status = {
       initiative: roll(20) + Compendium.modifier(monster.dex),
     };
+    const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
     if (m) {
       const num = parseInt(m[1]);
       const die = parseInt(m[2]);
       const bonus = parseInt(m[4]);
       monster.status.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
+      monster.status.maxHP = monster.status.hp;
     }
     this.encounter.push(monster);
     return `added ${monster.name}`;
@@ -450,6 +452,7 @@ class GameState implements Executable {
       this.session.teardown();
     }
     this.session = new Session();
+    this.mode = "player";
     this.session.onMessage = (msg: any) => {
       Object.assign(this, msg);
       this.onChange(this);
