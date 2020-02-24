@@ -204,7 +204,12 @@ class GameState implements Executable {
     };
   }
 
-  @command('add player', 'add a player')
+  @command('players', 'list players')
+  listPlayers() {
+    return Object.keys(this.players).map((playerName, index) => `${index + 1}: ${playerName}`).join('\r\n');
+  }
+
+  @command('player', 'add a player')
   addPlayer(name: string) {
     this.players[name] = {
       name: name,
@@ -261,11 +266,6 @@ class GameState implements Executable {
   @command('ls', 'list the status of the current encounter')
   listEncounter() {
     return this.encounter.map(repr).join('\r\n');
-  }
-
-  @command('players', 'list players')
-  listPlayers() {
-    return Object.keys(this.players).map((playerName, index) => `${index + 1}: ${playerName}`).join('\r\n');
   }
 
   @command('bookmark', 'bookmark an item')
@@ -362,7 +362,7 @@ class GameState implements Executable {
     return damage;
   }
 
-  @command('save', 'roll a saving throw for the given targets')
+  @command('dc', 'roll a saving throw for the given targets')
   save(dc: string | number, attribute: string, targets: string | Monster[], points?: string | number, dmgType?: string) {
     if (typeof dc === 'string') {
       dc = parseInt(dc);

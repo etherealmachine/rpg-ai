@@ -20,7 +20,7 @@ class App extends React.Component<any, AppState> {
       const game = new GameState(compendium, this.gameStateChanged.bind(this));
       const storedState = window.localStorage.getItem("gamestate");
       if (storedState) {
-        Object.assign(game, storedState);
+        Object.assign(game, JSON.parse(storedState));
       }
       this.setState({
         game: game,
