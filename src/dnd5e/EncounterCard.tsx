@@ -6,7 +6,7 @@ import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Typography from '@material-ui/core/Typography';
 
-import { Monster } from './Compendium';
+import { Monster, Status, NameTextPair } from './Compendium';
 
 const styles = createStyles({
   card: {
@@ -52,6 +52,20 @@ interface Props extends Monster, WithStyles<typeof styles> { }
 
 class MonsterCard extends React.Component<Props> {
 
+  private renderStatus(status: Status) {
+    if (status.hp) {
+      if (status.hp < Math.floor(status.maxHP) / 2) {
+        return <Typography>Bloodied</Typography>
+      } else if (status.hp <= 0) {
+        return <Typography>Dead</Typography>
+      }
+    }
+  }
+
+  private renderAction(action: NameTextPair, index: number) {
+    return <div key={index}>{action.name}</div>;
+  }
+
   public render() {
     const {
       classes,
@@ -72,8 +86,9 @@ class MonsterCard extends React.Component<Props> {
           <Typography variant="h5">{name}</Typography>
         </div>
         <Typography>{size}</Typography>
-        {status && status.hp < Math.floor(status.maxHP) / 2 && <Typography>Bloodied</Typography>}
+        {status && this.renderStatus(status)}
         {description && <Typography>{description}</Typography>}
+        {status && <div>{status.actions.slice(0, 5).map(this.renderAction)}</div>}}
       </CardContent>
     </Card>
   }

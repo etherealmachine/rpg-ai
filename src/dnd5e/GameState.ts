@@ -267,6 +267,7 @@ class GameState implements Executable {
     if (results.length === 0) {
       return `no match found for ${name}`;
     }
+    console.log(results.slice(0, 10));
     const monster = JSON.parse(JSON.stringify(results[0]));
     monster.status = {
       initiative: roll(20) + Compendium.modifier(monster.dex),
@@ -388,6 +389,9 @@ class GameState implements Executable {
     this.selected = target;
     let damage = points;
     if (target.vulnerable || target.resist || target.immune) {
+      if (target.vulnerable) this.stdout?.write(`Vulnerable: ${target.vulnerable}\r\n`);
+      if (target.resist) this.stdout?.write(`Resist: ${target.resist}\r\n`);
+      if (target.immune) this.stdout?.write(`Immune: ${target.immune}\r\n`);
       this.stdout?.write('damage multiplier? ');
       const multiplier = parseFloat(await this.stdin?.read() || '1');
       this.stdout?.write('\r\n');
@@ -398,23 +402,30 @@ class GameState implements Executable {
   }
 
   @command('dc <dc: number> <attr: string>', 'roll a saving throw')
-  save(dc: number, attribute: string) {
-    /*
-        const savingThrow = roll(20, Compendium.saveModifier(target, attribute));
-        let damage = undefined;
-        if (typeof points === 'number' && dmgType !== undefined) {
-          damage = this.damageMonster(target, points, dmgType);
-        }
-        let suffix = '';
-        if (damage !== undefined) {
-          suffix = ` and takes ${damage} points of ${dmgType} damage`;
-        }
-        if (savingThrow >= dc) {
-          return `${i} passes` + suffix;
-        } else {
-          return `${i} fails` + suffix;
-        }
-    */
+  async save(dc: number, attribute: string) {
+    const attr = Compendium.abilities.find((a: string) => (a.toLowerCase().substring(0, 3) === attribute));
+    if (!attr) {
+      this.stderr?.write(`unknown attriubte ${attribute}\r\n`);
+      return;
+    }
+    this.stdout?.write(`making a ${attr} saving throw, targets? `);
+    const targets = (await this.stdin?.read() || '').split(' ');
+    this.stdout?.write('\r\n');
+    targets.forEach((s: string) => {
+      const i = parseInt(s) - 1;
+      if (i < 0 || i >= this.encounter.length) {
+        return;
+      }
+      const target = this.encounter[i];
+      if (target.kind === 'player') {
+        return;
+      }
+      const targetAbility = (target as any)[attr.substring(0, 3).toLowerCase()];
+      const savingThrow = roll(20, 1);
+      const modifier = Compendium.modifier(targetAbility);
+      const result = (savingThrow + modifier) >= dc ? 'passes' : 'fails';
+      this.stdout?.write(`${i + 1}. ${target.name} rolls a ${savingThrow + modifier} (${savingThrow}+${modifier}) and ${result}\r\n`);
+    });
   }
 
   @command('use <i: number>', 'perform action on the current entity')
@@ -429,6 +440,10 @@ class GameState implements Executable {
       actions = [actions];
     }
     const action = actions[i].text;
+    current.status?.actions.push({
+      name: action,
+      text: '',
+    });
     const m = action.match(/\+(\d+) to hit.*\((\d)+d(\d+)[ +]*(\d*)\) (\w+) damage/);
     if (m) {
       const [toHitBonusStr, nStr, dieStr, dmgBonusStr, dmgType] = m.slice(1);
@@ -444,7 +459,7 @@ class GameState implements Executable {
       dmg += dmgBonus;
       return `does a ${toHit} hit? ${dmg} points of ${dmgType} damage`;
     }
-    return `I don't know how to perform "${action}"`;
+    return action;
   }
 
   @command('show <query: string>', 'show a card for the given item')

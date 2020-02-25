@@ -6,9 +6,9 @@ export interface NameTextPair {
 }
 
 export interface Player {
-  name: string;
+  name: string
   kind: 'player'
-  level?: number;
+  level?: number
   status?: {
     initiative: number
   }
@@ -49,15 +49,17 @@ export interface Monster {
   spells?: string
   slots?: string
   compendium: { [key: string]: any }
-  status?: {
-    hp: number,
-    maxHP: number,
-    initiative: number;
-    actions: NameTextPair[],
-    reactions: NameTextPair[],
-    legendaries: NameTextPair[],
-    conditions: NameTextPair[],
-  }
+  status?: Status
+}
+
+export interface Status {
+  hp: number
+  maxHP: number
+  initiative: number
+  actions: NameTextPair[]
+  reactions: NameTextPair[]
+  legendaries: NameTextPair[]
+  conditions: NameTextPair[]
 }
 
 export interface Spell {
@@ -258,19 +260,6 @@ export class Compendium {
     '28': 120000,
     '29': 135000,
     '30': 155000,
-  }
-
-  // e.g. Dex +5, Con +11, Wis +7, Cha +9
-  public static saveModifier(m: Monster, attr: string): number {
-    if (m.save === undefined) {
-      return 0;
-    }
-    const re = new RegExp(`${attr} \\+?(-?\\d+)`, 'i');
-    const match = re.exec(m.save);
-    if (match !== null) {
-      return parseInt(match[1]);
-    }
-    return 0;
   }
 
   // e.g. AC 19 (natural armor)

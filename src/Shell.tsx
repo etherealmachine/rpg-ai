@@ -83,7 +83,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
       historyIndex: newIndex,
       commandBuffer: this.state.history[newIndex],
       tmpBuffer: historyIndex === this.state.history.length ? commandBuffer : tmpBuffer,
-      cursor: 0,
+      cursor: this.state.history[newIndex].length,
     })
   }
 
@@ -94,7 +94,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
         ...this.state,
         historyIndex: this.state.history.length,
         commandBuffer: tmpBuffer,
-        cursor: 0,
+        cursor: tmpBuffer.length,
       });
       return;
     }
@@ -129,7 +129,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
       ...this.state,
       cursor: Math.max(0, cursor - 1),
       commandBuffer: commandBuffer.substring(0, cursor - 1) + commandBuffer.substring(cursor, commandBuffer.length),
-    })
+    });
   }
 
   addCharacter(data: string) {
