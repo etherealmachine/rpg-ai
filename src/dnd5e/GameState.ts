@@ -6,16 +6,46 @@ import Levenshtein from 'fast-levenshtein';
 
 interface Command extends Function {
   command: string;
+  parse: (args: string) => (string | number)[];
+  syntax: string;
   help: string;
 }
 
-const commands = new Map<string, Command>();
+function buildParser(argTypes: { name: string, type: string }[]): (args: string) => (string | number)[] {
+  return (args: string): (string | number)[] => {
+    if (argTypes.length === 1 && argTypes[0].type === 'string') {
+      return [args];
+    }
+    return args.split(' ').map((arg, index) => {
+      if (argTypes[index].type === 'number') {
+        return parseInt(arg);
+      }
+      return arg;
+    });
+  }
+}
+
+const commands: { [key: string]: Command } = {};
 function command(command: string, help: string) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    descriptor.value.command = command;
+    const groups = command.split('<');
+    descriptor.value.command = groups[0].trim();
+    descriptor.value.syntax = command;
     descriptor.value.help = help;
-    commands.set(command, descriptor.value);
-  };
+    if (groups.length === 1) {
+      descriptor.value.parse = () => { return [] };
+    } else {
+      groups.shift();
+      descriptor.value.parse = buildParser(groups.map((group) => {
+        const [name, type] = group.replace('>', '').split(': ');
+        return {
+          name,
+          type,
+        };
+      }));
+    };
+    commands[descriptor.value.command] = descriptor.value;
+  }
 }
 
 function roll(d: number, count?: number): number {
@@ -69,9 +99,9 @@ class GameState implements Executable {
     this.stdout = stdout;
     this.stderr = stderr;
 
-    for (const key of commands.keys()) {
+    for (const key of Object.keys(commands)) {
       if (commandLine.startsWith(key)) {
-        command = commands.get(key);
+        command = commands[key];
         commandLine = commandLine.replace(key, '').trim();
         break;
       }
@@ -82,7 +112,7 @@ class GameState implements Executable {
     }
     let result;
     try {
-      result = await command.call(this, commandLine);
+      result = await command.apply(this, command.parse(commandLine));
     } catch {
       this.stdin = undefined;
       this.stdout = undefined;
@@ -168,7 +198,7 @@ class GameState implements Executable {
 
   @command('help', 'this help message')
   help() {
-    return Array.from(commands.values()).map((command) => `${command.command} - ${command.help}`).join('\r\n');
+    return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).join('\r\n');
   }
 
   @command('new', 'start a new encounter')
@@ -211,7 +241,7 @@ class GameState implements Executable {
     return Object.keys(this.players).map((playerName, index) => `${index + 1}: ${playerName}`).join('\r\n');
   }
 
-  @command('player', 'add a player')
+  @command('player <level: number>', 'add a player')
   addPlayer(name: string) {
     this.players[name] = {
       name: name,
@@ -223,17 +253,17 @@ class GameState implements Executable {
     return `added player ${name}`;
   }
 
-  @command('add', 'add a monster or player to the current encounter')
-  addEntity(query: string) {
-    const matchingPlayers = Object.keys(this.players).filter((name) => name.toLowerCase() === query.toLowerCase());
+  @command('add <name: string>', 'add a monster or player to the current encounter')
+  addEntity(name: string) {
+    const matchingPlayers = Object.keys(this.players).filter((key) => key.toLowerCase() === name.toLowerCase());
     if (matchingPlayers.length === 1) {
       const player = this.players[matchingPlayers[0]];
       this.encounter.push(player);
       return `added ${player.name}`;
     }
-    const results = this.search(query, ['monster']);
+    const results = this.search(name, ['monster']);
     if (results.length === 0) {
-      return `no match found for ${query}`;
+      return `no match found for ${name}`;
     }
     const monster = JSON.parse(JSON.stringify(results[0]));
     monster.status = {
@@ -251,11 +281,9 @@ class GameState implements Executable {
     return `added ${monster.name}`;
   }
 
-  @command('rm', 'remove a monster or player from the current encounter')
-  removeEntity(i: string | number) {
-    if (typeof i === 'string') {
-      i = parseInt(i) - 1;
-    }
+  @command('rm <i: number>', 'remove a monster or player from the current encounter')
+  removeEntity(i: number) {
+    i--;
     if (isNaN(i) && this.currentIndex !== undefined) {
       i = this.currentIndex;
     }
@@ -271,11 +299,11 @@ class GameState implements Executable {
     return this.encounter.map(repr).join('\r\n');
   }
 
-  @command('bookmark', 'bookmark an item')
-  bookmark(query: string) {
-    const results = this.search(query);
+  @command('bookmark <name: string>', 'bookmark an item')
+  bookmark(name: string) {
+    const results = this.search(name);
     if (results.length === 0) {
-      return `no match found for ${query}`;
+      return `no match found for ${name}`;
     }
     const item = results[0];
     this.bookmarks[item.name] = item;
@@ -342,14 +370,9 @@ class GameState implements Executable {
     return actions.map((action, i) => `${i + 1}: ${action.name} - ${action.text}`).join('\r\n');
   }
 
-  @command('hit', 'damage target')
-  dmg(i: string | number, points: string | number, dmgType: string) {
-    if (typeof i === 'string') {
-      i = parseInt(i) - 1;
-    }
-    if (typeof points === 'string') {
-      points = parseInt(points);
-    }
+  @command('dmg <i: number> <points: number>', 'damage target')
+  async dmg(i: number, points: number) {
+    i--;
     if (i < 0 || i >= this.encounter.length) {
       return `target ${i} is out-of-bounds`;
     }
@@ -357,35 +380,24 @@ class GameState implements Executable {
     if (target.kind === 'player') {
       return `cannot damage player ${target.name}`;
     }
-    return `${target.name} took ${this.damageMonster(target, points, dmgType)} points of damage`;
+    if (!target.status) {
+      return `${target.name} has no status`;
+    }
+    this.selected = target;
+    let damage = points;
+    if (target.vulnerable || target.resist || target.immune) {
+      this.stdout?.write('damage multiplier? ');
+      const multiplier = parseFloat(await this.stdin?.read() || '1');
+      this.stdout?.write('\r\n');
+      damage = Math.floor(points * multiplier);
+    }
+    target.status.hp -= damage;
+    return `${target.name} took ${damage} points of damage`;
   }
 
-  damageMonster(monster: Monster, points: number, dmgType: string): number {
-    if (!monster.status) return NaN;
-    const damageMultipler = Compendium.damageMultiplier(monster, dmgType);
-    const damage = Math.floor(points * damageMultipler);
-    monster.status.hp -= damage;
-    return damage;
-  }
-
-  @command('dc', 'roll a saving throw for the given targets')
-  save(dc: string | number, attribute: string, targets: string | Monster[], points?: string | number, dmgType?: string) {
-    if (typeof dc === 'string') {
-      dc = parseInt(dc);
-    }
-    if (typeof points === 'string') {
-      points = parseInt(points);
-    }
-    if (typeof targets === 'string') {
-      return targets.split(',').map((s) => {
-        const i = parseInt(s);
-        if (isNaN(i) || i < 0 || i >= this.encounter.length) {
-          return null;
-        }
-        const target = this.encounter[i];
-        if (target.kind === 'player') {
-          return `ignoring player at index ${i}`;
-        }
+  @command('dc <dc: number> <attr: string>', 'roll a saving throw')
+  save(dc: number, attribute: string) {
+    /*
         const savingThrow = roll(20, Compendium.saveModifier(target, attribute));
         let damage = undefined;
         if (typeof points === 'number' && dmgType !== undefined) {
@@ -400,15 +412,12 @@ class GameState implements Executable {
         } else {
           return `${i} fails` + suffix;
         }
-      }).join('\r\n');
-    }
+    */
   }
 
-  @command('use', 'perform action on the current entity')
-  use(i: string | number) {
-    if (typeof i === 'string') {
-      i = parseInt(i) - 1;
-    }
+  @command('use <i: number>', 'perform action on the current entity')
+  use(i: number) {
+    i--;
     const current = this.encounter[this.currentIndex];
     if (current.kind === 'player') {
       return `todo`
@@ -436,7 +445,7 @@ class GameState implements Executable {
     return `I don't know how to perform "${action}"`;
   }
 
-  @command('show', 'show a card for the given item')
+  @command('show <query: string>', 'show a card for the given item')
   show(query: string) {
     const results = this.search(query);
     if (results.length === 0) {
@@ -447,7 +456,7 @@ class GameState implements Executable {
 
   session?: Session;
 
-  @command('host', 'host a new session')
+  @command('host <code: string>', 'host a new session')
   host(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();
@@ -459,7 +468,7 @@ class GameState implements Executable {
     });
   }
 
-  @command('join', 'join an existing session')
+  @command('join <code: string>', 'join an existing session')
   join(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();

@@ -260,20 +260,6 @@ export class Compendium {
     '30': 155000,
   }
 
-  // e.g. cold, fire, lightning, bludgeoning, piercing, and slashing from nonmagical weapons
-  public static damageMultiplier(m: Monster, damageType: string): number {
-    if (m.immune !== undefined && m.immune.includes(damageType)) {
-      return 0;
-    }
-    if (m.resist !== undefined && m.resist.includes(damageType)) {
-      return 0.5;
-    }
-    if (m.vulnerable !== undefined && m.vulnerable.includes(damageType)) {
-      return 2;
-    }
-    return 1;
-  }
-
   // e.g. Dex +5, Con +11, Wis +7, Cha +9
   public static saveModifier(m: Monster, attr: string): number {
     if (m.save === undefined) {
