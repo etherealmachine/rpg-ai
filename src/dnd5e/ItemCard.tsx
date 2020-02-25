@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 
-import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import Typography from '@material-ui/core/Typography';
 
@@ -84,9 +82,6 @@ class ItemCard extends React.Component<Props> {
         <Typography>AC: {item.ac}</Typography>
         {this.renderText(item.text)}
       </CardContent>
-      <CardActions>
-        <Button color="primary">Add To Character</Button>
-      </CardActions>
     </Card>
   }
 }
