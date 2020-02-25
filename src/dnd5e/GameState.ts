@@ -41,6 +41,7 @@ class GameState implements Executable {
   encounter: Array<Monster | Player> = [];
   currentIndex: number = 0;
   bookmarks: { [key: string]: CompendiumItem } = {};
+  selected?: CompendiumItem;
 
   stdin?: Reader;
   stdout?: Writer;
@@ -300,6 +301,7 @@ class GameState implements Executable {
     if (this.encounter.length === 0) {
       return 'empty encounter';
     }
+    this.selected = this.encounter[this.currentIndex];
     return repr(this.encounter[this.currentIndex], this.currentIndex);
   }
 
@@ -310,6 +312,7 @@ class GameState implements Executable {
     }
     this.currentIndex++;
     this.currentIndex = this.currentIndex % this.encounter.length;
+    this.selected = this.encounter[this.currentIndex];
     return this.currTurn();
   }
 
@@ -322,6 +325,7 @@ class GameState implements Executable {
     if (this.currentIndex === -1) {
       this.currentIndex = this.encounter.length - 1;
     }
+    this.selected = this.encounter[this.currentIndex];
     return this.currTurn();
   }
 
@@ -338,7 +342,7 @@ class GameState implements Executable {
     return actions.map((action, i) => `${i + 1}: ${action.name} - ${action.text}`).join('\r\n');
   }
 
-  @command('dmg', 'damage target')
+  @command('hit', 'damage target')
   dmg(i: string | number, points: string | number, dmgType: string) {
     if (typeof i === 'string') {
       i = parseInt(i) - 1;
@@ -430,6 +434,15 @@ class GameState implements Executable {
       return `does a ${toHit} hit? ${dmg} points of ${dmgType} damage`;
     }
     return `I don't know how to perform "${action}"`;
+  }
+
+  @command('show', 'show a card for the given item')
+  show(query: string) {
+    const results = this.search(query);
+    if (results.length === 0) {
+      return `no match found for ${query}`;
+    }
+    this.selected = results[0];
   }
 
   session?: Session;

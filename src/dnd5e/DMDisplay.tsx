@@ -9,6 +9,8 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 
 import MonsterCard from './MonsterCard';
+import SpellCard from './SpellCard';
+import ItemCard from './ItemCard';
 import GameState from './GameState';
 
 interface Props {
@@ -25,14 +27,14 @@ const useStyles = makeStyles({
   },
   table: {
   },
-  monsterContainer: {
+  cardContainer: {
 
   },
 });
 
 export default function DMDisplay(props: Props) {
   const classes = useStyles();
-  const curr = props.game.encounter[props.game.currentIndex];
+  const selection = props.game.selected || props.game.encounter[props.game.currentIndex];
   const rows = props.game.encounter.map((e, index) => <TableRow key={index} className={index === props.game.currentIndex ? classes.highlight : ''}>
     <TableCell align="left">{index + 1}</TableCell>
     <TableCell component="th" scope="row">{e.name}</TableCell>
@@ -55,6 +57,8 @@ export default function DMDisplay(props: Props) {
         <TableBody>{rows}</TableBody>
       </Table>
     </TableContainer>
-    {curr && curr.kind === 'monster' && <div className={classes.monsterContainer}><MonsterCard {...curr} /></div>}
+    {selection && selection.kind === 'monster' && <div className={classes.cardContainer}><MonsterCard monster={selection} /></div>}
+    {selection && selection.kind === 'spell' && <div className={classes.cardContainer}><SpellCard spell={selection} /></div>}
+    {selection && selection.kind === 'item' && <div className={classes.cardContainer}><ItemCard item={selection} /></div>}
   </div>);
 }

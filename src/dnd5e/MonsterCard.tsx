@@ -59,7 +59,9 @@ const styles = createStyles({
   },
 });
 
-interface Props extends Monster, WithStyles<typeof styles> { }
+interface Props extends WithStyles<typeof styles> {
+  monster: Monster;
+}
 
 class MonsterCard extends React.Component<Props> {
 
@@ -83,8 +85,8 @@ class MonsterCard extends React.Component<Props> {
   }
 
   public render() {
+    const { classes, monster } = this.props;
     const {
-      classes,
       name,
       imageURL,
       cr, ac, hp, passive,
@@ -101,7 +103,7 @@ class MonsterCard extends React.Component<Props> {
       save,
       resist, vulnerable, immune, conditionImmune,
       spells, slots,
-    } = this.props;
+    } = monster;
     const actions = this.renderActions(action);
     const reactions = this.renderActions(reaction);
     const legendaryActions = this.renderActions(legendary);
