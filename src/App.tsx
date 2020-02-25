@@ -36,7 +36,7 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
     compendium.load("dnd5e").then(() => {
       const game = new GameState(compendium, this.gameStateChanged.bind(this));
       const storedState = window.localStorage.getItem("gamestate");
-      if (storedState) {
+      if (storedState && !window.location.search) {
         Object.assign(game, JSON.parse(storedState));
       }
       this.setState({

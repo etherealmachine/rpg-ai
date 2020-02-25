@@ -21,23 +21,6 @@ var WebsocketUpgrader = websocket.Upgrader{
 	},
 }
 
-type RTCMsg struct {
-	Peers      int             `json:"peers"`
-	Offer      *RTCOffer       `json:"offer,omitempty"`
-	Candidates []*RTCCandidate `json:"candidates,omitempty"`
-}
-
-type RTCOffer struct {
-	Type string `json:"type"`
-	SDP  string `json:"sdp"`
-}
-
-type RTCCandidate struct {
-	Candidate     string `json:"candidate"`
-	SDPMid        string `json:"sdpMid"`
-	SDPMLineIndex int    `json:"sdpMLineIndex"`
-}
-
 type Session struct {
 	sync.Mutex
 	Code  string
@@ -48,12 +31,6 @@ func (s *Session) AddPeer(conn *websocket.Conn) {
 	s.Lock()
 	s.Peers.PushBack(conn)
 	s.Unlock()
-	msg := &RTCMsg{Peers: s.Peers.Len()}
-	s.Broadcast(msg, conn)
-	if err := conn.WriteJSON(msg); err != nil {
-		log.Println(err)
-		s.RemovePeer(conn)
-	}
 }
 
 func (s *Session) RemovePeer(conn *websocket.Conn) {
@@ -67,13 +44,10 @@ func (s *Session) RemovePeer(conn *websocket.Conn) {
 	if s.Peers.Len() == 0 {
 		log.Printf("closing session %q", s.Code)
 		sessions[s.Code] = nil
-	} else {
-		msg := &RTCMsg{Peers: s.Peers.Len()}
-		s.Broadcast(msg, nil)
 	}
 }
 
-func (s *Session) Broadcast(m *RTCMsg, exceptTo *websocket.Conn) {
+func (s *Session) Broadcast(m *interface{}, exceptTo *websocket.Conn) {
 	s.Lock()
 	var failed []*websocket.Conn
 	for e := s.Peers.Front(); e != nil; e = e.Next() {
@@ -112,7 +86,7 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("adding peer to %q", sessionCode)
 	session.AddPeer(conn)
 	for {
-		msg := new(RTCMsg)
+		msg := new(interface{})
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			log.Println(err)

@@ -132,7 +132,9 @@ class GameState implements Executable {
         return 1;
       }
     }
-    this.session?.send(this);
+    if (this.mode === 'dm') {
+      this.session?.send(JSON.stringify(this));
+    }
     this.onChange(this);
     return 0;
   }
@@ -464,7 +466,7 @@ class GameState implements Executable {
     this.session = new Session();
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
-      this.session?.connect(code, true);
+      this.session?.connect(code);
     });
   }
 
@@ -475,13 +477,13 @@ class GameState implements Executable {
     }
     this.session = new Session();
     this.mode = "player";
-    this.session.onMessage = (msg: any) => {
-      Object.assign(this, msg);
+    this.session.onMessage = (data: string) => {
+      Object.assign(this, JSON.parse(data));
       this.onChange(this);
     };
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
-      this.session?.connect(code, false);
+      this.session?.connect(code);
     });
   }
 
@@ -503,7 +505,9 @@ class GameState implements Executable {
       this.stderr?.write('connection established!');
       this.stderr?.write(TerminalCodes.Reset);
       this.stdout?.write('\r\n');
-      this.session?.send(this);
+      if (this.mode === 'dm') {
+        this.session?.send(this);
+      }
       resolve();
     };
   }
