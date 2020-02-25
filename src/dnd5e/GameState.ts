@@ -206,7 +206,7 @@ class GameState implements Executable {
     };
   }
 
-  @command('players', 'list players')
+  @command('roster', 'list players')
   listPlayers() {
     return Object.keys(this.players).map((playerName, index) => `${index + 1}: ${playerName}`).join('\r\n');
   }

@@ -14,12 +14,17 @@ interface AppState {
 const styles = createStyles({
   app: {
     height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 'auto',
   },
   display: {
-    height: '60%',
+    height: '100%',
+    flex: 4,
   },
   shell: {
-    height: '40%',
+    height: '100%',
+    flex: 3,
   },
 });
 
