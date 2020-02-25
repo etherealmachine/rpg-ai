@@ -1,5 +1,5 @@
 import React from 'react';
-import './App.css';
+import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 
 import GameState from './dnd5e/GameState';
 import Display from './dnd5e/Display';
@@ -11,7 +11,19 @@ interface AppState {
   displayOnly: boolean;
 }
 
-class App extends React.Component<any, AppState> {
+const styles = createStyles({
+  app: {
+    height: '100%',
+  },
+  display: {
+    height: '60%',
+  },
+  shell: {
+    height: '40%',
+  },
+});
+
+class App extends React.Component<WithStyles<typeof styles>, AppState> {
 
   constructor(props: any) {
     super(props);
@@ -44,16 +56,17 @@ class App extends React.Component<any, AppState> {
   }
 
   render() {
+    const { classes } = this.props;
     if (!this.state.game) {
       return <div>Loading...</div>;
     }
     return (
-      <div className="App">
-        <Display game={this.state.game} />
-        {!this.state.displayOnly && <Shell program={this.state.game} />}
+      <div className={classes.app}>
+        <div className={classes.display}><Display game={this.state.game} /></div>
+        {!this.state.displayOnly && <div className={classes.shell}><Shell program={this.state.game} /></div>}
       </div>
     );
   }
 }
 
-export default App;
+export default withStyles(styles)(App);

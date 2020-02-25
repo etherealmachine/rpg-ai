@@ -1,5 +1,4 @@
 import React from 'react';
-import './App.css';
 
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -276,7 +275,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   render() {
     return (
-      <div ref={el => this.termEl = el} />
+      <div style={{ height: '100%' }} ref={el => this.termEl = el} />
     );
   }
 }

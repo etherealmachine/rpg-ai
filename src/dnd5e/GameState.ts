@@ -251,7 +251,7 @@ class GameState implements Executable {
     return `added ${monster.name}`;
   }
 
-  @command('remove', 'remove a monster or player from the current encounter')
+  @command('rm', 'remove a monster or player from the current encounter')
   removeEntity(i: string | number) {
     if (typeof i === 'string') {
       i = parseInt(i) - 1;
