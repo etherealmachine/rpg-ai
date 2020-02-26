@@ -6,7 +6,7 @@ class Session {
   public onEvent: (event: string) => void = () => { };
   public onError: (handleSignalServerError: string) => void = () => { };
   public onConnect: () => void = () => { };
-  public onMessage: (data: string) => void = () => { };
+  public onMessage: (obj: any) => void = () => { };
 
   public connect(sessionCode: string) {
     const protocol = document.location.protocol === 'https' ? 'wss' : 'ws';
@@ -39,7 +39,7 @@ class Session {
   }
 
   private async handleMessage(event: MessageEvent) {
-    this.onMessage(event.data);
+    this.onMessage(JSON.parse(event.data));
   }
 
 }

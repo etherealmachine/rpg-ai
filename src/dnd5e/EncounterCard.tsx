@@ -53,11 +53,11 @@ interface Props extends Monster, WithStyles<typeof styles> { }
 class MonsterCard extends React.Component<Props> {
 
   private renderStatus(status: Status) {
-    if (status.hp) {
-      if (status.hp < Math.floor(status.maxHP) / 2) {
-        return <Typography>Bloodied</Typography>
-      } else if (status.hp <= 0) {
+    if (status.hp !== undefined) {
+      if (status.hp <= 0) {
         return <Typography>Dead</Typography>
+      } else if (status.hp < Math.floor(status.maxHP) / 2) {
+        return <Typography>Bloodied</Typography>
       }
     }
   }
@@ -88,7 +88,7 @@ class MonsterCard extends React.Component<Props> {
         <Typography>{size}</Typography>
         {status && this.renderStatus(status)}
         {description && <Typography>{description}</Typography>}
-        {status && <div>{status.actions.slice(0, 5).map(this.renderAction)}</div>}}
+        {status && <div>{status.actions.slice(0, 5).map(this.renderAction)}</div>}
       </CardContent>
     </Card>
   }

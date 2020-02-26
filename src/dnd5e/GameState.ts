@@ -133,7 +133,7 @@ class GameState implements Executable {
       }
     }
     if (this.mode === 'dm') {
-      this.session?.send(JSON.stringify(this));
+      this.session?.send(this);
     }
     this.onChange(this);
     return 0;
@@ -267,10 +267,13 @@ class GameState implements Executable {
     if (results.length === 0) {
       return `no match found for ${name}`;
     }
-    console.log(results.slice(0, 10));
     const monster = JSON.parse(JSON.stringify(results[0]));
     monster.status = {
       initiative: roll(20) + Compendium.modifier(monster.dex),
+      actions: [],
+      reactions: [],
+      legendaries: [],
+      conditions: [],
     };
     const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
     if (m) {
@@ -492,10 +495,11 @@ class GameState implements Executable {
     }
     this.session = new Session();
     this.mode = "player";
-    this.session.onMessage = (data: string) => {
-      Object.assign(this, JSON.parse(data));
+    this.session.onMessage = (obj: string) => {
+      Object.assign(this, obj);
       this.onChange(this);
     };
+    this.onChange(this);
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
       this.session?.connect(code);

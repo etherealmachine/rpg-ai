@@ -57,7 +57,9 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
       ...this.state,
       game: game,
     });
-    window.localStorage.setItem("gamestate", JSON.stringify(game));
+    if (game.mode === 'dm') {
+      window.localStorage.setItem("gamestate", JSON.stringify(game));
+    }
   }
 
   render() {

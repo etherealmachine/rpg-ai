@@ -37,7 +37,6 @@ export default function PlayerDisplay(props: Props) {
     <TableCell align="left">{index + 1}</TableCell>
     <TableCell component="th" scope="row">{e.name}</TableCell>
     <TableCell align="right">{e.status?.initiative}</TableCell>
-    <TableCell align="right">{('hp' in e) ? e.hp : ''}</TableCell>
   </TableRow>);
   return (<div className={classes.container}>
     <TableContainer component={Paper}>
@@ -47,7 +46,6 @@ export default function PlayerDisplay(props: Props) {
             <TableCell align="left"></TableCell>
             <TableCell>Name</TableCell>
             <TableCell align="right">Initiative</TableCell>
-            <TableCell align="right">Conditions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>{rows}</TableBody>
