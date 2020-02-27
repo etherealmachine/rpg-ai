@@ -2,7 +2,7 @@ import React from 'react';
 import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 
 import Compendium from './Compendium';
-import GameState from './GameState';
+import GameState, { GameMode } from './GameState';
 import Display from './Display';
 import Shell from '../Shell';
 
@@ -32,9 +32,18 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
   constructor(props: any) {
     super(props);
     const compendium = new Compendium();
-    compendium.load('dnd5e').then(() => this.setState({
-      game: new GameState(compendium, this.updateGameState.bind(this)),
-    }));
+    compendium.load('dnd5e').then(() => {
+      let game: GameState;
+      if (window.location.search) {
+        game = new GameState(GameMode.Player, compendium, this.updateGameState.bind(this));
+        game.join(window.location.search.substring(1));
+      } else {
+        game = new GameState(GameMode.DM, compendium, this.updateGameState.bind(this));
+      }
+      this.setState({
+        game: game,
+      });
+    });
     this.state = {};
   }
 
@@ -50,7 +59,7 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
       return (
         <div className={classes.app}>
           <div className={classes.display}><Display game={this.state.game} /></div>
-          {this.state.game.mode === 'dm' && <div className={classes.shell}><Shell program={this.state.game} /></div>}
+          {this.state.game.mode === GameMode.DM && <div className={classes.shell}><Shell program={this.state.game} /></div>}
         </div>
       );
     }

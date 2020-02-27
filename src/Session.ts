@@ -8,10 +8,14 @@ class Session {
   public onConnect: () => void = () => { };
   public onMessage: (obj: any) => void = () => { };
 
-  public connect(sessionCode: string) {
+  public constructor(sessionCode: string) {
+    this.sessionCode = sessionCode;
+  }
+
+  public connect() {
     const protocol = document.location.protocol === 'https' ? 'wss' : 'ws';
     const hostname = document.location.host.includes('localhost') ? 'localhost:8000' : document.location.host;
-    this.server = new WebSocket(`${protocol}://${hostname}/session/${sessionCode}`);
+    this.server = new WebSocket(`${protocol}://${hostname}/session/${this.sessionCode}`);
     this.server.onopen = this.handleOpen.bind(this);
     this.server.onclose = this.handleClose.bind(this);
     this.server.onerror = this.handleError.bind(this);

@@ -61,9 +61,15 @@ function repr(e: Monster | Player, index: number): string {
   return `${index + 1}. ${e.name}`;
 }
 
+export enum GameMode {
+  DM = 0,
+  Player
+}
+
 class GameState implements Executable {
-  mode: string = "dm";
+  mode: GameMode;
   compendium: Compendium = new Compendium();
+  session?: Session;
   setState: (g: GameState) => void;
 
   motd: Monster;
@@ -77,11 +83,28 @@ class GameState implements Executable {
   stdout?: Writer;
   stderr?: Writer;
 
-  constructor(compendium: Compendium, setState: (g: GameState) => void) {
+  constructor(mode: GameMode, compendium: Compendium, setState: (g: GameState) => void) {
+    this.mode = mode;
     this.compendium = compendium;
     this.setState = setState;
     const monsterNames = Object.keys(this.compendium.monsters);
     this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
+    const savedState = window.localStorage.getItem('dnd5e.gamestate');
+    if (mode === GameMode.DM && savedState) {
+      const state = JSON.parse(savedState);
+      Object.assign(this, state);
+      if (state.sessionCode) {
+        this.session = new Session(state.sessionCode);
+      }
+    }
+  }
+
+  private onChange() {
+    this.setState(this);
+    if (this.mode === GameMode.DM) {
+      window.localStorage.setItem('dnd5e.gamestate', JSON.stringify(this));
+      this.session?.send(this);
+    }
   }
 
   toJSON() {
@@ -90,6 +113,7 @@ class GameState implements Executable {
       encounter: this.encounter,
       currentIndex: this.currentIndex,
       bookmarks: this.bookmarks,
+      sessionCode: this.session?.sessionCode,
     };
   }
 
@@ -132,10 +156,7 @@ class GameState implements Executable {
         return 1;
       }
     }
-    if (this.mode === 'dm') {
-      this.session?.send(this);
-    }
-    this.setState(this);
+    this.onChange();
     return 0;
   }
 
@@ -157,11 +178,14 @@ class GameState implements Executable {
   }
 
   startup() {
-    let encounter = '';
-    if (this.encounter.length > 0) {
-      encounter = `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
+    let msg = `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd?.name}\r\n`;
+    if (this.session) {
+      msg += `Resuming session "${this.session.sessionCode}"\r\n`;
     }
-    return `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd?.name}\r\n${encounter}`;
+    if (this.encounter.length > 0) {
+      msg += `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
+    }
+    return msg;
   }
 
   search(query: string, kinds?: string[]): CompendiumItem[] {
@@ -474,17 +498,21 @@ class GameState implements Executable {
     this.selected = results[0];
   }
 
-  session?: Session;
-
   @command('host <code: string>', 'host a new session')
   host(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();
     }
-    this.session = new Session();
+    this.session = new Session(code);
+    this.mode = GameMode.DM;
+    this.session.onMessage = (obj: any) => {
+      if (obj === "new_peer") {
+        this.session?.send(this);
+      }
+    };
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
-      this.session?.connect(code);
+      this.session?.connect();
     });
   }
 
@@ -493,21 +521,25 @@ class GameState implements Executable {
     if (this.session) {
       this.session.teardown();
     }
-    this.session = new Session();
-    this.mode = "player";
-    this.session.onMessage = (obj: string) => {
-      Object.assign(this, obj);
-      this.setState(this);
+    this.session = new Session(code);
+    this.mode = GameMode.Player;
+    this.session.onMessage = (obj: any) => {
+      if (obj !== "new_peer") {
+        Object.assign(this, obj);
+        this.onChange();
+      }
     };
-    this.setState(this);
+    this.onChange();
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
-      this.session?.connect(code);
+      this.session?.connect();
     });
   }
 
   @command('leave', 'leave the existing session')
   leave() {
+    this.session?.teardown();
+    this.session = undefined;
   }
 
   attachSessionHandlers(resolve: () => void, reject: () => void) {
@@ -528,8 +560,10 @@ class GameState implements Executable {
       this.stderr?.write('connection established!');
       this.stderr?.write(TerminalCodes.Reset);
       this.stdout?.write('\r\n');
-      if (this.mode === 'dm') {
+      if (this.mode === GameMode.DM) {
         this.session?.send(this);
+      } else {
+        this.session?.send('new_peer');
       }
       resolve();
     };
