@@ -98,7 +98,7 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("ok"))
+	http.ServeFile(w, r, "build/index.html")
 }
 
 func main() {
@@ -109,6 +109,7 @@ func main() {
 
 	r := mux.NewRouter().StrictSlash(true)
 	r.HandleFunc("/session/{code}", sessionHandler)
+	r.PathPrefix("/app").HandlerFunc(indexHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 	http.Handle("/", r)
 
