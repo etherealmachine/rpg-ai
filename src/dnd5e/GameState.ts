@@ -64,7 +64,7 @@ function repr(e: Monster | Player, index: number): string {
 class GameState implements Executable {
   mode: string = "dm";
   compendium: Compendium = new Compendium();
-  onChange: (g: GameState) => void;
+  setState: (g: GameState) => void;
 
   motd: Monster;
   players: { [key: string]: Player } = {};
@@ -77,11 +77,12 @@ class GameState implements Executable {
   stdout?: Writer;
   stderr?: Writer;
 
-  constructor(compendium: Compendium, onChange: (g: GameState) => void) {
-    this.compendium = compendium;
-    this.onChange = onChange;
+  constructor(setState: (g: GameState) => void) {
+    this.compendium = new Compendium();
+    this.setState = setState;
     const monsterNames = Object.keys(this.compendium.monsters);
     this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
+    this.compendium.load('dnd5e').then(() => { this.setState(this) });
   }
 
   toJSON() {
@@ -135,7 +136,7 @@ class GameState implements Executable {
     if (this.mode === 'dm') {
       this.session?.send(this);
     }
-    this.onChange(this);
+    this.setState(this);
     return 0;
   }
 
@@ -497,9 +498,9 @@ class GameState implements Executable {
     this.mode = "player";
     this.session.onMessage = (obj: string) => {
       Object.assign(this, obj);
-      this.onChange(this);
+      this.setState(this);
     };
-    this.onChange(this);
+    this.setState(this);
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
       this.session?.connect(code);

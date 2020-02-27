@@ -1,79 +1,28 @@
 import React from 'react';
-import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 
-import GameState from './dnd5e/GameState';
-import Display from './dnd5e/Display';
-import Shell from './Shell';
-import { Compendium } from './dnd5e/Compendium';
+import DND5E from './dnd5e/App';
 
 interface AppState {
-  game?: GameState;
-  displayOnly: boolean;
+  module: string
 }
 
-const styles = createStyles({
-  app: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 'auto',
-  },
-  display: {
-    height: '100%',
-    flex: 4,
-  },
-  shell: {
-    height: '100%',
-    flex: 3,
-  },
-});
-
-class App extends React.Component<WithStyles<typeof styles>, AppState> {
+class App extends React.Component<any, AppState> {
 
   constructor(props: any) {
     super(props);
-    const compendium = new Compendium();
-    compendium.load("dnd5e").then(() => {
-      const game = new GameState(compendium, this.gameStateChanged.bind(this));
-      const storedState = window.localStorage.getItem("gamestate");
-      if (storedState && !window.location.search) {
-        Object.assign(game, JSON.parse(storedState));
-      }
-      this.setState({
-        game: game,
-        displayOnly: window.location.search !== '',
-      });
-      if (window.location.search) {
-        game.join(window.location.search.slice(1));
-      }
-    });
     this.state = {
-      displayOnly: true,
+      module: window.location.pathname.split('/')[1],
     };
   }
 
-  gameStateChanged(game: GameState) {
-    this.setState({
-      ...this.state,
-      game: game,
-    });
-    if (game.mode === 'dm') {
-      window.localStorage.setItem("gamestate", JSON.stringify(game));
-    }
-  }
-
   render() {
-    const { classes } = this.props;
-    if (!this.state.game) {
-      return <div>Loading...</div>;
+    switch (this.state.module) {
+      case 'dnd5e':
+        return <DND5E />
+      default:
+        return <div>{`Module ${this.state.module} not found`}</div>
     }
-    return (
-      <div className={classes.app}>
-        <div className={classes.display}><Display game={this.state.game} /></div>
-        {!this.state.displayOnly && <div className={classes.shell}><Shell program={this.state.game} /></div>}
-      </div>
-    );
   }
 }
 
-export default withStyles(styles)(App);
+export default App;
