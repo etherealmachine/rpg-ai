@@ -37,6 +37,10 @@ interface ShellState {
 }
 
 const DEFAULT_PROMPT = `${TerminalCodes.Red}${TerminalCodes.Bold}rpg.ai > ${TerminalCodes.Reset}`;
+const ANSI_ESCAPE_CODES = new RegExp([
+  '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+  '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))'
+].join('|'), 'g');
 
 class Shell extends React.Component<ShellProps, ShellState> {
 
@@ -215,31 +219,28 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   displayPrompt() {
     this.term.write(TerminalCodes.SetColumn(0));
-    const prompt = this.props.program.prompt?.call(this.props.program);
-    if (prompt) {
-      this.term.write(prompt);
-    } else {
-      this.term.write(DEFAULT_PROMPT);
-    }
+    const prompt = this.props.program.prompt?.call(this.props.program) || DEFAULT_PROMPT;
+    this.term.write(prompt);
     this.term.write(TerminalCodes.ClearLine(0));
     this.term.write(this.state.commandBuffer);
     this.term.write(TerminalCodes.ClearScreen(0));
     if (this.state.suggestions.length > 0) {
       this.term.write('\r\n');
       this.state.suggestions
-        .slice(0, Math.min(10, this.state.suggestions.length))
         .forEach((suggestion) => {
           this.term.write(suggestion);
           this.term.write('\r\n');
         });
-      this.term.write(TerminalCodes.Up(Math.min(10, this.state.suggestions.length) + 1));
-      this.term.write(TerminalCodes.SetColumn(8 + this.state.commandBuffer.length + 2));
+      this.term.write(TerminalCodes.Up(this.state.suggestions.length) + 1);
     }
+    this.term.write(TerminalCodes.SetColumn(prompt.replace(ANSI_ESCAPE_CODES, '').length + this.state.cursor + 1));
   }
 
   async runCommand() {
     const { program } = this.props;
     const { commandBuffer, history } = this.state;
+    const prompt = this.props.program.prompt?.call(this.props.program) || DEFAULT_PROMPT;
+    this.term.write(TerminalCodes.SetColumn(prompt.replace(ANSI_ESCAPE_CODES, '').length + this.state.commandBuffer.length + 1));
     this.term.write(TerminalCodes.ClearScreen(0));
     this.term.write('\r\n');
     if (commandBuffer === 'history') {

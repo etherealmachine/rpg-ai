@@ -174,6 +174,12 @@ class GameState implements Executable {
     if (partial === "") {
       return new Array(...commands.keys());
     }
+    for (const key of Object.keys(commands)) {
+      if (partial.startsWith(key)) {
+        partial = partial.replace(key, '').trim();
+        break;
+      }
+    }
     return this.search(partial).map((item) => item.name).slice(0, 10);
   }
 
