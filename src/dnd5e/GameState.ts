@@ -77,12 +77,11 @@ class GameState implements Executable {
   stdout?: Writer;
   stderr?: Writer;
 
-  constructor(setState: (g: GameState) => void) {
-    this.compendium = new Compendium();
+  constructor(compendium: Compendium, setState: (g: GameState) => void) {
+    this.compendium = compendium;
     this.setState = setState;
     const monsterNames = Object.keys(this.compendium.monsters);
     this.motd = this.compendium.monsters[monsterNames[Math.floor(Math.random() * monsterNames.length)]];
-    this.compendium.load('dnd5e').then(() => { this.setState(this) });
   }
 
   toJSON() {
@@ -505,6 +504,10 @@ class GameState implements Executable {
       this.attachSessionHandlers(resolve, reject);
       this.session?.connect(code);
     });
+  }
+
+  @command('leave', 'leave the existing session')
+  leave() {
   }
 
   attachSessionHandlers(resolve: () => void, reject: () => void) {
