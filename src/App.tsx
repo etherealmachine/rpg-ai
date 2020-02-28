@@ -11,7 +11,7 @@ class App extends React.Component<any, AppState> {
   constructor(props: any) {
     super(props);
     this.state = {
-      module: window.location.pathname.split('/')[1],
+      module: window.location.pathname.replace(/\/app/, '').split('/')[1],
     };
   }
 
