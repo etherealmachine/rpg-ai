@@ -231,7 +231,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
           this.term.write(suggestion);
           this.term.write('\r\n');
         });
-      this.term.write(TerminalCodes.Up(this.state.suggestions.length) + 1);
+      this.term.write(TerminalCodes.Up(this.state.suggestions.length + 1));
     }
     this.term.write(TerminalCodes.SetColumn(prompt.replace(ANSI_ESCAPE_CODES, '').length + this.state.cursor + 1));
   }

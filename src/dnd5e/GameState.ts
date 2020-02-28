@@ -330,6 +330,27 @@ class GameState implements Executable {
     return 'index out of bounds'
   }
 
+  @command('set <i: number> <path: string> <value: string>', 'set an entities attribute')
+  set(i: number, path: string, value: string) {
+    i--;
+    if (isNaN(i) && this.currentIndex !== undefined) {
+      i = this.currentIndex;
+    }
+    if (i >= 0 && i < this.encounter.length) {
+      let obj = this.encounter[i] as any;
+      const keys = path.split('.');
+      keys.forEach((key, i) => {
+        if (i === keys.length - 1) {
+          obj[key] = JSON.parse(value);
+        } else {
+          obj = obj[key];
+        }
+      });
+      return 'done';
+    }
+    return 'index out of bounds'
+  }
+
   @command('ls', 'list the status of the current encounter')
   listEncounter() {
     return this.encounter.map(repr).join('\r\n');
