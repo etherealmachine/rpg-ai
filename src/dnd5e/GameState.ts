@@ -443,12 +443,28 @@ class GameState implements Executable {
     this.selected = target;
     let damage = points;
     if (target.vulnerable || target.resist || target.immune) {
-      if (target.vulnerable) this.stdout?.write(`Vulnerable: ${target.vulnerable}\r\n`);
-      if (target.resist) this.stdout?.write(`Resist: ${target.resist}\r\n`);
-      if (target.immune) this.stdout?.write(`Immune: ${target.immune}\r\n`);
-      this.stdout?.write('damage multiplier? ');
-      const multiplier = parseFloat(await this.stdin?.read() || '1');
-      this.stdout?.write('\r\n');
+      let multiplier = 1;
+      if (target.vulnerable) {
+        this.stdout?.write(`Vulnerable: ${target.vulnerable} (y/n)? `);
+        if (await this.stdin?.read() === 'y') {
+          multiplier = 2;
+        }
+        this.stdout?.write('\r\n');
+      }
+      if (target.resist) {
+        this.stdout?.write(`Resist: ${target.resist} (y/n)? `);
+        if (await this.stdin?.read() === 'y') {
+          multiplier = 0.5;
+        }
+        this.stdout?.write('\r\n');
+      }
+      if (target.immune) {
+        this.stdout?.write(`Immune: ${target.immune} (y/n)? `);
+        if (await this.stdin?.read() === 'y') {
+          multiplier = 0;
+        }
+        this.stdout?.write('\r\n');
+      }
       damage = Math.floor(points * multiplier);
     }
     target.status.hp -= damage;
