@@ -52,7 +52,7 @@ function roll(d: number, count?: number): number {
   let sum = 0;
   if (count === undefined) count = 1;
   for (; count > 0; count--) {
-    sum += Math.floor(Math.random() * d);
+    sum += Math.floor(Math.random() * d) + 1;
   }
   return sum;
 }
@@ -285,8 +285,8 @@ class GameState implements Executable {
     return `added player ${name}`;
   }
 
-  @command('add <name: string>', 'add a monster or player to the current encounter')
-  addEntity(name: string) {
+  @command('add <name: string> <times: number>', 'add a monster or player to the current encounter')
+  addEntity(name: string, times?: number) {
     const matchingPlayers = Object.keys(this.players).filter((key) => key.toLowerCase() === name.toLowerCase());
     if (matchingPlayers.length === 1) {
       const player = this.players[matchingPlayers[0]];
@@ -297,24 +297,27 @@ class GameState implements Executable {
     if (results.length === 0) {
       return `no match found for ${name}`;
     }
-    const monster = JSON.parse(JSON.stringify(results[0]));
-    monster.status = {
-      initiative: roll(20) + Compendium.modifier(monster.dex),
-      actions: [],
-      reactions: [],
-      legendaries: [],
-      conditions: [],
-    };
-    const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
-    if (m) {
-      const num = parseInt(m[1]);
-      const die = parseInt(m[2]);
-      const bonus = parseInt(m[4]);
-      monster.status.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
-      monster.status.maxHP = monster.status.hp;
+    times = (times || 1);
+    for (let i = 0; i < times; i++) {
+      const monster = JSON.parse(JSON.stringify(results[0]));
+      monster.status = {
+        initiative: roll(20) + Compendium.modifier(monster.dex),
+        actions: [],
+        reactions: [],
+        legendaries: [],
+        conditions: [],
+      };
+      const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
+      if (m) {
+        const num = parseInt(m[1]);
+        const die = parseInt(m[2]);
+        const bonus = parseInt(m[4]);
+        monster.status.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
+        monster.status.maxHP = monster.status.hp;
+      }
+      this.encounter.push(monster);
     }
-    this.encounter.push(monster);
-    return `added ${monster.name}`;
+    return `added ${times} ${results[0].name}`;
   }
 
   @command('rm <i: number>', 'remove a monster or player from the current encounter')
