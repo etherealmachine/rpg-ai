@@ -333,22 +333,22 @@ class GameState implements Executable {
     return 'index out of bounds'
   }
 
-  @command('set <i: number> <path: string> <value: string>', 'set an entities attribute')
-  set(i: number, path: string, value: string) {
+  @command('condition <i: number> <condition: string>', 'toggle a condition')
+  condition(i: number, condition: string) {
     i--;
     if (isNaN(i) && this.currentIndex !== undefined) {
       i = this.currentIndex;
     }
+    condition = condition.toLowerCase();
     if (i >= 0 && i < this.encounter.length) {
-      let obj = this.encounter[i] as any;
-      const keys = path.split('.');
-      keys.forEach((key, i) => {
-        if (i === keys.length - 1) {
-          obj[key] = JSON.parse(value);
+      const e = this.encounter[i];
+      if (e.kind === 'monster') {
+        if (e.status?.conditions.indexOf(condition) !== -1) {
+          e.status?.conditions.splice(e.status?.conditions.indexOf(condition), 1);
         } else {
-          obj = obj[key];
+          e.status?.conditions.push(condition);
         }
-      });
+      }
       return 'done';
     }
     return 'index out of bounds'

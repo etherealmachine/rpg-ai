@@ -59,7 +59,7 @@ export interface Status {
   actions: NameTextPair[]
   reactions: NameTextPair[]
   legendaries: NameTextPair[]
-  conditions: NameTextPair[]
+  conditions: string[]
 }
 
 export interface Spell {
