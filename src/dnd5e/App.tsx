@@ -9,17 +9,12 @@ import Shell from '../Shell';
 const styles = createStyles({
   app: {
     height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 'auto',
   },
   display: {
-    height: '100%',
-    flex: 4,
+    height: '60%',
   },
   shell: {
-    height: '100%',
-    flex: 3,
+    height: '40%',
   },
 });
 

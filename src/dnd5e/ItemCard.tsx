@@ -14,7 +14,6 @@ export interface Props extends WithStyles<typeof styles> {
 const styles = createStyles({
   card: {
     width: 400,
-    margin: '10px 20px',
     overflowY: 'auto',
   },
   media: {

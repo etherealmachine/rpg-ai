@@ -19,6 +19,8 @@ interface Props {
 
 const useStyles = makeStyles({
   container: {
+    height: '100%',
+    overflow: 'scroll',
     display: 'flex',
     flexDirection: 'row',
   },

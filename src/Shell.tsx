@@ -279,7 +279,6 @@ class Shell extends React.Component<ShellProps, ShellState> {
       <div
         style={{
           height: '100%',
-          minHeight: '400px',
         }}
         ref={el => this.termEl = el}
       />

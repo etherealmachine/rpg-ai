@@ -11,7 +11,6 @@ import { Compendium, Monster, NameTextPair } from './Compendium';
 
 const styles = createStyles({
   card: {
-    margin: '10px 20px',
     overflowY: 'auto',
   },
   media: {
