@@ -5,16 +5,6 @@ export interface NameTextPair {
   text: string
 }
 
-export interface Player {
-  name: string
-  kind: 'player'
-  level?: number
-  status?: {
-    initiative: number
-  }
-}
-
-
 export interface Monster {
   name: string
   kind: 'monster'
@@ -28,7 +18,7 @@ export interface Monster {
   str: number
   dex: number
   con: number
-  int: string
+  int: number
   wis: number
   cha: number
   alignment: string
@@ -56,6 +46,7 @@ export interface Status {
   hp: number
   maxHP: number
   initiative: number
+  level: number
   actions: NameTextPair[]
   reactions: NameTextPair[]
   legendaries: NameTextPair[]
@@ -128,7 +119,7 @@ export interface Background {
   proficiency: string
 }
 
-export type CompendiumItem = Background | Class | Feat | Item | Monster | Race | Spell | Player;
+export type CompendiumItem = Background | Class | Feat | Item | Monster | Race | Spell;
 
 export class Compendium {
 

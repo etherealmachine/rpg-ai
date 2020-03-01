@@ -1,4 +1,4 @@
-import { Compendium, CompendiumItem, Monster, Player } from './Compendium';
+import { Compendium, CompendiumItem, Monster } from './Compendium';
 import TerminalCodes from '../TerminalCodes';
 import { Executable, Reader, Writer } from '../Shell';
 import Session from '../Session';
@@ -11,16 +11,27 @@ interface Command extends Function {
   help: string;
 }
 
-function buildParser(argTypes: { name: string, type: string }[]): (args: string) => (string | number)[] {
-  return (args: string): (string | number)[] => {
-    if (argTypes.length === 1 && argTypes[0].type === 'string') {
-      return [args];
+function buildParser(argTypes: { name: string, type: string }[]): (args: string) => any[] {
+  const re = new RegExp(argTypes.map(argType => {
+    if (argType.type === 'number') {
+      return '([\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
+    } else if (argType.type === 'number[]') {
+      return '([ \\d,]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
+    } else {
+      return '([^\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
     }
-    return args.split(' ').map((arg, index) => {
+  }).join(''));
+  return (args: string): any[] => {
+    const m = re.exec(args);
+    console.log(args, m, re.source);
+    if (!m) return [];
+    return m.slice(1, m.length).map((arg, index) => {
       if (argTypes[index].type === 'number') {
         return parseInt(arg);
+      } else if (argTypes[index].type === 'number[]') {
+        return arg.split(',').map((s => parseInt(s.trim())));
       }
-      return arg;
+      return arg.trim();
     });
   }
 }
@@ -39,8 +50,8 @@ function command(command: string, help: string) {
       descriptor.value.parse = buildParser(groups.map((group) => {
         const [name, type] = group.replace('>', '').split(': ');
         return {
-          name,
-          type,
+          name: name.trim(),
+          type: type.trim(),
         };
       }));
     };
@@ -57,7 +68,7 @@ function roll(d: number, count?: number): number {
   return sum;
 }
 
-function repr(e: Monster | Player, index: number): string {
+function repr(e: Monster, index: number): string {
   return `${index + 1}. ${e.name}`;
 }
 
@@ -73,10 +84,8 @@ class GameState implements Executable {
   setState: (g: GameState) => void;
 
   motd: Monster;
-  players: { [key: string]: Player } = {};
-  encounter: Array<Monster | Player> = [];
+  encounter: Array<Monster> = [];
   currentIndex: number = 0;
-  bookmarks: { [key: string]: CompendiumItem } = {};
   selected?: CompendiumItem;
 
   stdin?: Reader;
@@ -109,10 +118,8 @@ class GameState implements Executable {
 
   toJSON() {
     return {
-      players: this.players,
       encounter: this.encounter,
       currentIndex: this.currentIndex,
-      bookmarks: this.bookmarks,
       sessionCode: this.session?.sessionCode,
     };
   }
@@ -228,6 +235,10 @@ class GameState implements Executable {
     return editDistance.map((item) => items[item.index]);
   }
 
+  targets(a: number[]): Monster[] {
+    return a.map(i => this.encounter[i - 1]);
+  }
+
   @command('help', 'this help message')
   help() {
     return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).join('\r\n');
@@ -235,23 +246,8 @@ class GameState implements Executable {
 
   @command('new', 'start a new encounter')
   newEncounter() {
-    Object.values(this.players).forEach((player) => { player.status = { initiative: NaN }; });
     this.encounter = [];
     return "started new encounter";
-  }
-
-  @command('clear bookmarks', 'clear saved bookmarks')
-  clearBookmarks() {
-    return {
-      prompt: "are you sure (y/n)? ",
-      callback: (answer: string) => {
-        if (answer === 'y') {
-          this.bookmarks = {};
-          return "cleared bookmarks";
-        }
-        return "cancelled clearing bookmarks";
-      }
-    };
   }
 
   @command('reset', 'clear all saved state')
@@ -259,40 +255,50 @@ class GameState implements Executable {
     this.stdout?.write("are you sure (y/n)? ");
     const response = await this.stdin?.read();
     if (response === 'y') {
-      this.bookmarks = {};
       this.encounter = [];
-      this.players = {};
       return '\r\ncleared all saved state';
     } else {
       return "\r\ncancelled clearing bookmarks";
     };
   }
 
-  @command('roster', 'list players')
-  listPlayers() {
-    return Object.keys(this.players).map((playerName, index) => `${index + 1}: ${playerName}`).join('\r\n');
-  }
-
-  @command('player <level: number>', 'add a player')
-  addPlayer(name: string) {
-    this.players[name] = {
+  @command('player <name: string> <level?: number>', 'add a player')
+  addPlayer(name: string, level?: number) {
+    this.encounter.push({
       name: name,
-      kind: 'player',
+      kind: 'monster',
+      hp: '',
+      imageURL: '',
+      ac: NaN,
+      cr: NaN,
+      passive: NaN,
+      size: '',
+      speed: '',
+      str: NaN,
+      dex: NaN,
+      con: NaN,
+      int: NaN,
+      wis: NaN,
+      cha: NaN,
+      alignment: '',
+      type: 'player',
+      compendium: {},
       status: {
+        hp: NaN,
+        maxHP: NaN,
+        actions: [],
+        reactions: [],
+        legendaries: [],
+        conditions: [],
         initiative: NaN,
-      },
-    };
+        level: level || NaN,
+      }
+    });
     return `added player ${name}`;
   }
 
-  @command('add <name: string> <times: number>', 'add a monster or player to the current encounter')
-  addEntity(name: string, times?: number) {
-    const matchingPlayers = Object.keys(this.players).filter((key) => key.toLowerCase() === name.toLowerCase());
-    if (matchingPlayers.length === 1) {
-      const player = this.players[matchingPlayers[0]];
-      this.encounter.push(player);
-      return `added ${player.name}`;
-    }
+  @command('add <name: string> <times?: number>', 'add a monster the current encounter')
+  add(name: string, times?: number) {
     const results = this.search(name, ['monster']);
     if (results.length === 0) {
       return `no match found for ${name}`;
@@ -320,38 +326,24 @@ class GameState implements Executable {
     return `added ${times} ${results[0].name}`;
   }
 
-  @command('rm <i: number>', 'remove a monster or player from the current encounter')
-  removeEntity(i: number) {
-    i--;
-    if (isNaN(i) && this.currentIndex !== undefined) {
-      i = this.currentIndex;
-    }
-    if (i >= 0 && i < this.encounter.length) {
-      const removed = this.encounter.splice(i, 1)[0];
+  @command('rm <targets: number[]>', 'remove a monster or player from the current encounter')
+  removeEntity(targets: number[]) {
+    this.targets(targets).forEach((target) => {
+      const removed = this.encounter.splice(this.encounter.indexOf(target), 1)[0];
       return `removed ${removed.name}`;
-    }
-    return 'index out of bounds'
+    });
   }
 
-  @command('condition <i: number> <condition: string>', 'toggle a condition')
-  condition(i: number, condition: string) {
-    i--;
-    if (isNaN(i) && this.currentIndex !== undefined) {
-      i = this.currentIndex;
-    }
+  @command('condition <targets: number[]> <condition: string>', 'toggle a condition')
+  condition(targets: number[], condition: string) {
     condition = condition.toLowerCase();
-    if (i >= 0 && i < this.encounter.length) {
-      const e = this.encounter[i];
-      if (e.kind === 'monster') {
-        if (e.status?.conditions.indexOf(condition) !== -1) {
-          e.status?.conditions.splice(e.status?.conditions.indexOf(condition), 1);
-        } else {
-          e.status?.conditions.push(condition);
-        }
+    this.targets(targets).forEach((target) => {
+      if (target.status?.conditions.indexOf(condition) !== -1) {
+        target.status?.conditions.splice(target.status?.conditions.indexOf(condition), 1);
+      } else {
+        target.status?.conditions.push(condition);
       }
-      return 'done';
-    }
-    return 'index out of bounds'
+    });
   }
 
   @command('ls', 'list the status of the current encounter')
@@ -359,21 +351,10 @@ class GameState implements Executable {
     return this.encounter.map(repr).join('\r\n');
   }
 
-  @command('bookmark <name: string>', 'bookmark an item')
-  bookmark(name: string) {
-    const results = this.search(name);
-    if (results.length === 0) {
-      return `no match found for ${name}`;
-    }
-    const item = results[0];
-    this.bookmarks[item.name] = item;
-    return `bookmarked ${item.name} `;
-  }
-
   @command('init', 'roll initiative')
   async rollInitiative() {
     await Promise.all(this.encounter.map(async (e) => {
-      if (e.kind === 'player' && e.status && isNaN(e.status.initiative)) {
+      if (e.status && isNaN(e.status.initiative)) {
         this.stdout?.write(`initiative for ${e.name}? `);
         if (!this.stdin) return;
         e.status.initiative = parseInt(await this.stdin.read());
@@ -417,122 +398,86 @@ class GameState implements Executable {
     return this.currTurn();
   }
 
-  @command('actions', 'show actions for the current entity')
-  actions() {
-    const current = this.encounter[this.currentIndex];
-    if (current.kind === 'player') {
-      return `ask ${current.name} what they want to do`
-    }
-    let actions = current.action || [];
-    if (!(actions instanceof Array)) {
-      actions = [actions];
-    }
-    return actions.map((action, i) => `${i + 1}: ${action.name} - ${action.text}`).join('\r\n');
+  @command('dmg <targets: number[]> <points: number>', 'damage target')
+  async dmg(targets: number[], points: number) {
+    await Promise.all(this.targets(targets).map(async (target) => {
+      if (!target.status) {
+        return `${target.name} has no status`;
+      }
+      this.selected = target;
+      let damage = points;
+      if (target.vulnerable || target.resist || target.immune) {
+        let multiplier = 1;
+        if (target.vulnerable) {
+          this.stdout?.write(`Vulnerable: ${target.vulnerable} (y/n)? `);
+          if (await this.stdin?.read() === 'y') {
+            multiplier = 2;
+          }
+          this.stdout?.write('\r\n');
+        }
+        if (target.resist) {
+          this.stdout?.write(`Resist: ${target.resist} (y/n)? `);
+          if (await this.stdin?.read() === 'y') {
+            multiplier = 0.5;
+          }
+          this.stdout?.write('\r\n');
+        }
+        if (target.immune) {
+          this.stdout?.write(`Immune: ${target.immune} (y/n)? `);
+          if (await this.stdin?.read() === 'y') {
+            multiplier = 0;
+          }
+          this.stdout?.write('\r\n');
+        }
+        damage = Math.floor(points * multiplier);
+      }
+      target.status.hp -= damage;
+      this.stdout?.write(`${target.name} took ${damage} points of damage\r\n`);
+    }));
   }
 
-  @command('dmg <i: number> <points: number>', 'damage target')
-  async dmg(i: number, points: number) {
-    i--;
-    if (i < 0 || i >= this.encounter.length) {
-      return `target ${i} is out-of-bounds`;
-    }
-    const target = this.encounter[i];
-    if (target.kind === 'player') {
-      return `cannot damage player ${target.name}`;
-    }
-    if (!target.status) {
-      return `${target.name} has no status`;
-    }
-    this.selected = target;
-    let damage = points;
-    if (target.vulnerable || target.resist || target.immune) {
-      let multiplier = 1;
-      if (target.vulnerable) {
-        this.stdout?.write(`Vulnerable: ${target.vulnerable} (y/n)? `);
-        if (await this.stdin?.read() === 'y') {
-          multiplier = 2;
-        }
-        this.stdout?.write('\r\n');
-      }
-      if (target.resist) {
-        this.stdout?.write(`Resist: ${target.resist} (y/n)? `);
-        if (await this.stdin?.read() === 'y') {
-          multiplier = 0.5;
-        }
-        this.stdout?.write('\r\n');
-      }
-      if (target.immune) {
-        this.stdout?.write(`Immune: ${target.immune} (y/n)? `);
-        if (await this.stdin?.read() === 'y') {
-          multiplier = 0;
-        }
-        this.stdout?.write('\r\n');
-      }
-      damage = Math.floor(points * multiplier);
-    }
-    target.status.hp -= damage;
-    return `${target.name} took ${damage} points of damage`;
-  }
-
-  @command('dc <dc: number> <attr: string>', 'roll a saving throw')
-  async save(dc: number, attribute: string) {
+  @command('dc <dc: number> <attribute: string> <targets: number[]>', 'roll a saving throw')
+  save(dc: number, attribute: string, targets: number[]) {
     const attr = Compendium.abilities.find((a: string) => (a.toLowerCase().substring(0, 3) === attribute));
     if (!attr) {
       this.stderr?.write(`unknown attriubte ${attribute}\r\n`);
       return;
     }
-    this.stdout?.write(`making a ${attr} saving throw, targets? `);
-    const targets = (await this.stdin?.read() || '').split(' ');
-    this.stdout?.write('\r\n');
-    targets.forEach((s: string) => {
-      const i = parseInt(s) - 1;
-      if (i < 0 || i >= this.encounter.length) {
-        return;
-      }
-      const target = this.encounter[i];
-      if (target.kind === 'player') {
-        return;
-      }
+    this.targets(targets).forEach((target) => {
       const targetAbility = (target as any)[attr.substring(0, 3).toLowerCase()];
       const savingThrow = roll(20, 1);
       const modifier = Compendium.modifier(targetAbility);
       const result = (savingThrow + modifier) >= dc ? 'passes' : 'fails';
-      this.stdout?.write(`${i + 1}. ${target.name} rolls a ${savingThrow + modifier} (${savingThrow}+${modifier}) and ${result}\r\n`);
+      this.stdout?.write(`${target.name} rolls a ${savingThrow + modifier} (${savingThrow}+${modifier}) and ${result}\r\n`);
     });
   }
 
-  @command('use <i: number>', 'perform action on the current entity')
-  use(i: number) {
-    i--;
-    const current = this.encounter[this.currentIndex];
-    if (current.kind === 'player') {
-      return `todo`
+  @command('use <action: number> <targets: number[]>', 'perform action on the current entity')
+  use(action: number, targets: number[]) {
+    if (targets.length === 0) {
+      targets.push(this.currentIndex);
     }
-    let actions = current.action || [];
-    if (!(actions instanceof Array)) {
-      actions = [actions];
-    }
-    const action = actions[i].text;
-    current.status?.actions.push({
-      name: action,
-      text: '',
-    });
-    const m = action.match(/\+(\d+) to hit.*\((\d)+d(\d+)[ +]*(\d*)\) (\w+) damage/);
-    if (m) {
-      const [toHitBonusStr, nStr, dieStr, dmgBonusStr, dmgType] = m.slice(1);
-      const toHitBonus = parseInt(toHitBonusStr);
-      const n = parseInt(nStr);
-      const dmgDie = parseInt(dieStr);
-      const dmgBonus = parseInt(dmgBonusStr);
-      const toHit = roll(20) + toHitBonus;
-      let dmg = 0;
-      for (let i = 0; i < n; i++) {
-        dmg += roll(dmgDie);
+    this.targets(targets).forEach((target) => {
+      if (!target.action) return;
+      if (!('length' in target.action)) return;
+      const a = target.action[action - 1];
+      target.status?.actions.push(a);
+      const m = a.text.match(/\+(\d+) to hit.*\((\d)+d(\d+)[ +]*(\d*)\) (\w+) damage/);
+      if (m) {
+        const [toHitBonusStr, nStr, dieStr, dmgBonusStr, dmgType] = m.slice(1);
+        const toHitBonus = parseInt(toHitBonusStr);
+        const n = parseInt(nStr);
+        const dmgDie = parseInt(dieStr);
+        const dmgBonus = parseInt(dmgBonusStr);
+        const toHit = roll(20) + toHitBonus;
+        let dmg = 0;
+        for (let i = 0; i < n; i++) {
+          dmg += roll(dmgDie);
+        }
+        dmg += dmgBonus;
+        this.stdout?.write(`does a ${toHit} hit? ${dmg} points of ${dmgType} damage\r\n`);
       }
-      dmg += dmgBonus;
-      return `does a ${toHit} hit? ${dmg} points of ${dmgType} damage`;
-    }
-    return action;
+    });
   }
 
   @command('show <query: string>', 'show a card for the given item')
@@ -544,7 +489,7 @@ class GameState implements Executable {
     this.selected = results[0];
   }
 
-  @command('host <code: string>', 'host a new session')
+  @command('host', 'host a new session')
   host(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();
@@ -562,7 +507,7 @@ class GameState implements Executable {
     });
   }
 
-  @command('join <code: string>', 'join an existing session')
+  @command('join', 'join an existing session')
   join(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();
