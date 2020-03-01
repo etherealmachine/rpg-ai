@@ -351,6 +351,29 @@ class GameState implements Executable {
     return this.encounter.map(repr).join('\r\n');
   }
 
+  @command('balance', 'check the balance of the current encounter')
+  balance() {
+    const totalXP = this.encounter.reduce((sum, monster) => {
+      if (!monster.cr) return sum;
+      if (monster.cr in Compendium.cr_to_xp) return sum + Compendium.cr_to_xp[monster.cr];
+      return sum;
+    }, 0);
+    const playerLevels = this.encounter.filter(monster => monster.status?.level).map(player => (player.status?.level || 0));
+    const xpByDifficulty = [0, 1, 2, 3].map(difficultyLevel => {
+      return playerLevels.reduce((sum, level) => {
+        return sum + Compendium.encounter_difficulty[level][difficultyLevel];
+      }, 0);
+    });
+    if (totalXP >= xpByDifficulty[3]) {
+      return `deadly: ${totalXP} >= ${xpByDifficulty[3]}`;
+    } else if (totalXP >= xpByDifficulty[2]) {
+      return `hard: ${totalXP} >= ${xpByDifficulty[2]}`;
+    } else if (totalXP >= xpByDifficulty[1]) {
+      return `medium: ${totalXP} >= ${xpByDifficulty[1]}`;
+    }
+    return `easy: ${totalXP}, ${xpByDifficulty[0]}`;
+  }
+
   @command('init', 'roll initiative')
   async rollInitiative() {
     await Promise.all(this.encounter.map(async (e) => {
