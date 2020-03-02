@@ -1,28 +1,15 @@
 import React from 'react';
-import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 
 import Compendium from './Compendium';
 import GameState, { GameMode } from './GameState';
 import Display from './Display';
 import Shell from '../Shell';
 
-const styles = createStyles({
-  app: {
-    height: '100%',
-  },
-  display: {
-    height: '60%',
-  },
-  shell: {
-    height: '40%',
-  },
-});
-
 interface AppState {
   game?: GameState
 }
 
-class App extends React.Component<WithStyles<typeof styles>, AppState> {
+class App extends React.Component<any, AppState> {
 
   constructor(props: any) {
     super(props);
@@ -49,12 +36,11 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
   }
 
   render() {
-    const { classes } = this.props;
     if (this.state.game?.compendium.loaded) {
       return (
-        <div className={classes.app}>
-          <div className={classes.display}><Display game={this.state.game} /></div>
-          {this.state.game.mode === GameMode.DM && <div className={classes.shell}><Shell program={this.state.game} /></div>}
+        <div>
+          <Display game={this.state.game} />
+          {this.state.game.mode === GameMode.DM && <Shell program={this.state.game} />}
         </div>
       );
     }
@@ -62,4 +48,4 @@ class App extends React.Component<WithStyles<typeof styles>, AppState> {
   }
 }
 
-export default withStyles(styles)(App);
+export default App;
