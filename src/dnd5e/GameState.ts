@@ -18,9 +18,9 @@ function buildParser(argTypes: { name: string, type: string }[]): (args: string)
     } else if (argType.type === 'number[]') {
       return '([ \\d,]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
     } else {
-      return '([^\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
+      return '(.' + (argType.name.endsWith('?') ? '*?' : '+?') + ')';
     }
-  }).join(''));
+  }).join(' '));
   return (args: string): any[] => {
     const m = re.exec(args);
     if (!m) return [];

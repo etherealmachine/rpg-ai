@@ -40,9 +40,9 @@ export default function DMDisplay(props: Props) {
   const rows = props.game.encounter.map((e, index) => <TableRow key={index} className={index === props.game.currentIndex ? classes.highlight : ''}>
     <TableCell align="left">{index + 1}</TableCell>
     <TableCell component="th" scope="row">{e.name}</TableCell>
-    <TableCell align="right">{e.status?.initiative}</TableCell>
-    <TableCell align="right">{e.status && ('hp' in e.status) && e.status?.hp}</TableCell>
-    <TableCell align="right">{('ac' in e) ? e.ac : ''}</TableCell>
+    <TableCell align="right">{e.status?.initiative || '?'}</TableCell>
+    <TableCell align="right">{e.status?.hp || ''}</TableCell>
+    <TableCell align="right">{e.ac || ''}</TableCell>
   </TableRow>);
   return (<div className={classes.container}>
     <TableContainer component={Paper}>
