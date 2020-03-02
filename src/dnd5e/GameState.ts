@@ -23,7 +23,6 @@ function buildParser(argTypes: { name: string, type: string }[]): (args: string)
   }).join(''));
   return (args: string): any[] => {
     const m = re.exec(args);
-    console.log(args, m, re.source);
     if (!m) return [];
     return m.slice(1, m.length).map((arg, index) => {
       if (argTypes[index].type === 'number') {
@@ -510,6 +509,17 @@ class GameState implements Executable {
       return `no match found for ${query}`;
     }
     this.selected = results[0];
+  }
+
+  @command('roll <desc: string>', 'roll them bones')
+  roll(desc: string) {
+    const m = desc.match(/(\d+)d(\d+)[+]?(\d+)?/);
+    if (m) {
+      const n = parseInt(m[1]);
+      const die = parseInt(m[2]);
+      const bonus = parseInt(m[3]);
+      this.stdout?.write(`${roll(die, n) + (bonus || 0)}\r\n`);
+    }
   }
 
   @command('host', 'host a new session')
