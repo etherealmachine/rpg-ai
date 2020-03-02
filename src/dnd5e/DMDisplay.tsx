@@ -15,8 +15,8 @@ export default function DMDisplay(props: Props) {
     <td align="left">{index + 1}</td>
     <td align="center">{e.name}</td>
     <td align="right">{e.status?.initiative}</td>
-    <td align="right">{e.status && ('hp' in e.status) && e.status?.hp}</td>
-    <td align="right">{('ac' in e) ? e.ac : ''}</td>
+    <td align="right">{e.status?.hp || ''}</td>
+    <td align="right">{e.ac || ''}</td>
   </tr>);
   return (<div>
     <table aria-label="encounter">
