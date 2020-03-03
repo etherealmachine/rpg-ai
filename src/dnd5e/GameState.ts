@@ -14,15 +14,16 @@ interface Command extends Function {
 function buildParser(argTypes: { name: string, type: string }[]): (args: string) => any[] {
   const re = new RegExp(argTypes.map(argType => {
     if (argType.type === 'number') {
-      return '([\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
+      return '([-\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
     } else if (argType.type === 'number[]') {
-      return '([ \\d,]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
+      return '([ -\\d,]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
     } else {
       return '(.' + (argType.name.endsWith('?') ? '*?' : '+?') + ')';
     }
-  }).join('\\s*'));
+  }).join('\\s*') + '$');
   return (args: string): any[] => {
     const m = re.exec(args);
+    console.log(m, re.source);
     if (!m) return [];
     return m.slice(1, m.length).map((arg, index) => {
       if (argTypes[index].type === 'number') {
@@ -285,6 +286,8 @@ class GameState implements Executable {
       status: {
         hp: NaN,
         maxHP: NaN,
+        damage: [],
+        saves: [],
         actions: [],
         reactions: [],
         legendaries: [],
@@ -336,6 +339,7 @@ class GameState implements Executable {
   @command('condition <targets: number[]> <condition: string>', 'toggle a condition')
   condition(targets: number[], condition: string) {
     condition = condition.toLowerCase();
+    console.log(condition);
     this.targets(targets).forEach((target) => {
       if (target.status?.conditions.indexOf(condition) !== -1) {
         target.status?.conditions.splice(target.status?.conditions.indexOf(condition), 1);
@@ -433,9 +437,10 @@ class GameState implements Executable {
 
   @command('dmg <targets: number[]> <points: number>', 'damage target')
   async dmg(targets: number[], points: number) {
-    await Promise.all(this.targets(targets).map(async (target) => {
+    for (const target of this.targets(targets)) {
       if (!target.status) {
-        return `${target.name} has no status`;
+        this.stdout?.write(`${target.name} has no status\r\n`);
+        continue;
       }
       this.selected = target;
       let damage = points;
@@ -464,9 +469,15 @@ class GameState implements Executable {
         }
         damage = Math.floor(points * multiplier);
       }
+      console.log(damage);
       target.status.hp -= damage;
+      target.status.damage.push({
+        name: "",
+        text: damage.toString(),
+      });
+      console.log(target.status.hp);
       this.stdout?.write(`${target.name} took ${damage} points of damage\r\n`);
-    }));
+    }
   }
 
   @command('dc <dc: number> <attribute: string> <targets: number[]>', 'roll a saving throw')
@@ -482,34 +493,30 @@ class GameState implements Executable {
       const modifier = Compendium.modifier(targetAbility);
       const result = (savingThrow + modifier) >= dc ? 'passes' : 'fails';
       this.stdout?.write(`${target.name} rolls a ${savingThrow + modifier} (${savingThrow}+${modifier}) and ${result}\r\n`);
+      target.status?.saves.push({
+        name: attribute,
+        text: result,
+      });
     });
   }
 
   @command('use <action: number> <targets?: number[]>', 'perform action on the current entity')
   use(action: number, targets: number[]) {
     if (isNaN(targets[0])) {
-      targets = [this.currentIndex];
+      targets = [this.currentIndex + 1];
     }
     this.targets(targets).forEach((target) => {
       if (!target.action) return;
-      if (!('length' in target.action)) return;
-      const a = target.action[action - 1];
-      target.status?.actions.push(a);
-      const m = a.text.match(/\+(\d+) to hit.*\((\d)+d(\d+)[ +]*(\d*)\) (\w+) damage/);
-      if (m) {
-        const [toHitBonusStr, nStr, dieStr, dmgBonusStr, dmgType] = m.slice(1);
-        const toHitBonus = parseInt(toHitBonusStr);
-        const n = parseInt(nStr);
-        const dmgDie = parseInt(dieStr);
-        const dmgBonus = parseInt(dmgBonusStr);
-        const toHit = roll(20) + toHitBonus;
-        let dmg = 0;
-        for (let i = 0; i < n; i++) {
-          dmg += roll(dmgDie);
-        }
-        dmg += dmgBonus;
-        this.stdout?.write(`does a ${toHit} hit? ${dmg} points of ${dmgType} damage\r\n`);
+      let actions;
+      if (target.action instanceof Array) {
+        actions = target.action;
+      } else {
+        actions = [target.action];
       }
+      const a = actions[action - 1];
+      target.status?.actions.push(a);
+      this.stdout?.write(a.text);
+      this.stdout?.write("\r\n");
     });
   }
 

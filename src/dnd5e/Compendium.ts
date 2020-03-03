@@ -47,6 +47,8 @@ export interface Status {
   maxHP: number
   initiative: number
   level: number
+  damage: NameTextPair[]
+  saves: NameTextPair[]
   actions: NameTextPair[]
   reactions: NameTextPair[]
   legendaries: NameTextPair[]

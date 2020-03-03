@@ -51,6 +51,7 @@ export default function DMDisplay(props: Props) {
     <td align="right">{e.status?.initiative}</td>
     <td align="right">{e.status?.hp || ''}</td>
     <td align="right">{e.ac || ''}</td>
+    <td align="right">{e.status?.conditions.join(',') || ''}</td>
   </tr>);
   return (<Root>
     <div className="top-panel">
@@ -62,6 +63,7 @@ export default function DMDisplay(props: Props) {
             <td align="right">Initiative</td>
             <td align="right">HP</td>
             <td align="right">AC</td>
+            <td align="right">Conditions</td>
           </tr>
         </thead>
         <tbody>{rows}</tbody>
