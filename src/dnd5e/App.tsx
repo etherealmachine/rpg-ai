@@ -2,8 +2,8 @@ import React from 'react';
 
 import Compendium from './Compendium';
 import GameState, { GameMode } from './GameState';
-import Display from './Display';
-import Shell from '../Shell';
+import DMDisplay from './DMDisplay';
+import PlayerDisplay from './PlayerDisplay';
 
 interface AppState {
   game?: GameState
@@ -37,12 +37,7 @@ class App extends React.Component<any, AppState> {
 
   render() {
     if (this.state.game?.compendium.loaded) {
-      return (
-        <div>
-          <Display game={this.state.game} />
-          {this.state.game.mode === GameMode.DM && <Shell program={this.state.game} />}
-        </div>
-      );
+      return (this.state.game.mode === GameMode.DM ? <DMDisplay game={this.state.game} /> : <PlayerDisplay game={this.state.game} />);
     }
     return <div>Loading...</div>;
   }

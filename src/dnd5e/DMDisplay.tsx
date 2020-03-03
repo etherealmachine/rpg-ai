@@ -1,5 +1,7 @@
 import React from 'react';
+import styled from 'styled-components';
 
+import Shell from '../Shell';
 import MonsterCard from './MonsterCard';
 import SpellCard from './SpellCard';
 import ItemCard from './ItemCard';
@@ -8,6 +10,11 @@ import GameState from './GameState';
 interface Props {
   game: GameState;
 }
+
+const Layout = styled.div`
+  display: flex
+  flex-direction: column
+`;
 
 export default function DMDisplay(props: Props) {
   const selection = props.game.selected || props.game.encounter[props.game.currentIndex];
@@ -18,7 +25,7 @@ export default function DMDisplay(props: Props) {
     <td align="right">{e.status?.hp || ''}</td>
     <td align="right">{e.ac || ''}</td>
   </tr>);
-  return (<div>
+  return (<Layout>
     <table aria-label="encounter">
       <thead>
         <tr>
@@ -34,5 +41,6 @@ export default function DMDisplay(props: Props) {
     {selection && selection.kind === 'monster' && <MonsterCard {...selection} />}
     {selection && selection.kind === 'spell' && <SpellCard {...selection} />}
     {selection && selection.kind === 'item' && <ItemCard {...selection} />}
-  </div>);
+    <Shell program={props.game} />
+  </Layout>);
 }
