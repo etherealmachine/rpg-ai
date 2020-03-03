@@ -510,7 +510,7 @@ class GameState implements Executable {
   save(dc: number, attribute: string, targets: number[]) {
     const attr = Compendium.abilities.find((a: string) => (a.toLowerCase().substring(0, 3) === attribute));
     if (!attr) {
-      this.stderr?.write(`unknown attriubte ${attribute}\r\n`);
+      this.stderr?.write(`unknown attribute ${attribute}\r\n`);
       return;
     }
     this.targets(targets).forEach((target) => {
