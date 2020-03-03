@@ -4,58 +4,78 @@ import { Executable, Reader, Writer } from '../Shell';
 import Session from '../Session';
 import Levenshtein from 'fast-levenshtein';
 
-interface Command extends Function {
-  command: string;
-  parse: (args: string) => (string | number)[];
-  syntax: string;
-  help: string;
-}
+class Command {
+  command: string
+  args: Argument[]
+  regex: RegExp
+  syntax: string
+  help: string
+  f: Function
 
-function buildParser(argTypes: { name: string, type: string }[]): (args: string) => any[] {
-  const re = new RegExp(argTypes.map(argType => {
-    if (argType.type === 'number') {
-      return '([-\\d]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
-    } else if (argType.type === 'number[]') {
-      return '([ -\\d,]' + (argType.name.endsWith('?') ? '*' : '+') + ')';
-    } else {
-      return '(.' + (argType.name.endsWith('?') ? '*?' : '+?') + ')';
-    }
-  }).join('\\s*') + '$');
-  return (args: string): any[] => {
-    const m = re.exec(args);
-    console.log(m, re.source);
-    if (!m) return [];
-    return m.slice(1, m.length).map((arg, index) => {
-      if (argTypes[index].type === 'number') {
-        return parseInt(arg);
-      } else if (argTypes[index].type === 'number[]') {
-        return arg.split(',').map((s => parseInt(s.trim())));
+  constructor(syntax: string, help: string, f: Function) {
+    this.syntax = syntax;
+    this.help = help;
+    this.f = f;
+    const groups = syntax.split('<');
+    this.command = groups[0];
+    groups.shift();
+    this.args = groups.map((group) => {
+      const [name, type] = group.replace('>', '').split(': ');
+      return {
+        name: name.trim().replace('?', ''),
+        type: type.trim(),
+        optional: name.endsWith('?'),
+      };
+    });
+    this.regex = new RegExp(this.args.map(arg => {
+      if (arg.type === 'number') {
+        return '(-?[-\\d]' + (arg.optional ? '*' : '+') + ')';
+      } else if (arg.type === 'number[]') {
+        return '(-?[ \\d,]' + (arg.optional ? '*' : '+') + ')';
+      } else {
+        return '(.' + (arg.optional ? '*?' : '+?') + ')';
       }
-      return arg.trim();
+    }).join('\\s*') + '$');
+  }
+
+  execute(game: GameState, commandLine: string) {
+    game.log?.write(`executing ${this.syntax}\r\n`);
+    return this.f.apply(game, this.parse(commandLine, game.log));
+  }
+
+  parse(commandLine: string, out?: Writer): (string | number | number[])[] {
+    const match = commandLine.match(this.regex);
+    out?.write(`"${commandLine}".match(/${this.regex}/)\r\n`)
+    out?.write(JSON.stringify(match) + "\r\n")
+    if (!match) return [];
+    return match.slice(1, match.length).map((arg, index) => {
+      arg = arg.trim();
+      out?.write(`arg ${index}: ${arg} ${this.args[index].type}\r\n`)
+      switch (this.args[index].type) {
+        case "number":
+          return parseInt(arg);
+        case "number[]":
+          return arg.split(',').map((s => parseInt(s.trim())));
+        case "string":
+          return arg;
+        default:
+          throw new Error(`error parsing ${commandLine}, unknown type ${this.args[index].type}`);
+      }
     });
   }
 }
 
+interface Argument {
+  name: string
+  type: string
+  optional: boolean
+}
+
 const commands: { [key: string]: Command } = {};
-function command(command: string, help: string) {
+function command(syntax: string, help: string) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const groups = command.split('<');
-    descriptor.value.command = groups[0].trim();
-    descriptor.value.syntax = command;
-    descriptor.value.help = help;
-    if (groups.length === 1) {
-      descriptor.value.parse = () => { return [] };
-    } else {
-      groups.shift();
-      descriptor.value.parse = buildParser(groups.map((group) => {
-        const [name, type] = group.replace('>', '').split(': ');
-        return {
-          name: name.trim(),
-          type: type.trim(),
-        };
-      }));
-    };
-    commands[descriptor.value.command] = descriptor.value;
+    const command = new Command(syntax, help, descriptor.value);
+    commands[command.command] = command;
   }
 }
 
@@ -91,6 +111,7 @@ class GameState implements Executable {
   stdin?: Reader;
   stdout?: Writer;
   stderr?: Writer;
+  log?: Writer;
 
   constructor(mode: GameMode, compendium: Compendium, setState: (g: GameState) => void) {
     this.mode = mode;
@@ -143,8 +164,11 @@ class GameState implements Executable {
     }
     let result;
     try {
-      result = await command.apply(this, command.parse(commandLine));
-    } catch {
+      result = await command.execute(this, commandLine);
+    } catch (err) {
+      console.error(err);
+      this.stderr.write(err.toString());
+      this.stderr.write('\r\n');
       this.stdin = undefined;
       this.stdout = undefined;
       this.stderr = undefined;
@@ -179,7 +203,7 @@ class GameState implements Executable {
 
   suggestions(partial: string): Array<string> {
     if (partial === "") {
-      return new Array(...commands.keys());
+      return Object.keys(commands);
     }
     for (const key of Object.keys(commands)) {
       if (partial.startsWith(key)) {
@@ -310,6 +334,9 @@ class GameState implements Executable {
       const monster = JSON.parse(JSON.stringify(results[0]));
       monster.status = {
         initiative: roll(20) + Compendium.modifier(monster.dex),
+        level: NaN,
+        damage: [],
+        saves: [],
         actions: [],
         reactions: [],
         legendaries: [],
@@ -437,6 +464,7 @@ class GameState implements Executable {
 
   @command('dmg <targets: number[]> <points: number>', 'damage target')
   async dmg(targets: number[], points: number) {
+    this.log?.write(`${JSON.stringify(targets)} ${points}\r\n`);
     for (const target of this.targets(targets)) {
       if (!target.status) {
         this.stdout?.write(`${target.name} has no status\r\n`);
@@ -469,13 +497,11 @@ class GameState implements Executable {
         }
         damage = Math.floor(points * multiplier);
       }
-      console.log(damage);
       target.status.hp -= damage;
       target.status.damage.push({
         name: "",
         text: damage.toString(),
       });
-      console.log(target.status.hp);
       this.stdout?.write(`${target.name} took ${damage} points of damage\r\n`);
     }
   }
@@ -609,6 +635,16 @@ class GameState implements Executable {
       }
       resolve();
     };
+  }
+
+  @command('debug', 'toggle debugging')
+  toggleDebug() {
+    if (this.log) {
+      this.log = undefined;
+    } else {
+      this.log = this.stderr;
+    }
+    this.stdout?.write(`debug ${this.log ? 'on' : 'off'}\r\n`);
   }
 
 }
