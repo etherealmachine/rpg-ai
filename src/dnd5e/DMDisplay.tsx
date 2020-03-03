@@ -11,9 +11,15 @@ interface Props {
   game: GameState;
 }
 
-const Layout = styled.div`
-  display: flex
-  flex-direction: column
+const FlexColumn = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  flex-direction: row;
 `;
 
 export default function DMDisplay(props: Props) {
@@ -25,22 +31,24 @@ export default function DMDisplay(props: Props) {
     <td align="right">{e.status?.hp || ''}</td>
     <td align="right">{e.ac || ''}</td>
   </tr>);
-  return (<Layout>
-    <table aria-label="encounter">
-      <thead>
-        <tr>
-          <td align="left"></td>
-          <td>Name</td>
-          <td align="right">Initiative</td>
-          <td align="right">HP</td>
-          <td align="right">AC</td>
-        </tr>
-      </thead>
-      <tbody>{rows}</tbody>
-    </table>
-    {selection && selection.kind === 'monster' && <MonsterCard {...selection} />}
-    {selection && selection.kind === 'spell' && <SpellCard {...selection} />}
-    {selection && selection.kind === 'item' && <ItemCard {...selection} />}
+  return (<FlexColumn>
+    <FlexRow>
+      <table aria-label="encounter">
+        <thead>
+          <tr>
+            <td align="left"></td>
+            <td>Name</td>
+            <td align="right">Initiative</td>
+            <td align="right">HP</td>
+            <td align="right">AC</td>
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+      {selection && selection.kind === 'monster' && <MonsterCard {...selection} />}
+      {selection && selection.kind === 'spell' && <SpellCard {...selection} />}
+      {selection && selection.kind === 'item' && <ItemCard {...selection} />}
+    </FlexRow>
     <Shell program={props.game} />
-  </Layout>);
+  </FlexColumn>);
 }
