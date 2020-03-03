@@ -11,15 +11,36 @@ interface Props {
   game: GameState;
 }
 
-const FlexColumn = styled.div`
+const Root = styled.div`
   height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const FlexRow = styled.div`
-  display: flex;
-  flex-direction: row;
+  .top-panel {
+    height: 60%;
+    display: flex;
+    flex-direction: row;
+    overflow: scroll;
+  }
+  .top-panel .table {
+    width: 60%;
+    margin: 15px;
+    border-collapse: collapse;
+  }
+  .top-panel .table tr {
+    border-bottom: 1px solid #888;
+  }
+  .top-panel .table td {
+    padding: 1vh;
+    font-size: 1.5vh;
+  }
+  .top-panel .card-container {
+    width: 40%;
+    margin: 15px;
+  }
+  .shell-container {
+    height: 40%;
+  }
+  .highlight {
+    background-color: #a1e3ff;
+  }
 `;
 
 export default function DMDisplay(props: Props) {
@@ -31,9 +52,9 @@ export default function DMDisplay(props: Props) {
     <td align="right">{e.status?.hp || ''}</td>
     <td align="right">{e.ac || ''}</td>
   </tr>);
-  return (<FlexColumn>
-    <FlexRow>
-      <table aria-label="encounter">
+  return (<Root>
+    <div className="top-panel">
+      <table className="table" aria-label="encounter">
         <thead>
           <tr>
             <td align="left"></td>
@@ -45,10 +66,14 @@ export default function DMDisplay(props: Props) {
         </thead>
         <tbody>{rows}</tbody>
       </table>
-      {selection && selection.kind === 'monster' && <MonsterCard {...selection} />}
-      {selection && selection.kind === 'spell' && <SpellCard {...selection} />}
-      {selection && selection.kind === 'item' && <ItemCard {...selection} />}
-    </FlexRow>
-    <Shell program={props.game} />
-  </FlexColumn>);
+      <div className="card-container">
+        {selection && selection.kind === 'monster' && <MonsterCard {...selection} />}
+        {selection && selection.kind === 'spell' && <SpellCard {...selection} />}
+        {selection && selection.kind === 'item' && <ItemCard {...selection} />}
+      </div>
+    </div>
+    <div className="shell-container">
+      <Shell program={props.game} />
+    </div>
+  </Root>);
 }

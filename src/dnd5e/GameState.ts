@@ -20,7 +20,7 @@ function buildParser(argTypes: { name: string, type: string }[]): (args: string)
     } else {
       return '(.' + (argType.name.endsWith('?') ? '*?' : '+?') + ')';
     }
-  }).join(' '));
+  }).join('\\s*'));
   return (args: string): any[] => {
     const m = re.exec(args);
     if (!m) return [];
@@ -375,13 +375,24 @@ class GameState implements Executable {
 
   @command('init', 'roll initiative')
   async rollInitiative() {
-    await Promise.all(this.encounter.map(async (e) => {
-      if (e.status && isNaN(e.status.initiative)) {
+    for (const e of this.encounter) {
+      if (!e.status) continue;
+      if (e.dex === null) {
+        e.status.initiative = NaN;
+        continue;
+      }
+      e.status.initiative = roll(20) + Compendium.modifier(e.dex);
+    }
+    this.onChange();
+    for (const e of this.encounter) {
+      if (e.status && !e.status.initiative) {
         this.stdout?.write(`initiative for ${e.name}? `);
         if (!this.stdin) return;
         e.status.initiative = parseInt(await this.stdin.read());
+        this.onChange();
+        this.stdout?.write("\r\n");
       }
-    }));
+    }
     this.encounter.sort((a, b) => {
       return (b.status?.initiative || 0) - (a.status?.initiative || 0);
     });
@@ -474,10 +485,10 @@ class GameState implements Executable {
     });
   }
 
-  @command('use <action: number> <targets: number[]>', 'perform action on the current entity')
+  @command('use <action: number> <targets?: number[]>', 'perform action on the current entity')
   use(action: number, targets: number[]) {
-    if (targets.length === 0) {
-      targets.push(this.currentIndex);
+    if (isNaN(targets[0])) {
+      targets = [this.currentIndex];
     }
     this.targets(targets).forEach((target) => {
       if (!target.action) return;

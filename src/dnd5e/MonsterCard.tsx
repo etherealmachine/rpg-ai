@@ -1,13 +1,26 @@
-import * as React from 'react';
+import React from 'react';
+import styled from 'styled-components';
 
 import { Compendium, Monster, NameTextPair } from './Compendium';
+
+const Card = styled.div`
+h1 {
+  font-size: 2vh;
+}
+th, td, div {
+  font-size: 1.5vh;
+}
+.stat-blocks {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+`;
 
 class MonsterCard extends React.Component<Monster> {
 
   private renderAction = (action: NameTextPair, i: number) => {
-    return <div key={`action-${i}`}>
-      <span>{action.name}</span>:<span>{action.text}</span>
-    </div>;
+    return <div key={i}>{`${i + 1}. ${action.name}: ${action.text}`}</div>;
   }
 
   private renderActions = (actions: NameTextPair[] | NameTextPair | undefined) => {
@@ -44,9 +57,9 @@ class MonsterCard extends React.Component<Monster> {
     const reactions = this.renderActions(reaction);
     const legendaryActions = this.renderActions(legendary);
     const traits = this.renderActions(trait);
-    return <div>
+    return <Card>
       <h1>{name}</h1>
-      <div className="row justify-content-space-around">
+      <div className="stat-blocks">
         <table>
           <thead>
             <tr>
@@ -69,8 +82,6 @@ class MonsterCard extends React.Component<Monster> {
             </tr>
           </tbody>
         </table>
-      </div>
-      <div className="row">
         <table>
           <thead>
             <tr>
@@ -108,6 +119,11 @@ class MonsterCard extends React.Component<Monster> {
       <div>Languages: {languages}</div>
       <div>Alignment: {alignment}</div>
       <div>Type: {type}</div>
+      {save && <div>Save: {save}</div>}
+      {resist && <div>Resist: {resist}</div>}
+      {vulnerable && <div>Vulnerable: {vulnerable}</div>}
+      {immune && <div>Immune: {immune}</div>}
+      {conditionImmune && <div>Condition Immunities: {conditionImmune}</div>}
       {description && <div>{description}</div>}
       {actions && <div>
         <h2>Actions</h2>
@@ -125,14 +141,9 @@ class MonsterCard extends React.Component<Monster> {
         <h2>Traits</h2>
         {traits}
       </div>}
-      {save && <div>Save: {save}</div>}
-      {resist && <div>Resist: {resist}</div>}
-      {vulnerable && <div>Vulnerable: {vulnerable}</div>}
-      {immune && <div>Immune: {immune}</div>}
-      {conditionImmune && <div>Condition Immunities: {conditionImmune}</div>}
       {spells && <div>Spells: {spells}</div>}
       {slots && <div>{slots}</div>}
-    </div>
+    </Card>
   }
 }
 
