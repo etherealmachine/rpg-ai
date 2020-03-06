@@ -294,20 +294,24 @@ export class Compendium {
     this.sources = (await new API().raw_request(`${process.env.PUBLIC_URL}/compendiums/${name}/index.json`) as Array<string>);
     await Promise.all(this.sources.map(async (source: string) => {
       const sourceData = await new API().raw_request(`${process.env.PUBLIC_URL}/compendiums/${name}/${source}`);
-      Object.entries(Compendium.types).forEach(([objType, attrName]) => {
-        if (sourceData.hasOwnProperty(objType)) {
-          Object.values(sourceData[objType]).forEach((obj: any) => {
-            if (obj.name) {
-              obj['source'] = source;
-              obj['kind'] = objType.slice(0, objType.length);
-              (this as any)[attrName][obj.name] = obj;
-            }
-          });
-        }
-      });
+      this.loadData(source, sourceData);
     }));
     (window as any).compendium = this;
     this.loaded = true;
+  }
+
+  loadData(source: string, sourceData: any) {
+    Object.entries(Compendium.types).forEach(([objType, attrName]) => {
+      if (sourceData.hasOwnProperty(objType)) {
+        Object.values(sourceData[objType]).forEach((obj: any) => {
+          if (obj.name) {
+            obj['source'] = source;
+            obj['kind'] = objType.slice(0, objType.length);
+            (this as any)[attrName][obj.name] = obj;
+          }
+        });
+      }
+    });
   }
 
 }

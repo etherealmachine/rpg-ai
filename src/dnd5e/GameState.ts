@@ -31,7 +31,7 @@ class Command {
       if (arg.type === 'number') {
         return '(-?[-\\d]' + (arg.optional ? '*' : '+') + ')';
       } else if (arg.type === 'number[]') {
-        return '(-?[ \\d,]' + (arg.optional ? '*' : '+') + ')';
+        return '(-?[\\d,]' + (arg.optional ? '*' : '+') + ')';
       } else {
         return '(.' + (arg.optional ? '*?' : '+?') + ')';
       }
