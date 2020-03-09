@@ -264,7 +264,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
         suggestions: [],
       });
       await program.execute(commandBuffer);
-      if (commandBuffer !== history[history.length - 1]) {
+      if (commandBuffer && commandBuffer !== history[history.length - 1]) {
         history.push(commandBuffer);
       }
     }

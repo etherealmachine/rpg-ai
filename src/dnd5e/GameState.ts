@@ -17,7 +17,7 @@ class Command {
     this.help = help;
     this.f = f;
     const groups = syntax.split('<');
-    this.command = groups[0];
+    this.command = groups[0].trim();
     groups.shift();
     this.args = groups.map((group) => {
       const [name, type] = group.replace('>', '').split(': ');
@@ -129,7 +129,7 @@ class GameState implements Executable {
     }
   }
 
-  private onChange() {
+  onChange() {
     this.setState(this);
     if (this.mode === GameMode.DM) {
       window.localStorage.setItem('dnd5e.gamestate', JSON.stringify(this));
@@ -374,25 +374,29 @@ class GameState implements Executable {
 
   @command('balance', 'check the balance of the current encounter')
   balance() {
-    const totalXP = this.encounter.reduce((sum, monster) => {
+    const encounterXP = this.encounter.reduce((sum, monster) => {
       if (!monster.cr) return sum;
       if (monster.cr in Compendium.cr_to_xp) return sum + Compendium.cr_to_xp[monster.cr];
       return sum;
     }, 0);
     const playerLevels = this.encounter.filter(monster => monster.status?.level).map(player => (player.status?.level || 0));
-    const xpByDifficulty = [0, 1, 2, 3].map(difficultyLevel => {
+    const xpByDifficulty = [3, 2, 1, 0].map(difficultyLevel => {
       return playerLevels.reduce((sum, level) => {
         return sum + Compendium.encounter_difficulty[level][difficultyLevel];
       }, 0);
     });
-    if (totalXP >= xpByDifficulty[3]) {
-      return `deadly: ${totalXP} >= ${xpByDifficulty[3]}`;
-    } else if (totalXP >= xpByDifficulty[2]) {
-      return `hard: ${totalXP} >= ${xpByDifficulty[2]}`;
-    } else if (totalXP >= xpByDifficulty[1]) {
-      return `medium: ${totalXP} >= ${xpByDifficulty[1]}`;
+    const difficulties = ['deadly', 'hard', 'medium', 'easy'];
+    for (let i = 0; i < difficulties.length; i++) {
+      const maxXP = xpByDifficulty[i];
+      if (encounterXP >= maxXP) {
+        if (i > 0) {
+          const interp = (encounterXP - maxXP) / (xpByDifficulty[i - 1] - maxXP);
+          return `${difficulties[i]}: ${(interp * 100).toFixed(0)}%`;
+        }
+        return `${difficulties[i]}: ${((encounterXP / maxXP) * 100).toFixed(0)}%`;
+      }
     }
-    return `easy: ${totalXP}, ${xpByDifficulty[0]}`;
+    return "trivial";
   }
 
   @command('init', 'roll initiative')
@@ -420,10 +424,13 @@ class GameState implements Executable {
     });
   }
 
-  @command('curr', 'show the current turn')
-  currTurn() {
+  @command('curr <i?: number>', 'show the current turn')
+  currTurn(i?: number) {
     if (this.encounter.length === 0) {
       return 'empty encounter';
+    }
+    if (i) {
+      this.currentIndex = i - 1;
     }
     this.selected = this.encounter[this.currentIndex];
     return repr(this.encounter[this.currentIndex], this.currentIndex);

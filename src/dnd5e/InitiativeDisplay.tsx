@@ -64,7 +64,7 @@ export default function InitiativeDisplay(props: Props) {
     <div>
       {curr && <Card>
         <CardContent>
-          <img src={`${process.env.PUBLIC_URL}/images/${curr.name}`} />
+          <img alt={curr.name} src={`${process.env.PUBLIC_URL}/images/${curr.name}`} />
           <h3>{curr.name}</h3>
           <div>Size: {curr.size}</div>
         </CardContent>

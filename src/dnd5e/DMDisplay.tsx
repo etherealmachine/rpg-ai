@@ -45,7 +45,11 @@ const Root = styled.div`
 
 export default function DMDisplay(props: Props) {
   const selection = props.game.selected || props.game.encounter[props.game.currentIndex];
-  const rows = props.game.encounter.map((e, index) => <tr key={index} className={index === props.game.currentIndex ? 'highlight' : ''}>
+  const rows = props.game.encounter.map((e, index) => <tr
+    key={index}
+    className={index === props.game.currentIndex ? 'highlight' : ''}
+    onClick={() => { props.game.currentIndex = index; props.game.onChange() }}
+  >
     <td align="left">{index + 1}</td>
     <td align="center">{e.name}</td>
     <td align="right">{e.status?.initiative}</td>

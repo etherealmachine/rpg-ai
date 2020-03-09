@@ -51,7 +51,6 @@ class MonsterCard extends React.Component<Monster> {
       save,
       resist, vulnerable, immune, conditionImmune,
       spells, slots,
-      status,
     } = this.props;
     const actions = this.renderActions(action);
     const reactions = this.renderActions(reaction);
