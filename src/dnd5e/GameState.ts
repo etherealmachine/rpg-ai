@@ -145,11 +145,8 @@ class GameState implements Executable {
     };
   }
 
-  async execute(commandLine: string, stdin: Reader, stdout: Writer, stderr: Writer): Promise<number> {
+  async execute(commandLine: string): Promise<number> {
     let command = undefined;
-    this.stdin = stdin;
-    this.stdout = stdout;
-    this.stderr = stderr;
 
     for (const key of Object.keys(commands)) {
       if (commandLine.startsWith(key)) {
@@ -159,7 +156,7 @@ class GameState implements Executable {
       }
     }
     if (command === undefined) {
-      stderr.write(`unknown command: ${commandLine}\r\n`);
+      this.stderr?.write(`unknown command: ${commandLine}\r\n`);
       return 1;
     }
     let result;
@@ -167,23 +164,17 @@ class GameState implements Executable {
       result = await command.execute(this, commandLine);
     } catch (err) {
       console.error(err);
-      this.stderr.write(err.toString());
-      this.stderr.write('\r\n');
-      this.stdin = undefined;
-      this.stdout = undefined;
-      this.stderr = undefined;
+      this.stderr?.write(err.toString());
+      this.stderr?.write('\r\n');
       return 1;
     }
     if (typeof result === 'string') {
-      stdout.write(result);
-      stdout.write('\r\n');
+      this.stdout?.write(result);
+      this.stdout?.write('\r\n');
     } else if (result instanceof Promise) {
       try {
         result = await result;
       } catch {
-        this.stdin = undefined;
-        this.stdout = undefined;
-        this.stderr = undefined;
         return 1;
       }
     }
@@ -195,9 +186,6 @@ class GameState implements Executable {
     if (this.session) {
       this.session.teardown();
       this.session = undefined;
-      this.stdin = undefined;
-      this.stdout = undefined;
-      this.stderr = undefined;
     }
   }
 

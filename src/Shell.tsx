@@ -17,9 +17,12 @@ export interface Reader {
 export interface Executable {
   startup(): string;
   prompt?(): string | undefined;
-  execute(commandLine: string, stdin: Reader, stdout: Writer, stderr: Writer): Promise<number>;
+  execute(commandLine: string): Promise<number>;
   cancel(): void;
   suggestions(commandLine: string): string[];
+  stdin?: Reader;
+  stdout?: Writer;
+  stderr?: Writer;
 }
 
 interface ShellProps {
@@ -51,6 +54,9 @@ class Shell extends React.Component<ShellProps, ShellState> {
 
   constructor(props: any) {
     super(props);
+    this.props.program.stdin = this;
+    this.props.program.stdout = this;
+    this.props.program.stderr = this;
     this.term = new XTerm();
     this.fitAddon = new FitAddon();
     this.state = {
@@ -257,7 +263,7 @@ class Shell extends React.Component<ShellProps, ShellState> {
         cursor: 0,
         suggestions: [],
       });
-      await program.execute(commandBuffer, this, this, this);
+      await program.execute(commandBuffer);
       if (commandBuffer !== history[history.length - 1]) {
         history.push(commandBuffer);
       }
