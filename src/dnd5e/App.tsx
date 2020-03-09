@@ -30,6 +30,7 @@ class App extends React.Component<any, AppState> {
       let game: GameState;
       if (params["session"]) {
         game = new GameState(GameMode.Player, compendium, this.updateGameState.bind(this));
+        console.log(params["session"]);
         game.join(params["session"]);
       } else {
         game = new GameState(GameMode.DM, compendium, this.updateGameState.bind(this));
@@ -50,17 +51,17 @@ class App extends React.Component<any, AppState> {
   }
 
   render() {
+
     if (this.state.game?.compendium.loaded) {
       switch (this.state.display) {
-        case undefined:
+        case "map":
+        case "initiative":
+          return <InitiativeDisplay game={this.state.game} />;
+        default:
           if (this.state.game.mode === GameMode.DM) {
             return <DMDisplay game={this.state.game} />;
           }
-          return <div>{`Please join a session with ${window.location}?session=<foo>`}</div>;
-        case "":
           return <InitiativeDisplay game={this.state.game} />;
-        default:
-          return <div>{`Unknown display ${this.state.display}`}</div>
       }
     }
     return <div>Loading...</div>;

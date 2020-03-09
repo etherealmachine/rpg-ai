@@ -284,7 +284,6 @@ class GameState implements Executable {
       name: name,
       kind: 'monster',
       hp: '',
-      imageURL: '',
       ac: NaN,
       cr: NaN,
       passive: NaN,
@@ -558,7 +557,7 @@ class GameState implements Executable {
     }
   }
 
-  @command('host', 'host a new session')
+  @command('host <code: string>', 'host a new session')
   host(code: string): Promise<void> {
     if (this.session) {
       this.session.teardown();

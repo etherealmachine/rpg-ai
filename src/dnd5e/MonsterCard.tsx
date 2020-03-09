@@ -37,7 +37,6 @@ class MonsterCard extends React.Component<Monster> {
   public render() {
     const {
       name,
-      imageURL,
       cr, ac, hp, passive,
       size, speed,
       str, dex, con, int, wis, cha,

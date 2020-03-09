@@ -8,7 +8,6 @@ export interface NameTextPair {
 export interface Monster {
   name: string
   kind: 'monster'
-  imageURL: string
   cr: string | number
   ac: string | number
   hp: string
