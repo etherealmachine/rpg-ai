@@ -164,8 +164,12 @@ class GameState implements Executable {
       result = await command.execute(this, commandLine);
     } catch (err) {
       console.error(err);
-      this.stderr?.write(err.toString());
-      this.stderr?.write('\r\n');
+      if (err) {
+        this.stderr?.write(err.toString());
+        this.stderr?.write('\r\n');
+      } else {
+        this.stderr?.write("unknown error\r\n");
+      }
       return 1;
     }
     if (typeof result === 'string') {
