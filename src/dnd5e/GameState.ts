@@ -309,6 +309,7 @@ class GameState implements Executable {
         conditions: [],
         initiative: NaN,
         level: level || NaN,
+        spellSlots: [],
       }
     });
     return `added player ${name}`;
@@ -332,6 +333,7 @@ class GameState implements Executable {
         reactions: [],
         legendaries: [],
         conditions: [],
+        spellSlots: this.compendium.parseSpellSlots(monster),
       };
       const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
       if (m) {
@@ -562,6 +564,11 @@ class GameState implements Executable {
       const bonus = parseInt(m[3]);
       this.stdout?.write(`${roll(die, n) + (bonus || 0)}\r\n`);
     }
+  }
+
+  @command('cast <name: string>', 'cast a spell')
+  cast(desc: string) {
+    return `${this.encounter[this.currentIndex].name} casts a spell!`;
   }
 
   @command('host <code: string>', 'host a new session')

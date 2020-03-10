@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-import { Compendium, Monster, NameTextPair } from './Compendium';
+import { Compendium, Monster, SpellSlots, NameTextPair } from './Compendium';
 
 const Card = styled.div`
 h1 {
@@ -19,11 +19,11 @@ th, td, div {
 
 class MonsterCard extends React.Component<Monster> {
 
-  private renderAction = (action: NameTextPair, i: number) => {
+  private renderAction(action: NameTextPair, i: number) {
     return <div key={i}>{`${i + 1}. ${action.name}: ${action.text}`}</div>;
   }
 
-  private renderActions = (actions: NameTextPair[] | NameTextPair | undefined) => {
+  private renderActions(actions: NameTextPair[] | NameTextPair | undefined) {
     if (!actions) {
       return null;
     }
@@ -32,6 +32,22 @@ class MonsterCard extends React.Component<Monster> {
     }
     const content = actions.map(this.renderAction)
     return <div>{content}</div>;
+  }
+
+  private renderSpellSlot(level: SpellSlots, i: number) {
+    if (level.slots === 0) {
+      return null;
+    }
+    return <div key={i}>
+      <span>{i === 0 ? 'Cantrips' : `Level ${i}`}</span>
+      {level.slots && <span><span>&nbsp;</span>{level.slots}</span>}
+      &nbsp;
+      <span>{level.spells.join(', ')}</span>
+    </div>;
+  }
+
+  private renderSpellSlots(spellSlots: SpellSlots[]) {
+    return spellSlots.map(this.renderSpellSlot)
   }
 
   public render() {
@@ -50,7 +66,7 @@ class MonsterCard extends React.Component<Monster> {
       trait,
       save,
       resist, vulnerable, immune, conditionImmune,
-      spells, slots,
+      status,
     } = this.props;
     const actions = this.renderActions(action);
     const reactions = this.renderActions(reaction);
@@ -140,8 +156,7 @@ class MonsterCard extends React.Component<Monster> {
         <h2>Traits</h2>
         {traits}
       </div>}
-      {spells && <div>Spells: {spells}</div>}
-      {slots && <div>{slots}</div>}
+      {status && this.renderSpellSlots(status.spellSlots)}
     </Card>
   }
 }

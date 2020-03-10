@@ -41,6 +41,11 @@ export interface Monster {
   status?: Status
 }
 
+export interface SpellSlots {
+  spells: string[]
+  slots: number
+}
+
 export interface Status {
   hp: number
   maxHP: number
@@ -52,6 +57,7 @@ export interface Status {
   reactions: NameTextPair[]
   legendaries: NameTextPair[]
   conditions: string[]
+  spellSlots: SpellSlots[]
 }
 
 export interface Spell {
@@ -287,6 +293,30 @@ export class Compendium {
       return 10;
     }
     return m.ac;
+  }
+
+  public parseSpellSlots(m: Monster): SpellSlots[] {
+    if (!m.spells) {
+      return [];
+    }
+    const spellList = m.spells.replace(/^Spells: /, '').split(',').map((spellName) => spellName.trim()) || [];
+    const cantrips = spellList.filter((spellName: string) => {
+      const spell = Object.values(this.spells).find((spell) => spell.name.toLowerCase() === spellName.toLowerCase());
+      return spell?.level === 0;
+    });
+    return [{
+      spells: cantrips,
+      slots: NaN,
+    }].concat((m.slots?.split(',').map((count, index) => {
+      const spellsAtThisLevel = spellList.filter((spellName: string) => {
+        const spell = Object.values(this.spells).find((spell) => spell.name.toLowerCase() === spellName.toLowerCase());
+        return spell?.level === index + 1;
+      });
+      return {
+        spells: spellsAtThisLevel,
+        slots: parseInt(count)
+      }
+    }) || []));
   }
 
   async load(name: string) {
