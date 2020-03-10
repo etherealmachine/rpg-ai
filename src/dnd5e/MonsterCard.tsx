@@ -40,9 +40,9 @@ class MonsterCard extends React.Component<Monster> {
     }
     return <div key={i}>
       <span>{i === 0 ? 'Cantrips' : `Level ${i}`}</span>
-      {level.slots && <span><span>&nbsp;</span>{level.slots}</span>}
+      {level.slots && !isNaN(level.slots) && <span><span>&nbsp;</span>{level.slots}</span>}
       &nbsp;
-      <span>{level.spells.join(', ')}</span>
+      <span>{level.spells.map((spell) => spell.name).join(', ')}</span>
     </div>;
   }
 

@@ -526,7 +526,7 @@ class GameState implements Executable {
     });
   }
 
-  @command('use <action: number> <targets?: number[]>', 'perform action on the current entity')
+  @command('use <action: number> <targets?: number[]>', 'perform actions')
   use(action: number, targets: number[]) {
     if (isNaN(targets[0])) {
       targets = [this.currentIndex + 1];
@@ -567,8 +567,30 @@ class GameState implements Executable {
   }
 
   @command('cast <name: string>', 'cast a spell')
-  cast(desc: string) {
-    return `${this.encounter[this.currentIndex].name} casts a spell!`;
+  cast(name: string) {
+    const curr = this.encounter[this.currentIndex];
+    const match = curr.status?.spellSlots.map((slot) => {
+      return slot.spells.map((spell) => {
+        return {
+          slot: slot,
+          spell: spell,
+          distance: Levenshtein.get(name.toLowerCase(), spell.name.toLowerCase()),
+        }
+      });
+    }).flat().sort((a, b) => {
+      if (a.distance < b.distance) return -1;
+      if (a.distance > b.distance) return 1;
+      return 0;
+    })[0];
+    if (!match) {
+      return;
+    }
+    if (match.slot.slots <= 0) {
+      return `${curr.name} has no more slots at that level!`;
+    }
+    match.slot.slots -= 1;
+    this.show(match.spell.name);
+    return `${curr.name} casts ${match.spell.name}!`;
   }
 
   @command('host <code: string>', 'host a new session')

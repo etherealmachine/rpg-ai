@@ -42,7 +42,7 @@ export interface Monster {
 }
 
 export interface SpellSlots {
-  spells: string[]
+  spells: Spell[]
   slots: number
 }
 
@@ -299,24 +299,23 @@ export class Compendium {
     if (!m.spells) {
       return [];
     }
-    const spellList = m.spells.replace(/^Spells: /, '').split(',').map((spellName) => spellName.trim()) || [];
-    const cantrips = spellList.filter((spellName: string) => {
-      const spell = Object.values(this.spells).find((spell) => spell.name.toLowerCase() === spellName.toLowerCase());
-      return spell?.level === 0;
-    });
+    const spellList = m.spells.replace(/^Spells: /, '').split(',').map((spellName) => {
+      return Object.values(this.spells).find((spell) => spell.name.toLowerCase() === spellName.trim().toLowerCase());
+    }).filter((spell) => spell) as Spell[];
+    const cantrips = spellList.filter((spell: Spell) => spell.level === 0);
+    const slots = m.slots?.split(',') || [];
     return [{
       spells: cantrips,
       slots: NaN,
-    }].concat((m.slots?.split(',').map((count, index) => {
-      const spellsAtThisLevel = spellList.filter((spellName: string) => {
-        const spell = Object.values(this.spells).find((spell) => spell.name.toLowerCase() === spellName.toLowerCase());
-        return spell?.level === index + 1;
+    }].concat(slots.map((count, index) => {
+      const spellsAtThisLevel = spellList.filter((spell: Spell) => {
+        return spell.level === index + 1;
       });
       return {
         spells: spellsAtThisLevel,
         slots: parseInt(count)
       }
-    }) || []));
+    }));
   }
 
   async load(name: string) {
