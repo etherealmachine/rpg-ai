@@ -3,6 +3,7 @@ import React from 'react';
 import Compendium from './Compendium';
 import GameState, { GameMode } from './GameState';
 import DMDisplay from './DMDisplay';
+import MapDisplay from './MapDisplay';
 import InitiativeDisplay from './InitiativeDisplay';
 
 interface AppState {
@@ -55,6 +56,7 @@ class App extends React.Component<any, AppState> {
     if (this.state.game?.compendium.loaded) {
       switch (this.state.display) {
         case "map":
+          return <MapDisplay game={this.state.game} />;
         case "initiative":
           return <InitiativeDisplay game={this.state.game} />;
         default:
