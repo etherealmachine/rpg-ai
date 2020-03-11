@@ -23,6 +23,9 @@ export class MapScene extends Phaser.Scene {
 
   create() {
     this.add.image(0, 0, 'map');
+    if (this.state?.map) {
+      this.load.image('map', `${process.env.PUBLIC_URL}/images/${this.state.map.name}`);
+    }
     this.state?.encounter.forEach((m, i) => {
       this.load.image(m.name, `${process.env.PUBLIC_URL}/images/${m.name}`);
     });
@@ -31,15 +34,18 @@ export class MapScene extends Phaser.Scene {
   }
 
   onLoad() {
-    this.state?.encounter.forEach((m, i) => {
-      const sprite = this.add.image((i + 1) * 200, (i + 1) * 200, m.name);
-      sprite.setScale(0.2);
+    if (this.state === undefined || this.state.map === undefined) return;
+    const map = this.add.image(0, 0, 'map');
+    const tileSize = map.width / this.state.map.scale;
+    console.log(tileSize);
+    this.state.encounter.forEach((m, i) => {
+      if (m.status === undefined) return;
+      const sprite = this.add.image(m.status.x * tileSize, m.status.y * tileSize, m.name);
+      if (this.state === undefined || this.state.map === undefined) return;
+      sprite.setScale(map.width / (sprite.width * this.state.map.scale));
     });
   }
 
-  preload() {
-    this.load.image('map', `${process.env.PUBLIC_URL}/images/Slitherswamp.jpg`);
-  }
 }
 
 function setupPhaser(el: HTMLElement, game: GameState) {

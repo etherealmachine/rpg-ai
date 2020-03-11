@@ -97,6 +97,11 @@ export enum GameMode {
   Player
 }
 
+export interface Map {
+  name: string
+  scale: number
+}
+
 class GameState implements Executable {
   mode: GameMode;
   compendium: Compendium = new Compendium();
@@ -107,6 +112,7 @@ class GameState implements Executable {
   encounter: Array<Monster> = [];
   currentIndex: number = 0;
   selected?: CompendiumItem;
+  map?: Map;
 
   stdin?: Reader;
   stdout?: Writer;
@@ -142,6 +148,7 @@ class GameState implements Executable {
       encounter: this.encounter,
       currentIndex: this.currentIndex,
       sessionCode: this.session?.sessionCode,
+      map: this.map,
     };
   }
 
@@ -301,6 +308,8 @@ class GameState implements Executable {
       status: {
         hp: NaN,
         maxHP: NaN,
+        x: 0,
+        y: 0,
         damage: [],
         saves: [],
         actions: [],
@@ -327,6 +336,8 @@ class GameState implements Executable {
       monster.status = {
         initiative: roll(20) + Compendium.modifier(monster.dex),
         level: NaN,
+        x: 0,
+        y: 0,
         damage: [],
         saves: [],
         actions: [],
@@ -591,6 +602,14 @@ class GameState implements Executable {
     match.slot.slots -= 1;
     this.show(match.spell.name);
     return `${curr.name} casts ${match.spell.name}!`;
+  }
+
+  @command('map <name: string> <scale: number>', 'load map')
+  loadMap(name: string, scale: number) {
+    this.map = {
+      name: name,
+      scale: scale,
+    };
   }
 
   @command('host <code: string>', 'host a new session')
