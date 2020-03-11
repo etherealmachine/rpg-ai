@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import Phaser from 'phaser';
 
 import GameState from './GameState';
 
@@ -7,53 +8,50 @@ interface Props {
   game: GameState;
 }
 
-const Canvas = styled.canvas`
+const Game = styled.div`
   width: 100%;
   height: 100%;
 `;
 
-interface Vertex {
-  x: number
-  y: number
+
+export class MapScene extends Phaser.Scene {
+  state?: GameState;
+
+  init(args: any) {
+    this.state = args.game;
+  }
+
+  create() {
+    this.add.image(0, 0, 'map');
+    this.state?.encounter.forEach((m, i) => {
+      this.load.image(m.name, `${process.env.PUBLIC_URL}/images/${m.name}`);
+    });
+    this.load.loadComplete = this.onLoad.bind(this);
+    this.load.start();
+  }
+
+  onLoad() {
+    this.state?.encounter.forEach((m, i) => {
+      const sprite = this.add.image((i + 1) * 200, (i + 1) * 200, m.name);
+      sprite.setScale(0.2);
+    });
+  }
+
+  preload() {
+    this.load.image('map', `${process.env.PUBLIC_URL}/images/Slitherswamp.jpg`);
+  }
 }
 
-function getMousePos(canvas: HTMLCanvasElement, mouseEvent: MouseEvent): Vertex {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: mouseEvent.clientX - rect.left,
-    y: mouseEvent.clientY - rect.top
+function setupPhaser(el: HTMLElement, game: GameState) {
+  const gameConfig = {
+    parent: el,
+    width: window.innerWidth,
+    height: window.innerHeight,
   };
-}
-
-function renderGameState(game: GameState, canvas: HTMLCanvasElement) {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  let [offsetX, offsetY] = [0, 0];
-  let mouse: Vertex | null = null;
-  canvas.addEventListener("mousedown", (e) => {
-    mouse = getMousePos(canvas, e);
-  }, false);
-  canvas.addEventListener("mouseup", (e) => {
-    mouse = null;
-  }, false);
-  canvas.addEventListener("mousemove", (e) => {
-    if (mouse) {
-      const newMouse = getMousePos(canvas, e);
-      offsetX += mouse.x - newMouse.x;
-      offsetY += mouse.y - newMouse.y;
-      mouse = newMouse;
-      ctx?.drawImage(map, offsetX, offsetY);
-    }
-  }, false);
-  const ctx = canvas.getContext('2d');
-  const map = new Image();
-  map.onload = () => {
-    ctx?.drawImage(map, offsetX, offsetY);
-  };
-  map.src = `${process.env.PUBLIC_URL}/images/Slitherswamp.jpg`;
+  const phaser = new Phaser.Game(gameConfig);
+  phaser.scene.add('Map', MapScene, true, { game: game });
 }
 
 export default function MapDisplay(props: Props) {
-  return <Canvas ref={el => el && renderGameState(props.game, el)} />;
+  return <Game ref={el => el && setupPhaser(el, props.game)} />;
 }
