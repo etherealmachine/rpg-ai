@@ -1,8 +1,9 @@
 import { Compendium, CompendiumItem, Monster } from './Compendium';
-import TerminalCodes from '../TerminalCodes';
 import { Executable, Reader, Writer } from '../Shell';
-import Session from '../Session';
 import Levenshtein from 'fast-levenshtein';
+import Session from '../Session';
+import TerminalCodes from '../TerminalCodes';
+import Tutorial from './Tutorial';
 
 class Command {
   command: string
@@ -43,19 +44,32 @@ class Command {
     return this.f.apply(game, this.parse(commandLine, game.log));
   }
 
-  parse(commandLine: string, out?: Writer): (string | number | number[])[] {
+  parse(commandLine: string, out?: Writer): (string | number | number[] | undefined)[] {
     const match = commandLine.match(this.regex);
     out?.write(`"${commandLine}".match(/${this.regex}/)\r\n`)
     out?.write(JSON.stringify(match) + "\r\n")
     if (!match) return [];
     return match.slice(1, match.length).map((arg, index) => {
       arg = arg.trim();
-      out?.write(`arg ${index}: ${arg} ${this.args[index].type}\r\n`)
+      out?.write(`arg ${index}: "${arg}": ${this.args[index].type}\r\n`)
       switch (this.args[index].type) {
         case "number":
+          if (isNaN(parseInt(arg))) {
+            if (this.args[index].optional) {
+              return undefined;
+            }
+            throw new Error(`failed to parse ${arg} as non-optional argument ${this.args[index].name}: number`);
+          }
           return parseInt(arg);
         case "number[]":
-          return arg.split(',').map((s => parseInt(s.trim())));
+          const numbers = arg.split(',').map((s => parseInt(s.trim())));
+          if (numbers.length === 0 || numbers.some(isNaN)) {
+            if (this.args[index].optional) {
+              return undefined;
+            }
+            throw new Error(`failed to parse ${arg} as non-optional argument ${this.args[index].name}: number[]`);
+          }
+          return numbers;
         case "string":
           return arg;
         default:
@@ -107,8 +121,12 @@ class GameState implements Executable {
   compendium: Compendium = new Compendium();
   session?: Session;
   setState: (g: GameState) => void;
+  tutorial?: Tutorial;
 
   motd: Monster;
+
+  // Persisted to local storage
+  showStartup: boolean = true;
   encounter: Array<Monster> = [];
   currentIndex: number = 0;
   selected?: CompendiumItem;
@@ -145,6 +163,7 @@ class GameState implements Executable {
 
   toJSON() {
     return {
+      showStartup: this.showStartup,
       encounter: this.encounter,
       currentIndex: this.currentIndex,
       sessionCode: this.session?.sessionCode,
@@ -190,6 +209,11 @@ class GameState implements Executable {
       }
     }
     this.onChange();
+    if (this.tutorial) {
+      const tutorialOutput = this.tutorial.next();
+      if (!tutorialOutput) this.tutorial = undefined;
+      else this.stdout?.write(tutorialOutput);
+    }
     return 0;
   }
 
@@ -214,6 +238,7 @@ class GameState implements Executable {
   }
 
   startup() {
+    if (!this.showStartup) return '';
     let msg = `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd?.name}\r\n`;
     if (this.session) {
       msg += `Resuming session "${this.session.sessionCode}"\r\n`;
@@ -221,6 +246,7 @@ class GameState implements Executable {
     if (this.encounter.length > 0) {
       msg += `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
     }
+    msg += "\r\n";
     return msg;
   }
 
@@ -262,9 +288,18 @@ class GameState implements Executable {
     return a.map(i => this.encounter[i - 1]);
   }
 
-  @command('help', 'this help message')
-  help() {
-    return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).join('\r\n');
+  @command('help <command?: string>', 'this help message')
+  help(command?: string) {
+    if (!command || !(command in commands)) {
+      return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).join('\r\n');
+    }
+    return `${commands[command].syntax} - ${commands[command].help}`;
+  }
+
+  @command('welcome', 'toggle welcome message')
+  welcome() {
+    this.showStartup = !this.showStartup;
+    return `welcome message ${this.showStartup ? 'on' : 'off'}`;
   }
 
   @command('new', 'start a new encounter')
@@ -281,7 +316,7 @@ class GameState implements Executable {
       this.encounter = [];
       return '\r\ncleared all saved state';
     } else {
-      return "\r\ncancelled clearing bookmarks";
+      return "\r\ncancelled reset";
     };
   }
 
@@ -292,7 +327,7 @@ class GameState implements Executable {
       kind: 'monster',
       hp: '',
       ac: NaN,
-      cr: NaN,
+      cr: level || NaN,
       passive: NaN,
       size: '',
       speed: '',
@@ -317,7 +352,6 @@ class GameState implements Executable {
         legendaries: [],
         conditions: [],
         initiative: NaN,
-        level: level || NaN,
         spellSlots: [],
       }
     });
@@ -388,11 +422,17 @@ class GameState implements Executable {
   @command('balance', 'check the balance of the current encounter')
   balance() {
     const encounterXP = this.encounter.reduce((sum, monster) => {
+      if (monster.type === 'player') return sum;
       if (!monster.cr) return sum;
       if (monster.cr in Compendium.cr_to_xp) return sum + Compendium.cr_to_xp[monster.cr];
       return sum;
     }, 0);
-    const playerLevels = this.encounter.filter(monster => monster.status?.level).map(player => (player.status?.level || 0));
+    const playerLevels = this.encounter.filter(monster => monster.type === 'player').map(player => {
+      if (typeof player.cr === 'string') {
+        return parseInt(player.cr);
+      }
+      return player.cr;
+    });
     const xpByDifficulty = [3, 2, 1, 0].map(difficultyLevel => {
       return playerLevels.reduce((sum, level) => {
         return sum + Compendium.encounter_difficulty[level][difficultyLevel];
@@ -437,7 +477,7 @@ class GameState implements Executable {
     });
   }
 
-  @command('curr <i?: number>', 'show the current turn')
+  @command('curr <i?: number>', 'set the current turn to index i, default: show the current turn')
   currTurn(i?: number) {
     if (this.encounter.length === 0) {
       return 'empty encounter';
@@ -517,12 +557,16 @@ class GameState implements Executable {
     }
   }
 
-  @command('dc <dc: number> <attribute: string> <targets: number[]>', 'roll a saving throw')
-  save(dc: number, attribute: string, targets: number[]) {
+  @command('dc <dc: number> <attribute: string> <targets?: number[]>', 'roll a saving throw')
+  save(dc: number, attribute: string, targets?: number[]) {
+    attribute = attribute.toLowerCase();
     const attr = Compendium.abilities.find((a: string) => (a.toLowerCase().substring(0, 3) === attribute));
     if (!attr) {
       this.stderr?.write(`unknown attribute ${attribute}\r\n`);
       return;
+    }
+    if (!targets) {
+      targets = [this.currentIndex + 1];
     }
     this.targets(targets).forEach((target) => {
       const targetAbility = (target as any)[attr.substring(0, 3).toLowerCase()];
@@ -564,6 +608,40 @@ class GameState implements Executable {
       return `no match found for ${query}`;
     }
     this.selected = results[0];
+  }
+
+  @command('monster <query: string>', 'search and show monsters')
+  monster(query: string) {
+    const results = this.search(query, ['monster']);
+    if (results.length === 0) {
+      return `no match found for ${query}`;
+    }
+    this.selected = results[0];
+  }
+
+  @command('spell <query: string>', 'search and show spells')
+  spell(query: string) {
+    const results = this.search(query, ['spell']);
+    if (results.length === 0) {
+      return `no match found for ${query}`;
+    }
+    this.selected = results[0];
+  }
+
+  @command('item <query: string>', 'search and show items')
+  item(query: string) {
+    const results = this.search(query, ['item']);
+    if (results.length === 0) {
+      return `no match found for ${query}`;
+    }
+    this.selected = results[0];
+  }
+
+  @command('tutorial', 'run the tutorial')
+  startTutorial() {
+    if (!this.tutorial) {
+      this.tutorial = new Tutorial(this);
+    }
   }
 
   @command('roll <desc: string>', 'roll them bones')

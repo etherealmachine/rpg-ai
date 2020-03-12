@@ -77,8 +77,10 @@ class Shell extends React.Component<ShellProps, ShellState> {
     this.term.open(this.termEl);
     this.term.onData(this.handleData.bind(this));
     this.fitAddon.fit();
-    this.write(this.props.program.startup());
-    this.write('\r\n');
+    const startupMsg = this.props.program.startup();
+    if (startupMsg) {
+      this.write(startupMsg);
+    }
     this.displayPrompt();
   }
 

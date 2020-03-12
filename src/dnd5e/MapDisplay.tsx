@@ -37,10 +37,10 @@ export class MapScene extends Phaser.Scene {
     if (this.state === undefined || this.state.map === undefined) return;
     const map = this.add.image(0, 0, 'map');
     const tileSize = map.width / this.state.map.scale;
-    console.log(tileSize);
+    const tileSize2 = tileSize / 2;
     this.state.encounter.forEach((m, i) => {
       if (m.status === undefined) return;
-      const sprite = this.add.image(m.status.x * tileSize, m.status.y * tileSize, m.name);
+      const sprite = this.add.image(5 * tileSize - tileSize2, 5 * tileSize - tileSize2, m.name);
       if (this.state === undefined || this.state.map === undefined) return;
       sprite.setScale(map.width / (sprite.width * this.state.map.scale));
     });
@@ -54,6 +54,7 @@ function setupPhaser(el: HTMLElement, game: GameState) {
     width: window.innerWidth,
     height: window.innerHeight,
   };
+  console.log(window.innerWidth);
   const phaser = new Phaser.Game(gameConfig);
   phaser.scene.add('Map', MapScene, true, { game: game });
 }

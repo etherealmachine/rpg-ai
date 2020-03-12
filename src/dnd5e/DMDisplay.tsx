@@ -52,6 +52,7 @@ export default function DMDisplay(props: Props) {
   >
     <td align="left">{index + 1}</td>
     <td align="center">{e.name}</td>
+    <td align="right">{e.cr}</td>
     <td align="right">{e.status?.initiative}</td>
     <td align="right">{e.status?.hp || ''}</td>
     <td align="right">{e.ac || ''}</td>
@@ -64,6 +65,7 @@ export default function DMDisplay(props: Props) {
           <tr>
             <td align="left"></td>
             <td>Name</td>
+            <td align="right">CR</td>
             <td align="right">Initiative</td>
             <td align="right">HP</td>
             <td align="right">AC</td>

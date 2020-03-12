@@ -50,7 +50,6 @@ export interface Status {
   hp: number
   maxHP: number
   initiative: number
-  level: number
   x: number
   y: number
   damage: NameTextPair[]
