@@ -121,7 +121,6 @@ class GameState implements Executable {
   compendium: Compendium = new Compendium();
   session?: Session;
   setState: (g: GameState) => void;
-  tutorial?: Tutorial;
 
   motd: Monster;
 
@@ -131,6 +130,7 @@ class GameState implements Executable {
   currentIndex: number = 0;
   selected?: CompendiumItem;
   map?: Map;
+  tutorialStep?: number;
 
   stdin?: Reader;
   stdout?: Writer;
@@ -168,6 +168,7 @@ class GameState implements Executable {
       currentIndex: this.currentIndex,
       sessionCode: this.session?.sessionCode,
       map: this.map,
+      tutorialStep: this.tutorialStep,
     };
   }
 
@@ -208,12 +209,8 @@ class GameState implements Executable {
         return 1;
       }
     }
+    if (this.tutorialStep !== undefined) this.tutorialStep = Tutorial.next(this);
     this.onChange();
-    if (this.tutorial) {
-      const tutorialOutput = this.tutorial.next();
-      if (!tutorialOutput) this.tutorial = undefined;
-      else this.stdout?.write(tutorialOutput);
-    }
     return 0;
   }
 
@@ -245,6 +242,10 @@ class GameState implements Executable {
     }
     if (this.encounter.length > 0) {
       msg += `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
+    }
+    if (this.tutorialStep !== undefined) {
+      this.tutorialStep--;
+      msg += `Resume your tutorial with the "tutorial" command\r\n`;
     }
     msg += "\r\n";
     return msg;
@@ -313,7 +314,12 @@ class GameState implements Executable {
     this.stdout?.write("are you sure (y/n)? ");
     const response = await this.stdin?.read();
     if (response === 'y') {
+      this.showStartup = true;
       this.encounter = [];
+      this.currentIndex = 0;
+      this.selected = undefined;
+      this.map = undefined;
+      this.tutorialStep = undefined;
       return '\r\ncleared all saved state';
     } else {
       return "\r\ncancelled reset";
@@ -404,7 +410,6 @@ class GameState implements Executable {
   @command('condition <targets: number[]> <condition: string>', 'toggle a condition')
   condition(targets: number[], condition: string) {
     condition = condition.toLowerCase();
-    console.log(condition);
     this.targets(targets).forEach((target) => {
       if (target.status?.conditions.indexOf(condition) !== -1) {
         target.status?.conditions.splice(target.status?.conditions.indexOf(condition), 1);
@@ -639,9 +644,7 @@ class GameState implements Executable {
 
   @command('tutorial', 'run the tutorial')
   startTutorial() {
-    if (!this.tutorial) {
-      this.tutorial = new Tutorial(this);
-    }
+    if (this.tutorialStep === undefined) this.tutorialStep = -1;
   }
 
   @command('roll <desc: string>', 'roll them bones')
