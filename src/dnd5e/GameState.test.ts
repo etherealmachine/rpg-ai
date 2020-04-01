@@ -39,11 +39,11 @@ test('adding some monsters and running various commands', async () => {
 
   const vals = ["15", "30"];
   game.stdin = {
-    read: () => Promise.resolve(vals.shift()),
+    read: () => Promise.resolve(vals.shift() || 'err: out of values'),
   };
   await game.execute("init");
-  expect(game.encounter.find(m => m.name === 'House')?.status?.initiative).toEqual(15);
-  expect(game.encounter.find(m => m.name === 'Applewhite')?.status?.initiative).toEqual(30);
+  expect(game.encounter.find((m) => m.name === 'House')?.status?.initiative).toEqual(15);
+  expect(game.encounter.find((m) => m.name === 'Applewhite')?.status?.initiative).toEqual(30);
 
   game.execute("rm 1");
   expect(game.encounter.find((m) => m.name === 'Applewhite')).toBeFalsy();
