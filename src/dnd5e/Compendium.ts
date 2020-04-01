@@ -261,11 +261,17 @@ export class Compendium {
     '30': 155000,
   }
 
+  public static xp_to_cr(xp: number): string {
+    return (Object.entries(this.cr_to_xp)
+      .sort((a, b) => a[1] - b[1])
+      .find(pair => xp <= pair[1]) || ['30+', NaN])[0];
+  }
+
   public static encounter_difficulty: { [key: number]: number[] } = {
     1: [25, 50, 75, 100],
     2: [50, 100, 150, 200],
     3: [75, 150, 225, 400],
-    4: [125, 250, 75, 500],
+    4: [125, 250, 375, 500],
     5: [250, 500, 750, 1100],
     6: [300, 600, 900, 1400],
     7: [350, 750, 1100, 1700],

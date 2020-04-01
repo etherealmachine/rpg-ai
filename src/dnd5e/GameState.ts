@@ -36,7 +36,7 @@ class Command {
       } else {
         return '(.' + (arg.optional ? '*?' : '+?') + ')';
       }
-    }).join('\\s*') + '$');
+    }).join('\\s+') + '$');
   }
 
   execute(game: GameState, commandLine: string) {
@@ -48,7 +48,7 @@ class Command {
     const match = commandLine.match(this.regex);
     out?.write(`"${commandLine}".match(/${this.regex}/)\r\n`)
     out?.write(JSON.stringify(match) + "\r\n")
-    if (!match) return [];
+    if (!match) return [commandLine];
     return match.slice(1, match.length).map((arg, index) => {
       arg = arg.trim();
       out?.write(`arg ${index}: "${arg}": ${this.args[index].type}\r\n`)
@@ -70,6 +70,11 @@ class Command {
             throw new Error(`failed to parse ${arg} as non-optional argument ${this.args[index].name}: number[]`);
           }
           return numbers;
+        case "string | number":
+          if (isNaN(parseInt(arg))) {
+            return arg;
+          }
+          return parseInt(arg);
         case "string":
           return arg;
         default:
@@ -172,6 +177,15 @@ class GameState implements Executable {
     };
   }
 
+  resetState() {
+    this.showStartup = true;
+    this.encounter = [];
+    this.currentIndex = 0;
+    this.selected = undefined;
+    this.map = undefined;
+    this.tutorialStep = undefined;
+  }
+
   async execute(commandLine: string): Promise<number> {
     let command = undefined;
 
@@ -244,7 +258,6 @@ class GameState implements Executable {
       msg += `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
     }
     if (this.tutorialStep !== undefined) {
-      this.tutorialStep--;
       msg += `Resume your tutorial with the "tutorial" command\r\n`;
     }
     msg += "\r\n";
@@ -314,12 +327,7 @@ class GameState implements Executable {
     this.stdout?.write("are you sure (y/n)? ");
     const response = await this.stdin?.read();
     if (response === 'y') {
-      this.showStartup = true;
-      this.encounter = [];
-      this.currentIndex = 0;
-      this.selected = undefined;
-      this.map = undefined;
-      this.tutorialStep = undefined;
+      this.resetState();
       return '\r\ncleared all saved state';
     } else {
       return "\r\ncancelled reset";
@@ -438,23 +446,18 @@ class GameState implements Executable {
       }
       return player.cr;
     });
-    const xpByDifficulty = [3, 2, 1, 0].map(difficultyLevel => {
+    const levels = [3, 2, 1, 0].map(index => {
       return playerLevels.reduce((sum, level) => {
-        return sum + Compendium.encounter_difficulty[level][difficultyLevel];
+        return sum + Compendium.encounter_difficulty[level][index];
       }, 0);
     });
-    const difficulties = ['deadly', 'hard', 'medium', 'easy'];
-    for (let i = 0; i < difficulties.length; i++) {
-      const maxXP = xpByDifficulty[i];
-      if (encounterXP >= maxXP) {
-        if (i > 0) {
-          const interp = (encounterXP - maxXP) / (xpByDifficulty[i - 1] - maxXP);
-          return `${difficulties[i]}: ${(interp * 100).toFixed(0)}%`;
-        }
-        return `${difficulties[i]}: ${((encounterXP / maxXP) * 100).toFixed(0)}%`;
-      }
+    const difficultyLevel = levels.filter(xp => encounterXP > xp).length;
+    const difficulty = ['deadly', 'hard', 'medium', 'easy'][3 - difficultyLevel];
+    if (difficulty === 'deadly') {
+      return 'deadly';
     }
-    return "trivial";
+    const xpToNextLevel = levels[3 - difficultyLevel] - encounterXP;
+    return `${difficulty}: CR ${Compendium.xp_to_cr(xpToNextLevel)} to next level`;
   }
 
   @command('init', 'roll initiative')
@@ -617,6 +620,10 @@ class GameState implements Executable {
 
   @command('monster <query: string>', 'search and show monsters')
   monster(query: string) {
+    const attrQuery = query.match(/(.+)=(.+)/);
+    if (attrQuery) {
+      const [attrName, attrValue] = attrQuery;
+    }
     const results = this.search(query, ['monster']);
     if (results.length === 0) {
       return `no match found for ${query}`;
@@ -642,9 +649,18 @@ class GameState implements Executable {
     this.selected = results[0];
   }
 
-  @command('tutorial', 'run the tutorial')
-  startTutorial() {
-    if (this.tutorialStep === undefined) this.tutorialStep = -1;
+  @command('tutorial <step?: number>', 'run the tutorial')
+  async startTutorial(step?: number) {
+    if (step) {
+      this.tutorialStep = step;
+      await Tutorial.replay(this);
+      return;
+    }
+    if (this.tutorialStep === undefined) {
+      this.tutorialStep = -1;
+    } else {
+      await Tutorial.replay(this);
+    }
   }
 
   @command('roll <desc: string>', 'roll them bones')
@@ -772,6 +788,20 @@ class GameState implements Executable {
       this.log = this.stderr;
     }
     this.stdout?.write(`debug ${this.log ? 'on' : 'off'}\r\n`);
+  }
+
+  @command('poke <path: string> <value: string | number>', 'poke variables for debugging')
+  poke(path: string, value: string | number) {
+    let curr = this;
+    const keys = path.split('.');
+    for (let key of keys.slice(0, keys.length - 1)) {
+      const match = Object.entries(curr).find(entry => entry[0] === key);
+      if (!match) {
+        throw new Error(`no match found at ${key}`);
+      }
+      curr = match[1];
+    }
+    (curr as any)[keys[keys.length - 1]] = value;
   }
 
 }
