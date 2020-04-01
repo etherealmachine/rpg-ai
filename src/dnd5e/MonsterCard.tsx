@@ -156,7 +156,7 @@ class MonsterCard extends React.Component<Monster> {
         <h2>Traits</h2>
         {traits}
       </div>}
-      {status && this.renderSpellSlots(status.spellSlots)}
+      {status && status.spellSlots && this.renderSpellSlots(status.spellSlots)}
     </Card>
   }
 }

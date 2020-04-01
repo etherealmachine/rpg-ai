@@ -3,7 +3,7 @@ import { Executable, Reader, Writer } from '../Shell';
 import Levenshtein from 'fast-levenshtein';
 import Session from '../Session';
 import TerminalCodes from '../TerminalCodes';
-import Tutorial from './Tutorial';
+import Tutorial, { TutorialSteps } from './Tutorial';
 
 class Command {
   command: string
@@ -223,7 +223,9 @@ class GameState implements Executable {
         return 1;
       }
     }
-    if (this.tutorialStep !== undefined) this.tutorialStep = Tutorial.next(this);
+    if (this.tutorialStep !== undefined) {
+      this.tutorialStep = Tutorial.next(this);
+    }
     this.onChange();
     return 0;
   }
@@ -250,15 +252,24 @@ class GameState implements Executable {
 
   startup() {
     if (!this.showStartup) return '';
+
     let msg = `Welcome to rpg.ai, the shell for the busy DM!\r\nLoaded the DND5E Compendium.\r\nMonster of the day: ${this.motd?.name}\r\n`;
-    if (this.session) {
-      msg += `Resuming session "${this.session.sessionCode}"\r\n`;
+
+    if (this.tutorialStep !== undefined) {
+      msg += `Resuming your tutorial from step ${this.tutorialStep + 1}/${TutorialSteps.length}\r\n`;
+      msg += `Exit the tutorial with ${TerminalCodes.Red}reset${TerminalCodes.Reset}\r\n`;
+      msg += `${TerminalCodes.Yellow}${TutorialSteps[this.tutorialStep].prompt.split('\n').join('\r\n')}${TerminalCodes.Reset}\r\n`;
+      return msg;
+    } else {
+      msg += `Start the tutorial with the ${TerminalCodes.Red}tutorial${TerminalCodes.Reset} command\r\n`;
     }
+
+    if (this.session && this.session.sessionCode) {
+      msg += `Resuming session at ${window.location}?session=${encodeURI(this.session.sessionCode)}\r\n`;
+    }
+
     if (this.encounter.length > 0) {
       msg += `Resuming your encounter with ${this.encounter.map((i) => i.name).join(', ')}\r\n`;
-    }
-    if (this.tutorialStep !== undefined) {
-      msg += `Resume your tutorial with the "tutorial" command\r\n`;
     }
     msg += "\r\n";
     return msg;
@@ -305,7 +316,7 @@ class GameState implements Executable {
   @command('help <command?: string>', 'this help message')
   help(command?: string) {
     if (!command || !(command in commands)) {
-      return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).join('\r\n');
+      return Array.from(Object.values(commands)).map((command) => `${command.syntax} - ${command.help}`).sort().join('\r\n');
     }
     return `${commands[command].syntax} - ${commands[command].help}`;
   }
@@ -651,14 +662,8 @@ class GameState implements Executable {
 
   @command('tutorial <step?: number>', 'run the tutorial')
   async startTutorial(step?: number) {
-    if (step) {
-      this.tutorialStep = step;
-      await Tutorial.replay(this);
-      return;
-    }
-    if (this.tutorialStep === undefined) {
-      this.tutorialStep = -1;
-    } else {
+    this.tutorialStep = step || -1;
+    if (this.tutorialStep >= 0) {
       await Tutorial.replay(this);
     }
   }
@@ -701,14 +706,6 @@ class GameState implements Executable {
     return `${curr.name} casts ${match.spell.name}!`;
   }
 
-  @command('map <name: string> <scale: number>', 'load map')
-  loadMap(name: string, scale: number) {
-    this.map = {
-      name: name,
-      scale: scale,
-    };
-  }
-
   @command('host <code: string>', 'host a new session')
   host(code: string): Promise<void> {
     if (this.session) {
@@ -721,6 +718,7 @@ class GameState implements Executable {
         this.session?.send(this);
       }
     };
+    this.stdout?.write(`Join at ${window.location}?session=${encodeURI(code)}\r\n`);
     return new Promise((resolve, reject) => {
       this.attachSessionHandlers(resolve, reject);
       this.session?.connect();
