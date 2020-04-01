@@ -10,15 +10,15 @@ test('adding some monsters to the encounter and doing damage', () => {
   const game = new GameState(GameMode.DM, compendium, setState);
   game.execute("add orc 2");
   const [hp1, hp2] = [
-    game.encounter[0].status.hp,
-    game.encounter[1].status.hp,
+    game.encounter[0]?.status?.hp || NaN,
+    game.encounter[1]?.status?.hp || NaN,
   ];
   game.execute("dmg 1 8");
   game.execute("dmg 1 -4");
   game.execute("dmg 1 20");
   game.execute("dmg 1,2 -2");
-  expect(game.encounter[0].status.hp).toEqual(hp1 - 8 + 4 - 20 + 2);
-  expect(game.encounter[1].status.hp).toEqual(hp2 + 2);
+  expect(game.encounter[0]?.status?.hp).toEqual(hp1 - 8 + 4 - 20 + 2);
+  expect(game.encounter[1]?.status?.hp).toEqual(hp2 + 2);
 });
 
 test('adding some monsters and running various commands', async () => {
@@ -42,8 +42,8 @@ test('adding some monsters and running various commands', async () => {
     read: () => Promise.resolve(vals.shift()),
   };
   await game.execute("init");
-  expect(game.encounter.find((m) => m.name === 'House').status.initiative).toEqual(15);
-  expect(game.encounter.find((m) => m.name === 'Applewhite').status.initiative).toEqual(30);
+  expect(game.encounter.find(m => m.name === 'House')?.status?.initiative).toEqual(15);
+  expect(game.encounter.find(m => m.name === 'Applewhite')?.status?.initiative).toEqual(30);
 
   game.execute("rm 1");
   expect(game.encounter.find((m) => m.name === 'Applewhite')).toBeFalsy();
