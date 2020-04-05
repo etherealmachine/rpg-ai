@@ -118,7 +118,7 @@ export enum GameMode {
 
 export interface Map {
   name: string
-  scale: number
+  width: number
 }
 
 class GameState implements Executable {
@@ -395,8 +395,8 @@ class GameState implements Executable {
       monster.status = {
         initiative: roll(20) + Compendium.modifier(monster.dex),
         level: NaN,
-        x: 0,
-        y: 0,
+        x: 10,
+        y: 12,
         damage: [],
         saves: [],
         actions: [],
@@ -631,10 +631,11 @@ class GameState implements Executable {
 
   @command('monster <query: string>', 'search and show monsters')
   monster(query: string) {
-    const attrQuery = query.match(/(.+)=(.+)/);
-    if (attrQuery) {
-      const [attrName, attrValue] = attrQuery;
-    }
+    // TODO: query monsters by attribute
+    // const attrQuery = query.match(/(.+)=(.+)/);
+    // if (attrQuery) {
+    // const [attrName, attrValue] = attrQuery;
+    // }
     const results = this.search(query, ['monster']);
     if (results.length === 0) {
       return `no match found for ${query}`;
@@ -704,6 +705,15 @@ class GameState implements Executable {
     match.slot.slots -= 1;
     this.show(match.spell.name);
     return `${curr.name} casts ${match.spell.name}!`;
+  }
+
+  @command('map <name: string>', 'bring up a map')
+  setMap(name: string) {
+    this.map = {
+      name: name,
+      width: parseInt(name.split('.')[0].split('-')[1]),
+    };
+    return name;
   }
 
   @command('host <code: string>', 'host a new session')

@@ -1,4 +1,4 @@
-import MonsterManual from '../../public/compendiums/dnd5e/Monster Manual Bestiary 2.6.0';
+import MonsterManual from '../../public/compendiums/dnd5e/Monster Manual Bestiary 2.6.0.json';
 import GameState, { GameMode } from './GameState';
 import Compendium from './Compendium';
 
