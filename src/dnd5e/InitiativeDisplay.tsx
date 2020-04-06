@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 
-import { Monster } from './Compendium';
 import GameState from './GameState';
 
 interface Props {
@@ -44,20 +43,13 @@ const Table = styled.table`
   }
 `;
 
-function isBloodied(e: Monster): boolean {
-  if (e.status === undefined) {
-    return false;
-  }
-  return e.type !== 'player' && e.status?.hp <= Math.floor(e.status?.maxHP / 2);
-}
-
 export default function InitiativeDisplay(props: Props) {
   const curr = props.game.encounter[props.game.currentIndex];
   const rows = props.game.encounter.map((e, index) => <tr key={index} className={index === props.game.currentIndex ? 'highlight' : ''}>
     <td align="left">{index + 1}</td>
     <td align="center">{e.name}</td>
     <td align="right">{e.size}</td>
-    <td align="right">{e.status?.conditions.concat(isBloodied(e) ? ['bloodied'] : [])}</td>
+    <td align="right">{e.status?.conditions}</td>
     <td align="right">{e.status?.initiative}</td>
   </tr>);
   return (

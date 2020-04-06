@@ -1,11 +1,17 @@
 import React from 'react';
 import styled from 'styled-components';
 
-import { Compendium, Monster, SpellSlots, NameTextPair } from './Compendium';
+import { Compendium, Monster, Spellcasting, SpellSlots, NameTextPair } from './Compendium';
 
 const Card = styled.div`
 h1 {
   font-size: 2vh;
+}
+h2 {
+  font-size: 1.8vh;
+}
+h3 {
+  font-size: 1.5vh;
 }
 th, td, div {
   font-size: 1.5vh;
@@ -15,11 +21,20 @@ th, td, div {
   flex-direction: row;
   justify-content: space-around;
 }
+.indent {
+  padding-left: 16px;
+}
 `;
 
 class MonsterCard extends React.Component<Monster> {
 
   private renderAction(action: NameTextPair, i: number) {
+    if (action.text instanceof Array) {
+      return <div key={i}>
+        <div>{`${i + 1}. ${action.name}`}</div>
+        {action.text.map((text, j) => <div key={j} className="indent">{text}</div>)}
+      </div>;
+    }
     return <div key={i}>{`${i + 1}. ${action.name}: ${action.text}`}</div>;
   }
 
@@ -30,19 +45,24 @@ class MonsterCard extends React.Component<Monster> {
     if (!(actions instanceof Array)) {
       actions = [actions];
     }
-    const content = actions.map(this.renderAction)
+    const content = actions.filter(action => action.name !== 'Spellcasting').map(this.renderAction)
     return <div>{content}</div>;
   }
 
+  private renderSpellcasting(casting: Spellcasting) {
+    return <div><span>{`Spell Save DC: ${casting.dc}, Spell Attack +${casting.modifier}`}</span></div>
+  }
+
   private renderSpellSlot(level: SpellSlots, i: number) {
-    if (level.slots === 0) {
+    if (level.spells.length === 0) {
       return null;
     }
     return <div key={i}>
-      <span>{i === 0 ? 'Cantrips' : `Level ${i}`}</span>
-      {level.slots && !isNaN(level.slots) && <span><span>&nbsp;</span>{level.slots}</span>}
-      &nbsp;
-      <span>{level.spells.map((spell) => spell.name).join(', ')}</span>
+      <h3>
+        {i === 0 ? 'Cantrips' : `Level ${i}`}
+        {i === 0 ? null : <span><span> - &nbsp;</span>{level.slots} Slots</span>}
+      </h3>
+      <div>{level.spells.map((spell) => spell.name).join(', ')}</div>
     </div>;
   }
 
@@ -156,6 +176,7 @@ class MonsterCard extends React.Component<Monster> {
         <h2>Traits</h2>
         {traits}
       </div>}
+      {status && status.spellcasting && this.renderSpellcasting(status.spellcasting)}
       {status && status.spellSlots && this.renderSpellSlots(status.spellSlots)}
     </Card>
   }

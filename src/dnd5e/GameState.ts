@@ -184,6 +184,7 @@ class GameState implements Executable {
     this.selected = undefined;
     this.map = undefined;
     this.tutorialStep = undefined;
+    this.leave();
   }
 
   async execute(commandLine: string): Promise<number> {
@@ -378,6 +379,7 @@ class GameState implements Executable {
         conditions: [],
         initiative: NaN,
         spellSlots: [],
+        spellcasting: undefined,
       }
     });
     return `added player ${name}`;
@@ -405,14 +407,12 @@ class GameState implements Executable {
         conditions: [],
         spellSlots: this.compendium.parseSpellSlots(monster),
       };
-      const m = monster.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
-      if (m) {
-        const num = parseInt(m[1]);
-        const die = parseInt(m[2]);
-        const bonus = parseInt(m[4]);
-        monster.status.hp = roll(die, num) + (isNaN(bonus) ? 0 : bonus);
+      const hpDesc = this.compendium.parseHP(monster);
+      if (hpDesc) {
+        monster.status.hp = roll(hpDesc.die, hpDesc.num) + (isNaN(hpDesc.bonus) ? 0 : hpDesc.bonus);
         monster.status.maxHP = monster.status.hp;
       }
+      monster.status.spellcasting = this.compendium.parseSpellcasting(monster);
       this.encounter.push(monster);
     }
     return `added ${times} ${results[0].name}`;
@@ -572,6 +572,13 @@ class GameState implements Executable {
         name: "",
         text: damage.toString(),
       });
+      if (target.type !== 'player') {
+        if (target.status?.hp <= Math.floor(target.status?.maxHP / 2)) {
+          if (!target.status.conditions.includes('bloodied')) target.status.conditions.push('bloodied');
+        } else {
+          if (target.status.conditions.includes('bloodied')) target.status?.conditions.splice(target.status?.conditions.indexOf('bloodied'), 1);
+        }
+      }
       this.stdout?.write(`${target.name} took ${damage} points of damage\r\n`);
     }
   }
@@ -601,8 +608,8 @@ class GameState implements Executable {
   }
 
   @command('use <action: number> <targets?: number[]>', 'perform actions')
-  use(action: number, targets: number[]) {
-    if (isNaN(targets[0])) {
+  use(action: number, targets: number[] | undefined) {
+    if (!targets || isNaN(targets[0])) {
       targets = [this.currentIndex + 1];
     }
     this.targets(targets).forEach((target) => {
@@ -615,7 +622,11 @@ class GameState implements Executable {
       }
       const a = actions[action - 1];
       target.status?.actions.push(a);
-      this.stdout?.write(a.text);
+      let texts = a.text;
+      if (!(texts instanceof Array)) {
+        texts = [texts];
+      }
+      this.stdout?.write(texts.join('\r\n'));
       this.stdout?.write("\r\n");
     });
   }
@@ -680,12 +691,13 @@ class GameState implements Executable {
     }
   }
 
-  @command('cast <name: string>', 'cast a spell')
-  cast(name: string) {
+  @command('cast <name: string> <level?: number>', 'cast a spell')
+  cast(name: string, level: number | undefined) {
     const curr = this.encounter[this.currentIndex];
-    const match = curr.status?.spellSlots.map((slot) => {
+    const match = curr.status?.spellSlots.map((slot, level) => {
       return slot.spells.map((spell) => {
         return {
+          level: level,
           slot: slot,
           spell: spell,
           distance: Levenshtein.get(name.toLowerCase(), spell.name.toLowerCase()),
@@ -699,12 +711,16 @@ class GameState implements Executable {
     if (!match) {
       return;
     }
-    if (match.slot.slots <= 0) {
-      return `${curr.name} has no more slots at that level!`;
+    let slot = match.slot;
+    if (level && curr.status?.spellSlots) {
+      slot = curr.status?.spellSlots[level];
     }
-    match.slot.slots -= 1;
+    if (slot.slots <= 0) {
+      return `${curr.name} has no more slots at level ${level || match.level}!`;
+    }
+    slot.slots -= 1;
     this.show(match.spell.name);
-    return `${curr.name} casts ${match.spell.name}!`;
+    return `${curr.name} casts ${match.spell.name} at level ${level || match.level}!`;
   }
 
   @command('map <name: string>', 'bring up a map')

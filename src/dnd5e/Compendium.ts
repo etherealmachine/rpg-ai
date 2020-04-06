@@ -2,7 +2,7 @@ import API from "../API"
 
 export interface NameTextPair {
   name: string
-  text: string
+  text: string | string[]
 }
 
 export interface Monster {
@@ -46,6 +46,11 @@ export interface SpellSlots {
   slots: number
 }
 
+export interface Spellcasting {
+  dc: number
+  modifier: number
+}
+
 export interface Status {
   hp: number
   maxHP: number
@@ -58,6 +63,7 @@ export interface Status {
   reactions: NameTextPair[]
   legendaries: NameTextPair[]
   conditions: string[]
+  spellcasting?: Spellcasting
   spellSlots: SpellSlots[]
 }
 
@@ -300,6 +306,35 @@ export class Compendium {
       return 10;
     }
     return m.ac;
+  }
+
+  public parseHP(m: Monster): { num: number, die: number, bonus: number } | undefined {
+    const match = m.hp.match(/\d+ \((\d+)d(\d+)(\+(\d+))?\)/);
+    if (match) {
+      return {
+        num: parseInt(match[1]),
+        die: parseInt(match[2]),
+        bonus: parseInt(match[4])
+      };
+    }
+    return undefined;
+  }
+
+  public parseSpellcasting(m: Monster): Spellcasting | undefined {
+    let traits = m.trait;
+    if (!traits) return undefined;
+    if (!(traits instanceof Array)) traits = [traits];
+    return traits.map(trait => {
+      if (trait.name !== 'Spellcasting') return undefined;
+      let texts = trait.text;
+      if (!(texts instanceof Array)) texts = [texts];
+      for (let text of texts) {
+        const match = text.match(/spell save DC (\d+), \+(\d+) to hit with spell attacks/);
+        if (!match) return undefined;
+        return { dc: parseInt(match[1]), modifier: parseInt(match[2]) };
+      }
+      return undefined;
+    }).find(spellcasting => spellcasting);
   }
 
   public parseSpellSlots(m: Monster): SpellSlots[] {
