@@ -463,7 +463,7 @@ class GameState implements Executable {
       }, 0);
     });
     const difficultyLevel = levels.filter(xp => encounterXP > xp).length;
-    const difficulty = ['deadly', 'hard', 'medium', 'easy'][3 - difficultyLevel];
+    const difficulty = ['deadly', 'hard', 'medium', 'easy', 'trivial'][4 - difficultyLevel];
     if (difficulty === 'deadly') {
       return 'deadly';
     }
@@ -642,11 +642,6 @@ class GameState implements Executable {
 
   @command('monster <query: string>', 'search and show monsters')
   monster(query: string) {
-    // TODO: query monsters by attribute
-    // const attrQuery = query.match(/(.+)=(.+)/);
-    // if (attrQuery) {
-    // const [attrName, attrValue] = attrQuery;
-    // }
     const results = this.search(query, ['monster']);
     if (results.length === 0) {
       return `no match found for ${query}`;
