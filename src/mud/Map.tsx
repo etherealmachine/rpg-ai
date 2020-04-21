@@ -13,9 +13,8 @@ const Game = styled.div`
   height: 100%;
 `;
 
-export class MapScene extends Phaser.Scene {
+export class UIScene extends Phaser.Scene {
   state?: GameState
-  controls?: Phaser.Cameras.Controls.SmoothedKeyControl
 
   init(args: any) {
     this.state = args.game;
@@ -23,11 +22,35 @@ export class MapScene extends Phaser.Scene {
 
   create() {
     this.load.loadComplete = this.onLoad.bind(this);
-    this.load.image('characters', `${process.env.PUBLIC_URL}/images/mud/characters.png`);
     this.load.image('dungeon', `${process.env.PUBLIC_URL}/images/mud/dungeon.png`);
-    this.load.image('indoors', `${process.env.PUBLIC_URL}/images/mud/indoors.png`);
-    this.load.image('general', `${process.env.PUBLIC_URL}/images/mud/general.png`);
     this.load.start();
+  }
+
+  onLoad() {
+    const tileSelectorGroup = this.add.group();
+    const image = this.game.textures.get("dungeon").getSourceImage();
+    const tileSelector = tileSelectorGroup.create(image.width / 2 + 4, image.height / 2 + 4, 'dungeon');
+    tileSelector.setInteractive().on('pointerdown', this.pickTile.bind(this));
+    (this.game.scene.getScene('Map') as MapScene).onLoad();
+  }
+
+  pickTile(pointer: Phaser.Input.Pointer) {
+    const image = this.game.textures.get("dungeon").getSourceImage();
+    const W = Phaser.Math.Snap.Ceil(image.width / 17, 1);
+    const x = Phaser.Math.Snap.Floor(pointer.x, 17) / 17;
+    const y = Phaser.Math.Snap.Floor(pointer.y, 17) / 17;
+    const selectedTileIndex = y * W + x;
+    (this.game.scene.getScene('Map') as MapScene).map?.putTileAt(selectedTileIndex, 10, 10);
+  }
+}
+
+export class MapScene extends Phaser.Scene {
+  state?: GameState
+  controls?: Phaser.Cameras.Controls.SmoothedKeyControl
+  map?: Phaser.Tilemaps.DynamicTilemapLayer;
+
+  init(args: any) {
+    this.state = args.game;
   }
 
   update(time: number, delta: number) {
@@ -50,22 +73,17 @@ export class MapScene extends Phaser.Scene {
     };
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
     this.cameras.main.setBackgroundColor('#ddd');
-    const level = [
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 1, 2, 3, 0, 0, 0, 1, 2, 3, 0],
-      [0, 5, 6, 7, 0, 0, 0, 5, 6, 7, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 14, 13, 14, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 14, 14, 14, 14, 14, 0, 0, 0, 15],
-      [0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 15],
-      [35, 36, 37, 0, 0, 0, 0, 0, 15, 15, 15],
-      [39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39]
-    ];
-    const map = this.make.tilemap({ data: level, tileWidth: 16, tileHeight: 16 });
-    const tiles = map.addTilesetImage("general", "general", 16, 16, 0, 1);
-    const layer = map.createStaticLayer(0, tiles, 0, 0);
+    const tileData = [];
+    for (let y = 0; y < 200; y++) {
+      const row = []
+      for (let x = 0; x < 200; x++) {
+        row.push(-1);
+      }
+      tileData.push(row);
+    }
+    const tilemap = this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 });
+    const tileset = tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1);
+    this.map = tilemap.createDynamicLayer(0, tileset, 0, 0);
   }
 
 }
@@ -78,6 +96,7 @@ function setupPhaser(el: HTMLElement, game: GameState) {
   };
   const phaser = new Phaser.Game(gameConfig);
   phaser.scene.add('Map', MapScene, true, { game: game });
+  phaser.scene.add('UI', UIScene, true, { game: game });
   el.addEventListener('click', () => {
     (document.activeElement as any).blur();
     el.focus();
