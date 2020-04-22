@@ -40,14 +40,19 @@ export class UIScene extends Phaser.Scene {
     const x = Phaser.Math.Snap.Floor(pointer.x, 17) / 17;
     const y = Phaser.Math.Snap.Floor(pointer.y, 17) / 17;
     const selectedTileIndex = y * W + x;
-    (this.game.scene.getScene('Map') as MapScene).map?.putTileAt(selectedTileIndex, 10, 10);
+    const mapScene = this.game.scene.getScene('Map') as MapScene;
+    mapScene.map?.putTileAt(selectedTileIndex, mapScene.cursor.x, mapScene.cursor.y);
   }
 }
 
 export class MapScene extends Phaser.Scene {
   state?: GameState
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
-  map?: Phaser.Tilemaps.DynamicTilemapLayer;
+  map?: Phaser.Tilemaps.DynamicTilemapLayer
+  cursor: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0)
+  graphics?: Phaser.GameObjects.Graphics
+  mapWidth = 60
+  mapHeight = 30
 
   init(args: any) {
     this.state = args.game;
@@ -55,6 +60,10 @@ export class MapScene extends Phaser.Scene {
 
   update(time: number, delta: number) {
     this.controls?.update(delta);
+    this.graphics?.clear();
+    this.graphics?.lineStyle(1, 0x0, 1.0);
+    this.graphics?.strokeRectShape(new Phaser.Geom.Rectangle(16 * this.cursor.x, 16 * this.cursor.y, 16, 16));
+    this.graphics?.strokeRectShape(new Phaser.Geom.Rectangle(0, 0, 16 * this.mapWidth, 16 * this.mapHeight));
   }
 
   onLoad() {
@@ -72,11 +81,31 @@ export class MapScene extends Phaser.Scene {
       zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
     };
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
+    this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+      switch (event.keyCode) {
+        case 87:
+          this.cursor.y -= 1;
+          break;
+        case 65:
+          this.cursor.x -= 1;
+          break;
+        case 83:
+          this.cursor.y += 1;
+          break;
+        case 68:
+          this.cursor.x += 1;
+          break;
+      }
+      this.cursor.x = Phaser.Math.Clamp(this.cursor.x, 0, this.mapWidth - 1);
+      this.cursor.y = Phaser.Math.Clamp(this.cursor.y, 0, this.mapHeight - 1);
+    });
     this.cameras.main.setBackgroundColor('#ddd');
+    const image = this.game.textures.get("dungeon").getSourceImage();
+    this.cameras.main.setScroll(-image.width - 40, -40);
     const tileData = [];
-    for (let y = 0; y < 200; y++) {
+    for (let y = 0; y < this.mapHeight; y++) {
       const row = []
-      for (let x = 0; x < 200; x++) {
+      for (let x = 0; x < this.mapWidth; x++) {
         row.push(-1);
       }
       tileData.push(row);
@@ -84,6 +113,7 @@ export class MapScene extends Phaser.Scene {
     const tilemap = this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 });
     const tileset = tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1);
     this.map = tilemap.createDynamicLayer(0, tileset, 0, 0);
+    this.graphics = this.add.graphics();
   }
 
 }
@@ -93,6 +123,7 @@ function setupPhaser(el: HTMLElement, game: GameState) {
     parent: el,
     width: el.offsetWidth,
     height: el.offsetHeight,
+    pixelArt: true,
   };
   const phaser = new Phaser.Game(gameConfig);
   phaser.scene.add('Map', MapScene, true, { game: game });
