@@ -41,14 +41,15 @@ export class UIScene extends Phaser.Scene {
     const y = Phaser.Math.Snap.Floor(pointer.y, 17) / 17;
     const selectedTileIndex = y * W + x;
     const mapScene = this.game.scene.getScene('Map') as MapScene;
-    mapScene.map?.putTileAt(selectedTileIndex, mapScene.cursor.x, mapScene.cursor.y);
+    mapScene.currentLayer?.putTileAt(selectedTileIndex, mapScene.cursor.x, mapScene.cursor.y);
   }
 }
 
 export class MapScene extends Phaser.Scene {
   state?: GameState
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
-  map?: Phaser.Tilemaps.DynamicTilemapLayer
+  layers: Phaser.Tilemaps.DynamicTilemapLayer[] = []
+  currentLayer?: Phaser.Tilemaps.DynamicTilemapLayer
   cursor: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0)
   graphics?: Phaser.GameObjects.Graphics
   mapWidth = 60
@@ -83,17 +84,35 @@ export class MapScene extends Phaser.Scene {
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
     this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
       switch (event.keyCode) {
-        case 87:
+        case Phaser.Input.Keyboard.KeyCodes.W:
           this.cursor.y -= 1;
           break;
-        case 65:
+        case Phaser.Input.Keyboard.KeyCodes.A:
           this.cursor.x -= 1;
           break;
-        case 83:
+        case Phaser.Input.Keyboard.KeyCodes.S:
           this.cursor.y += 1;
           break;
-        case 68:
+        case Phaser.Input.Keyboard.KeyCodes.D:
           this.cursor.x += 1;
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.MINUS:
+          if (this.currentLayer) {
+            const i = this.layers.indexOf(this.currentLayer);
+            console.log(i);
+            if (i === -1) break;
+            if (i === 0) this.currentLayer = this.layers[this.layers.length - 1];
+            else this.currentLayer = this.layers[i - 1];
+          }
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.PLUS:
+          if (this.currentLayer) {
+            const i = this.layers.indexOf(this.currentLayer);
+            console.log(i);
+            if (i === -1) break;
+            if (i === this.layers.length - 1) this.currentLayer = this.layers[0];
+            else this.currentLayer = this.layers[i + 1];
+          }
           break;
       }
       this.cursor.x = Phaser.Math.Clamp(this.cursor.x, 0, this.mapWidth - 1);
@@ -110,9 +129,14 @@ export class MapScene extends Phaser.Scene {
       }
       tileData.push(row);
     }
-    const tilemap = this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 });
-    const tileset = tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1);
-    this.map = tilemap.createDynamicLayer(0, tileset, 0, 0);
+    const tilemaps = [
+      this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 }),
+      this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 }),
+      this.make.tilemap({ data: tileData, tileWidth: 16, tileHeight: 16 }),
+    ];
+    const tilesets = tilemaps.map((tilemap) => tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1));
+    this.layers = tilemaps.map((tilemap, i) => tilemap.createDynamicLayer("layer", tilesets[i], 0, 0));
+    this.currentLayer = this.layers[0];
     this.graphics = this.add.graphics();
   }
 
