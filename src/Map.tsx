@@ -15,6 +15,8 @@ const Game = styled.div`
 
 export class UIScene extends Phaser.Scene {
   state?: GameState
+  mapScene?: MapScene
+  layerIndexText?: Phaser.GameObjects.Text;
 
   init(args: any) {
     this.state = args.game;
@@ -22,8 +24,12 @@ export class UIScene extends Phaser.Scene {
 
   create() {
     this.load.loadComplete = this.onLoad.bind(this);
-    this.load.image('dungeon', `${process.env.PUBLIC_URL}/images/dungeon.png`);
+    this.load.image('dungeon', `${process.env.PUBLIC_URL}/images/general.png`);
     this.load.start();
+  }
+
+  update(time: number, delta: number) {
+    this.layerIndexText?.setText(`Layer ${this.mapScene?.currentLayer}`);
   }
 
   onLoad() {
@@ -31,7 +37,12 @@ export class UIScene extends Phaser.Scene {
     const image = this.game.textures.get("dungeon").getSourceImage();
     const tileSelector = tileSelectorGroup.create(image.width / 2 + 4, image.height / 2 + 4, 'dungeon');
     tileSelector.setInteractive().on('pointerdown', this.pickTile.bind(this));
-    (this.game.scene.getScene('Map') as MapScene).onLoad();
+    this.mapScene = this.game.scene.getScene('Map') as MapScene;
+    this.layerIndexText = this.add.text(image.width + 4, 4, `Layer ${this.mapScene.currentLayer}`, {
+      fontFamily: '"Roboto Condensed"',
+      color: '"black"',
+    });
+    this.mapScene.onLoad();
   }
 
   pickTile(pointer: Phaser.Input.Pointer) {
@@ -40,8 +51,7 @@ export class UIScene extends Phaser.Scene {
     const x = Phaser.Math.Snap.Floor(pointer.x, 17) / 17;
     const y = Phaser.Math.Snap.Floor(pointer.y, 17) / 17;
     const selectedTileIndex = y * W + x;
-    const mapScene = this.game.scene.getScene('Map') as MapScene;
-    mapScene.currentLayer?.putTileAt(selectedTileIndex, mapScene.cursor.x, mapScene.cursor.y);
+    this.mapScene?.layers[this.mapScene.currentLayer].putTileAt(selectedTileIndex, this.mapScene.cursor.x, this.mapScene.cursor.y);
   }
 }
 
@@ -49,7 +59,7 @@ export class MapScene extends Phaser.Scene {
   state?: GameState
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
   layers: Phaser.Tilemaps.DynamicTilemapLayer[] = []
-  currentLayer?: Phaser.Tilemaps.DynamicTilemapLayer
+  currentLayer: number = -1
   cursor: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0)
   graphics?: Phaser.GameObjects.Graphics
   mapWidth = 60
@@ -96,23 +106,19 @@ export class MapScene extends Phaser.Scene {
         case Phaser.Input.Keyboard.KeyCodes.D:
           this.cursor.x += 1;
           break;
+        case Phaser.Input.Keyboard.KeyCodes.DELETE:
+        case Phaser.Input.Keyboard.KeyCodes.BACKSPACE:
+          this.layers[this.currentLayer].removeTileAt(this.cursor.x, this.cursor.y);
+          break;
         case Phaser.Input.Keyboard.KeyCodes.MINUS:
-          if (this.currentLayer) {
-            const i = this.layers.indexOf(this.currentLayer);
-            console.log(i);
-            if (i === -1) break;
-            if (i === 0) this.currentLayer = this.layers[this.layers.length - 1];
-            else this.currentLayer = this.layers[i - 1];
-          }
+          if (this.currentLayer === -1) break;
+          if (this.currentLayer === 0) this.currentLayer = this.layers.length - 1;
+          else this.currentLayer--;
           break;
         case Phaser.Input.Keyboard.KeyCodes.PLUS:
-          if (this.currentLayer) {
-            const i = this.layers.indexOf(this.currentLayer);
-            console.log(i);
-            if (i === -1) break;
-            if (i === this.layers.length - 1) this.currentLayer = this.layers[0];
-            else this.currentLayer = this.layers[i + 1];
-          }
+          if (this.currentLayer === -1) break;
+          if (this.currentLayer === this.layers.length - 1) this.currentLayer = 0;
+          else this.currentLayer++;
           break;
       }
       this.cursor.x = Phaser.Math.Clamp(this.cursor.x, 0, this.mapWidth - 1);
@@ -136,7 +142,7 @@ export class MapScene extends Phaser.Scene {
     ];
     const tilesets = tilemaps.map((tilemap) => tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1));
     this.layers = tilemaps.map((tilemap, i) => tilemap.createDynamicLayer("layer", tilesets[i], 0, 0));
-    this.currentLayer = this.layers[0];
+    this.currentLayer = 0;
     this.graphics = this.add.graphics();
   }
 
