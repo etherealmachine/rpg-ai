@@ -1,30 +1,45 @@
 import React from 'react';
+import styled from 'styled-components';
 
-import DND5E from './dnd5e/App';
-import MUD from './mud/App';
+import Shell from './Shell';
+import GameState from './GameState';
+import Map from './Map';
+
+const Container = styled.div`
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+`;
 
 interface AppState {
-  module: string
+  game: GameState
 }
 
-class App extends React.Component<any, AppState> {
+class App extends React.Component<{}, AppState> {
 
   constructor(props: any) {
     super(props);
     this.state = {
-      module: window.location.pathname.replace(/\/app/, '').split('/')[1],
+      game: new GameState(this.updateGameState.bind(this)),
     };
   }
 
+  updateGameState(game: GameState) {
+    this.setState({
+      game: game,
+    });
+  }
+
   render() {
-    switch (this.state.module) {
-      case 'dnd5e':
-        return <DND5E />
-      case 'mud':
-        return <MUD />
-      default:
-        return <div>{`Module ${this.state.module} not found`}</div>
-    }
+    return <Container>
+      <div style={{ flex: 1 }}>
+        <Map game={this.state.game} />
+      </div>
+      <div style={{ height: "200px" }}>
+        <Shell program={this.state.game} />
+      </div>
+    </Container >;
   }
 }
 
