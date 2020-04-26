@@ -14,7 +14,7 @@ export default class Loading extends Phaser.Scene {
     this.load.image('general', `${process.env.PUBLIC_URL}/images/general.png`);
     this.load.image('hex_tiles', `${process.env.PUBLIC_URL}/images/hex_tiles.png`);
     this.load.loadComplete = () => {
-      this.game.scene.start('MapEditorUI', this.game);
+      this.game.scene.start('HexMap', this.game);
     }
     this.load.start();
   }
