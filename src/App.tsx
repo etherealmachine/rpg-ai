@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 import Shell from './Shell';
 import GameState from './GameState';
-import Map from './Map';
+import Phaser from './Phaser';
 
 const Container = styled.div`
   height: 100%;
@@ -34,7 +34,7 @@ class App extends React.Component<{}, AppState> {
   render() {
     return <Container>
       <div style={{ flex: 1 }}>
-        <Map game={this.state.game} />
+        <Phaser game={this.state.game} />
       </div>
       <div style={{ height: "200px" }}>
         <Shell program={this.state.game} />
