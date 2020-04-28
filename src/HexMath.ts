@@ -15,6 +15,10 @@ export class Hex {
     if (Math.round(q + r + s) !== 0) throw new Error("q + r + s must be 0");
   }
 
+  toString() {
+    return `${this.q}-${this.r}-${this.s}`;
+  }
+
   add(b: Hex) {
     return new Hex(this.q + b.q, this.r + b.r, this.s + b.s);
   }

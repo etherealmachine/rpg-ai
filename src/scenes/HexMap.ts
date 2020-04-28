@@ -1,17 +1,7 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
 import Tileset from '../Tileset';
-import { Hex, Layout } from '../HexMath';
-
-class TiledHex extends Hex {
-
-  tileIndex: number
-
-  constructor(x: number, y: number, tileIndex: number) {
-    super(x, y, -x - y);
-    this.tileIndex = tileIndex;
-  }
-}
+import { Hex, OffsetCoord, Layout } from '../HexMath';
 
 export default class HexMap extends Phaser.Scene {
   state?: GameState
@@ -46,56 +36,37 @@ export default class HexMap extends Phaser.Scene {
     const water = tileset.tiles.findIndex(tile => tile.type === 'water');
     const grass = tileset.tiles.findIndex(tile => tile.type === 'grass');
 
-    const map: Map<number, Map<number, TiledHex>> = new Map();
-    for (let x = 0; x < this.mapWidth; x++) {
-      map.set(x, new Map());
-      for (let y = 0; y < this.mapHeight; y++) {
-        y -= x / 2;
-        if (y === 0) {
-          map.get(x)?.set(y, new TiledHex(x, y, grass));
-        } else {
-          map.get(x)?.set(y, new TiledHex(x, y, water));
-        }
+    const map: Map<string, number> = new Map();
+    for (let q = 0; q < this.mapWidth; q++) {
+      for (let r = 0; r < this.mapHeight; r++) {
+        const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
+        map.set(hex.toString(), water);
       }
     }
 
+    const midQ = Math.floor(this.mapWidth / 2 + Phaser.Math.RND.integerInRange(-5, 5));
+    const midR = Math.floor(this.mapHeight / 2 + Phaser.Math.RND.integerInRange(-5, 5));
+    const seed = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(midQ, midR));
+    map.set(seed.toString(), grass);
+    const grassTiles = new Set([seed]);
+
+    while (Array.from(grassTiles.keys()).length < 10) {
+      const r = Phaser.Math.RND.pick(Array.from(grassTiles.keys()));
+      const direction = Phaser.Math.RND.integerInRange(0, 5);
+      const n = r.neighbor(direction);
+      map.set(n.toString(), grass);
+      grassTiles.add(n);
+    }
+
+    const layout = new Layout(Layout.flat, new Phaser.Math.Vector2(15, 15), new Phaser.Math.Vector2(0, 0));
+    const curr = new Hex(0, 0, 0);
     /*
-    const seedX = Math.floor(this.mapWidth / 2 + Phaser.Math.RND.integerInRange(-5, 5));
-    const seedY = Math.floor(this.mapHeight / 2 + Phaser.Math.RND.integerInRange(-5, 5));
-    const seedIndex = seedY * this.mapWidth + seedX;
-
-    map[seedIndex] = grass;
-    const grassTiles = new Set([seedIndex]);
-
-    while (Array.from(grassTiles.keys()).length < 100) {
-      let j = Phaser.Math.RND.pick(Array.from(grassTiles.keys()));
-      let x = j % this.mapHeight;
-      let y = Math.floor(j / this.mapWidth);
-      const r = Phaser.Math.RND.frac();
-      if (r < 0.05) {
-        x++;
-      } else if (r < 0.1) {
-        x--;
-      } else if (r < 0.45) {
-        y++;
-      } else {
-        y--;
-      }
-      x = Phaser.Math.Clamp(x, 1, this.mapWidth - 2);
-      y = Phaser.Math.Clamp(y, 1, this.mapHeight - 2);
-      j = y * this.mapWidth + x;
-      map[j] = grass;
-      grassTiles.add(j);
+    while (map.has(curr.toString())) {
+      const p = layout.hexToPixel(curr);
+      this.add.sprite(p.x, p.y, 'hex_spritesheet', map.get(curr.toString()));
+      curr = curr.neighbor()
     }
     */
-
-    const layout = new Layout(Layout.flat, new Phaser.Math.Vector2(16, 15), new Phaser.Math.Vector2(0, 0));
-    for (let col of map.values()) {
-      for (let hex of col.values()) {
-        const p = layout.hexToPixel(hex);
-        this.add.sprite(p.x, p.y, 'hex_spritesheet', hex.tileIndex);
-      }
-    }
   }
 
   update(time: number, delta: number) {
