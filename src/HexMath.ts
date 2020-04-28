@@ -16,7 +16,12 @@ export class Hex {
   }
 
   toString() {
-    return `${this.q}-${this.r}-${this.s}`;
+    return `${this.q},${this.r},${this.s}`;
+  }
+
+  static fromString(str: string) {
+    const [q, r, s] = str.split(',');
+    return new Hex(parseInt(q), parseInt(r), parseInt(s));
   }
 
   add(b: Hex) {
@@ -90,6 +95,18 @@ export class Hex {
     var step = 1.0 / Math.max(N, 1);
     for (var i = 0; i <= N; i++) {
       results.push(a_nudge.lerp(b_nudge, step * i).round());
+    }
+    return results;
+  }
+
+  ring(radius: number) {
+    var results = [];
+    var H = Hex.direction(4).scale(radius);
+    for (var side = 0; side < 6; side++) {
+      for (var step = 0; step < radius; step++) {
+        results.push(H);
+        H = H.neighbor(side);
+      }
     }
     return results;
   }
