@@ -1,0 +1,14 @@
+{ "columns":57,
+ "image":"general.png",
+ "imageheight":526,
+ "imagewidth":968,
+ "margin":0,
+ "name":"general",
+ "spacing":1,
+ "tilecount":1767,
+ "tiledversion":"1.3.4",
+ "tileheight":16,
+ "tilewidth":16,
+ "type":"tileset",
+ "version":1.2
+}

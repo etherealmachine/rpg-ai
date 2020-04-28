@@ -1,20 +1,34 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
+import Tileset from '../Tileset';
 
 export default class Loading extends Phaser.Scene {
   state?: GameState
+  tilesets = [
+    'hex',
+    'characters',
+    'general',
+    'indoors',
+    'dungeon',
+  ]
 
   init(args: any) {
     this.state = args.game;
   }
 
+  preload() {
+    this.tilesets.forEach(name => {
+      this.load.json(name + '_tileset', `${process.env.PUBLIC_URL}/assets/${name}.json`);
+    });
+  }
+
   create() {
-    this.load.image('dungeon', `${process.env.PUBLIC_URL}/images/dungeon.png`);
-    this.load.image('characters', `${process.env.PUBLIC_URL}/images/characters.png`);
-    this.load.image('general', `${process.env.PUBLIC_URL}/images/general.png`);
-    this.load.spritesheet('hex_tiles', `${process.env.PUBLIC_URL}/images/hex_tiles.png`, {
-      frameWidth: 32,
-      frameHeight: 48,
+    this.tilesets.forEach(name => {
+      const tileset = this.cache.json.get(name + '_tileset') as Tileset;
+      this.load.spritesheet(name + '_spritesheet', `${process.env.PUBLIC_URL}/assets/${tileset.image}`, {
+        frameWidth: tileset.tilewidth,
+        frameHeight: tileset.tileheight,
+      });
     });
     this.load.loadComplete = () => {
       this.game.scene.start('HexMap', this.game);

@@ -34,7 +34,7 @@ export default class HexMap extends Phaser.Scene {
         this.add.sprite(
           x * 48 + ((y % 2 === 0) ? 0 : 24),
           y * 13,
-          'hex_tiles',
+          'hex_spritesheet',
           Math.floor(Math.random() * 8));
       }
     }
