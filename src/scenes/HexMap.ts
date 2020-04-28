@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
+import Tileset from '../Tileset';
 
 export default class HexMap extends Phaser.Scene {
   state?: GameState
@@ -29,13 +30,49 @@ export default class HexMap extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#fff');
     this.cameras.main.setScroll(-40, -40);
 
+    const tileset = this.cache.json.get('hex_tileset') as Tileset;
+
+    const water = tileset.tiles.findIndex(tile => tile.type === 'water');
+    const grass = tileset.tiles.findIndex(tile => tile.type === 'grass');
+
+    const map = [];
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        map.push(water);
+      }
+    }
+
+    const seedX = Math.floor(this.mapWidth / 2 + Math.random() * 5);
+    const seedY = Math.floor(this.mapHeight / 2 + Math.random() * 5);
+    const seedIndex = seedY * this.mapWidth + seedX;
+
+    map[seedIndex] = grass;
+    const grassTiles = new Set([seedIndex]);
+
+    while (Array.from(grassTiles.keys()).length < 100) {
+      const indices = Array.from(grassTiles.keys());
+      let j = indices[Math.floor(Math.random() * indices.length)];
+      const r = Math.random();
+      if (r < 0.1) {
+        j += 1;
+      } else if (r < 0.2) {
+        j -= 1;
+      } else if (r < 0.6) {
+        j += this.mapWidth;
+      } else {
+        j -= this.mapWidth;
+      }
+      map[j] = grass;
+      grassTiles.add(j);
+    }
+
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         this.add.sprite(
           x * 48 + ((y % 2 === 0) ? 0 : 24),
           y * 13,
           'hex_spritesheet',
-          Math.floor(Math.random() * 8));
+          map[y * this.mapWidth + x]);
       }
     }
   }

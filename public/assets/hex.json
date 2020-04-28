@@ -1,9 +1,11 @@
 { "columns":16,
- "grid":
+ "editorsettings":
     {
-     "height":28,
-     "orientation":"orthogonal",
-     "width":32
+     "export":
+        {
+         "format":"",
+         "target":"."
+        }
     },
  "image":"hex.png",
  "imageheight":288,
