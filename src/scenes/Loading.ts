@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
-import Tileset from '../Tileset';
+import { Tileset } from '../Tiled';
 
 export default class Loading extends Phaser.Scene {
   state?: GameState
@@ -11,6 +11,9 @@ export default class Loading extends Phaser.Scene {
     'indoors',
     'dungeon',
   ]
+  tilemaps = [
+    'example_map',
+  ]
 
   init(args: any) {
     this.state = args.game;
@@ -19,6 +22,9 @@ export default class Loading extends Phaser.Scene {
   preload() {
     this.tilesets.forEach(name => {
       this.load.json(name + '_tileset', `${process.env.PUBLIC_URL}/assets/${name}.json`);
+    });
+    this.tilemaps.forEach(name => {
+      this.load.json(name, `${process.env.PUBLIC_URL}/assets/${name}.json`);
     });
   }
 
@@ -31,7 +37,7 @@ export default class Loading extends Phaser.Scene {
       });
     });
     this.load.loadComplete = () => {
-      this.game.scene.start('HexMap', this.game);
+      this.game.scene.start('OrthoMap', this.game);
     }
     this.load.start();
   }

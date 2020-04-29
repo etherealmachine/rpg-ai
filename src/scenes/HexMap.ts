@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
-import Tileset from '../Tileset';
+import { Tileset } from '../Tiled';
 import { Hex, OffsetCoord, Layout } from '../HexMath';
 
 export default class HexMap extends Phaser.Scene {
