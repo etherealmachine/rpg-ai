@@ -34,9 +34,13 @@ export default class HexMap extends Phaser.Scene {
 
     for (let q = 0; q < tiledMap.width; q++) {
       for (let r = 0; r < tiledMap.height; r++) {
-        const tileIndex = tiledMap.layers[0].data[r * tiledMap.width + q];
         const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
-        map.set(hex.toString(), [{ index: tileIndex - 1, spritesheet: 'hex_spritesheet' }]);
+        map.set(hex.toString(), tiledMap.layers.map(layer => {
+          return {
+            index: layer.data[r * tiledMap.width + q] - 1,
+            spritesheet: 'hex_spritesheet',
+          };
+        }));
       }
     }
 
@@ -47,7 +51,9 @@ export default class HexMap extends Phaser.Scene {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);
           map.get(hex.toString())?.forEach(tile => {
-            this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
+            if (tile.index >= 0) {
+              this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
+            }
           });
         }
       }
@@ -56,7 +62,9 @@ export default class HexMap extends Phaser.Scene {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);
           map.get(hex.toString())?.forEach(tile => {
-            this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
+            if (tile.index >= 0) {
+              this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
+            }
           });
         }
       }
