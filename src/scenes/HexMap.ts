@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
+import { Tilemap } from '../Tiled';
 import { OffsetCoord, Layout } from '../HexMath';
 
 export default class HexMap extends Phaser.Scene {
@@ -27,35 +28,35 @@ export default class HexMap extends Phaser.Scene {
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
     this.cameras.main.setBackgroundColor('#fff');
 
-    const tiledMap = this.add.tilemap("example_hexmap");
-    const columns = tiledMap.width * 2;
-    const rows = tiledMap.height * 2;
+    const tiledMap = this.cache.json.get('example_hexmap') as Tilemap;;
 
-    const map: Map<string, number[]> = new Map();
-    for (let q = 0; q < columns; q++) {
-      for (let r = 0; r < rows; r++) {
+    const map: Map<string, { index: number, spritesheet: string }[]> = new Map();
+
+    for (let q = 0; q < tiledMap.width; q++) {
+      for (let r = 0; r < tiledMap.height; r++) {
+        const tileIndex = tiledMap.layers[0].data[r * tiledMap.width + q];
         const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
-        map.set(hex.toString(), [-1]);
+        map.set(hex.toString(), [{ index: tileIndex - 1, spritesheet: 'hex_spritesheet' }]);
       }
     }
 
-    const layout = new Layout(Layout.flat, new Phaser.Math.Vector2(16, 16), new Phaser.Math.Vector2(0, 0));
-    for (let r = 0; r < rows; r++) {
-      for (let q = columns - 1; q >= 0; q--) {
+    const layout = new Layout(Layout.flat, new Phaser.Math.Vector2(16, 16.17), new Phaser.Math.Vector2(0, 0));
+    for (let r = 0; r < tiledMap.height; r++) {
+      for (let q = tiledMap.width - 1; q >= 0; q--) {
         if (q % 2 === 0) {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);
-          map.get(hex.toString())?.forEach(tileIndex => {
-            this.add.sprite(p.x, p.y, 'hex_spritesheet');
+          map.get(hex.toString())?.forEach(tile => {
+            this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
           });
         }
       }
-      for (let q = columns - 1; q >= 0; q--) {
+      for (let q = tiledMap.width - 1; q >= 0; q--) {
         if (q % 2 === 1) {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);
-          map.get(hex.toString())?.forEach(tileIndex => {
-            this.add.sprite(p.x, p.y, 'hex_spritesheet');
+          map.get(hex.toString())?.forEach(tile => {
+            this.add.sprite(p.x, p.y, tile.spritesheet, tile.index);
           });
         }
       }

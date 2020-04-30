@@ -13,6 +13,8 @@ export default class Loading extends Phaser.Scene {
   ]
   tilemaps = [
     'example_map',
+  ]
+  hexTilemaps = [
     'example_hexmap',
   ]
 
@@ -26,6 +28,9 @@ export default class Loading extends Phaser.Scene {
     });
     this.tilemaps.forEach(name => {
       this.load.tilemapTiledJSON(name, `${process.env.PUBLIC_URL}/assets/${name}.json`);
+    });
+    this.hexTilemaps.forEach(name => {
+      this.load.json(name, `${process.env.PUBLIC_URL}/assets/${name}.json`);
     });
   }
 
