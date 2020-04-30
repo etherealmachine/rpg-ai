@@ -70,6 +70,7 @@ class App extends React.Component<{}, AppState> {
     return <Container>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <GoogleLogin
+          className="google-button"
           clientId={`${process.env.REACT_APP_GOOGLE_CLIENT_ID}`}
           buttonText="Login With Google"
           onSuccess={this.googleLoginSuccess}
@@ -78,6 +79,8 @@ class App extends React.Component<{}, AppState> {
           isSignedIn={true}
         />
         <FacebookLogin
+          cssClass="facebook-button"
+          icon="fa-facebook"
           appId={`${process.env.REACT_APP_FACEBOOK_APP_ID}`}
           fields="email"
           callback={this.facebookLoginResponse} />
