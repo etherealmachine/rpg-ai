@@ -24,7 +24,7 @@ export default class Loading extends Phaser.Scene {
       this.load.json(name + '_tileset', `${process.env.PUBLIC_URL}/assets/${name}.json`);
     });
     this.tilemaps.forEach(name => {
-      this.load.json(name, `${process.env.PUBLIC_URL}/assets/${name}.json`);
+      this.load.tilemapTiledJSON(name, `${process.env.PUBLIC_URL}/assets/${name}.json`);
     });
   }
 

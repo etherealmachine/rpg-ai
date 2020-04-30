@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import GameState from '../GameState';
-import { Tilemap } from '../Tiled';
 
 export default class OrthoMap extends Phaser.Scene {
   state?: GameState
@@ -30,22 +29,20 @@ export default class OrthoMap extends Phaser.Scene {
       }
     });
     this.cameras.main.setBackgroundColor('#ddd');
-
-    const tilemap = this.cache.json.get('example_map') as Tilemap;
-    const layers = tilemap.layers.map(layer => {
-      const data: number[][] = [];
-      for (let y = 0; y < layer.height; y++) {
-        const row: number[] = [];
-        for (let x = 0; x < layer.width; x++) {
-          const tileindex = layer.data.pop();
-          row.push(tileindex || 0);
-        }
-        data.push(row);
-      }
-      return this.make.tilemap({ data: data, tileWidth: tilemap.tilewidth, tileHeight: tilemap.tileheight });
+    const map = this.add.tilemap("example_map");
+    const tilesets = map.tilesets.map(tileset => map.addTilesetImage(tileset.name, `${tileset.name}_spritesheet`));
+    const newLayers = map.layers.map(layer => {
+      return tilesets.map(tileset => {
+        return new Phaser.Tilemaps.LayerData({
+          ...layer,
+          name: layer.name + ' - ' + tileset.name,
+        });
+      });
+    }).flat();
+    map.layers = newLayers;
+    map.layers.forEach(layer => {
+      map.createStaticLayer(layer.name, layer.name.split(' - ')[1]);
     });
-    const tilesets = tilemaps.map((tilemap) => tilemap.addTilesetImage("dungeon", "dungeon", 16, 16, 0, 1));
-    this.layers = tilemaps.map((tilemap, i) => tilemap.createDynamicLayer("layer", tilesets[i], 0, 0));
   }
 
   update(time: number, delta: number) {

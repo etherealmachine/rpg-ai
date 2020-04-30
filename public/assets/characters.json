@@ -1,11 +1,19 @@
-{ "columns":48,
+{ "columns":54,
+ "editorsettings":
+    {
+     "export":
+        {
+         "format":"",
+         "target":"."
+        }
+    },
  "image":"characters.png",
- "imageheight":204,
- "imagewidth":816,
+ "imageheight":203,
+ "imagewidth":918,
  "margin":0,
  "name":"characters",
  "spacing":1,
- "tilecount":576,
+ "tilecount":648,
  "tiledversion":"1.3.4",
  "tileheight":16,
  "tilewidth":16,

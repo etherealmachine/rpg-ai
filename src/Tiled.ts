@@ -20,38 +20,6 @@ export interface Tileset {
   tiles: TileDefinition[]
 }
 
-export interface Tilemap {
-  compressionlevel: number
-  height: number
-  width: number
-  orientation: string
-  renderorder: string
-  tiledversion: string
-  version: number
-  tileheight: number
-  tilewidth: number
-  tilesets: TilemapTileset[]
-  layers: TilemapLayer[]
-}
-
-interface TilemapTileset {
-  firstgid: number
-  source: string
-}
-
-interface TilemapLayer {
-  id: number
-  name: string
-  type: string
-  data: number[]
-  height: number
-  width: number
-  x: number
-  y: number
-  visible: boolean
-  opacity: number
-}
-
 interface TileDefinition {
   id: number
   type: string
