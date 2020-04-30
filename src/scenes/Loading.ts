@@ -13,6 +13,7 @@ export default class Loading extends Phaser.Scene {
   ]
   tilemaps = [
     'example_map',
+    'example_hexmap',
   ]
 
   init(args: any) {
@@ -37,7 +38,7 @@ export default class Loading extends Phaser.Scene {
       });
     });
     this.load.loadComplete = () => {
-      this.game.scene.start('OrthoMap', this.game);
+      this.game.scene.start('HexMap', this.game);
     }
     this.load.start();
   }
