@@ -2,6 +2,7 @@ package main
 
 import (
 	"container/list"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var WebsocketUpgrader = websocket.Upgrader{
@@ -105,6 +109,24 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
+	}
+
+	var db *sql.DB
+	var err error
+	if os.Getenv("DATABASE_URL") != "" {
+		db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		db, err = sql.Open("sqlite3", "database.sqlite")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	err = db.Ping()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	r := mux.NewRouter().StrictSlash(true)

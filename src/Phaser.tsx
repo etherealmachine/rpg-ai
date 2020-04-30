@@ -17,7 +17,11 @@ const Game = styled.div`
   height: 100%;
 `;
 
+const setup = new Set<HTMLElement>();
+
 function setupPhaser(el: HTMLElement, game: GameState) {
+  if (setup.has(el)) return;
+  setup.add(el);
   const gameConfig = {
     parent: el,
     width: el.offsetWidth,
