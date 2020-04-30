@@ -10,8 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc"
+	"github.com/gorilla/rpc/json"
 	"github.com/gorilla/websocket"
+
+	// "github.com/jmoiron/sqlx"
 
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -130,10 +135,19 @@ func main() {
 	}
 
 	r := mux.NewRouter().StrictSlash(true)
+
+	api := rpc.NewServer()
+	api.RegisterCodec(json.NewCodec(), "application/json")
+	api.RegisterService(new(APIService), "")
+	if os.Getenv("CORS") != "" {
+		r.Handle("/api", handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(api))
+	} else {
+		r.Handle("/api", api)
+	}
+
 	r.HandleFunc("/session/{code}", sessionHandler)
 	r.PathPrefix("/app").HandlerFunc(indexHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
-	http.Handle("/", r)
 
 	srv := &http.Server{
 		Handler:      r,

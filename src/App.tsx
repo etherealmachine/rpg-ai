@@ -1,11 +1,14 @@
 import React from 'react';
 import styled from 'styled-components';
 
+import APIService from './APIService';
 import Shell from './Shell';
 import GameState from './GameState';
 import Phaser from './Phaser';
 import { GoogleLogin, GoogleLoginResponse, GoogleLoginResponseOffline } from 'react-google-login';
 import FacebookLogin, { ReactFacebookLoginInfo } from 'react-facebook-login';
+
+const api = new APIService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
 
 const Container = styled.div`
   height: 100%;
@@ -16,7 +19,7 @@ const Container = styled.div`
 
 interface AppState {
   game: GameState
-  loggedIn: boolean
+  loggedInUsers: string[]
 }
 
 class App extends React.Component<{}, AppState> {
@@ -25,7 +28,7 @@ class App extends React.Component<{}, AppState> {
     super(props);
     this.state = {
       game: new GameState(this.updateGameState.bind(this)),
-      loggedIn: false,
+      loggedInUsers: [],
     };
   }
 
@@ -37,38 +40,41 @@ class App extends React.Component<{}, AppState> {
   }
 
   googleLoginSuccess = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
-    console.log(response);
-    this.setState({
-      ...this.state,
-      loggedIn: true,
-    });
+    if (response.hasOwnProperty('tokenId')) {
+      const googleResponse = (response as GoogleLoginResponse)
+      api.googleLogin({ tokenID: googleResponse.tokenId }).then((apiResponse) => {
+        if (apiResponse.email === googleResponse.getBasicProfile().getEmail()) {
+          this.state.loggedInUsers.push(apiResponse.email);
+          this.setState({
+            ...this.state,
+          });
+        }
+      }).catch((error: any) => {
+        console.log(error);
+      });
+    }
   }
 
   googleLoginFailure = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
-    this.setState({
-      ...this.state,
-      loggedIn: true,
-    });
   }
 
   facebookLoginResponse = (response: ReactFacebookLoginInfo) => {
-    console.log(response);
-    if (response.email) {
-      this.setState({
-        ...this.state,
-        loggedIn: true,
-      });
-    } else {
-      this.setState({
-        ...this.state,
-        loggedIn: false,
-      });
-    }
+    api.facebookLogin({ accessToken: response.accessToken }).then((apiResponse) => {
+      if (apiResponse.email === response.email) {
+        this.state.loggedInUsers.push(apiResponse.email);
+        this.setState({
+          ...this.state,
+        });
+      }
+    }).catch((error: any) => {
+      console.log(error);
+    });
   }
 
   render() {
     return <Container>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        {this.state.loggedInUsers.join(', ')}
         <GoogleLogin
           className="google-button"
           clientId={`${process.env.REACT_APP_GOOGLE_CLIENT_ID}`}
