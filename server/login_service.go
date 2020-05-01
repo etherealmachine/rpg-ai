@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
 )
@@ -32,7 +31,7 @@ func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, re
 		return nil
 	}
 	v := googleAuthIDTokenVerifier.Verifier{}
-	if err := v.VerifyIDToken(args.TokenID, []string{os.Getenv("GOOGLE_CLIENT_ID")}); err != nil {
+	if err := v.VerifyIDToken(args.TokenID, []string{GoogleClientID}); err != nil {
 		return err
 	}
 	claimSet, err := googleAuthIDTokenVerifier.Decode(args.TokenID)

@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 
 	session_cookies "github.com/gorilla/sessions"
 )
 
-var SessionCookieStore = session_cookies.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+var SessionCookieStore = session_cookies.NewCookieStore([]byte(SessionKey))
 
 type ContextKey string
 
@@ -53,7 +52,7 @@ func SetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
 		if err != nil {
 			panic(err)
 		}
-		if os.Getenv("CORS") == "" {
+		if !CORS {
 			session.Options.Secure = true
 		}
 		authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)

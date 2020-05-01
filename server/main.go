@@ -17,21 +17,28 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var (
+	Port           = os.Getenv("PORT")
+	CORS           = os.Getenv("CORS") != ""
+	SessionKey     = os.Getenv("SESSION_KEY")
+	GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
+	DatabaseURL    = os.Getenv("DATABASE_URL")
+)
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	// authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
 	http.ServeFile(w, r, "build/index.html")
 }
 
 func main() {
-	port := os.Getenv("PORT")
+	port := Port
 	if port == "" {
 		port = "8000"
 	}
 
 	var db *sqlx.DB
 	var err error
-	if os.Getenv("DATABASE_URL") != "" {
-		db, err = sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
+	if DatabaseURL != "" {
+		db, err = sqlx.Connect("postgres", DatabaseURL)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -48,7 +55,7 @@ func main() {
 	api.RegisterCodec(json.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: &Database{db}}, "")
 	apiHandler := SetAuthenticatedSessionMiddleware(api)
-	if os.Getenv("CORS") != "" {
+	if CORS {
 		apiHandler = handlers.CORS(
 			handlers.AllowCredentials(),
 			handlers.AllowedHeaders([]string{"Content-Type"}),
