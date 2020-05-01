@@ -10,18 +10,20 @@ import (
 )
 
 type GoogleLoginRequest struct {
-	TokenID string `json:"tokenID"`
+	TokenID string
 }
 
 type FacebookLoginRequest struct {
-	AccessToken string `json:"accessToken"`
+	AccessToken string
 }
 
 type LoginResponse struct {
-	Email string `json:"email"`
+	User *User
 }
 
-type APIService struct{}
+type APIService struct {
+	db *Database
+}
 
 func (s *APIService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
 	v := googleAuthIDTokenVerifier.Verifier{}
@@ -32,7 +34,14 @@ func (s *APIService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, repl
 	if err != nil {
 		return err
 	}
-	reply.Email = claimSet.Email
+	user, err := s.db.GetUserByEmail(claimSet.Email)
+	if err != nil {
+		return err
+	}
+	reply.User = user
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	authenticatedUser.InternalUser = user
+	authenticatedUser.GoogleUser = claimSet
 	return nil
 }
 
@@ -54,6 +63,13 @@ func (s *APIService) FacebookLogin(r *http.Request, args *FacebookLoginRequest, 
 	if err := json.Unmarshal(body, &fbResp); err != nil {
 		return err
 	}
-	reply.Email = fbResp.Email
+	user, err := s.db.GetUserByEmail(fbResp.Email)
+	if err != nil {
+		return err
+	}
+	reply.User = user
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	authenticatedUser.InternalUser = user
+	authenticatedUser.FacebookUser = fbResp
 	return nil
 }

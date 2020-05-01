@@ -42,9 +42,9 @@ class App extends React.Component<{}, AppState> {
   googleLoginSuccess = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
     if (response.hasOwnProperty('tokenId')) {
       const googleResponse = (response as GoogleLoginResponse)
-      api.googleLogin({ tokenID: googleResponse.tokenId }).then((apiResponse) => {
-        if (apiResponse.email === googleResponse.getBasicProfile().getEmail()) {
-          this.state.loggedInUsers.push(apiResponse.email);
+      api.googleLogin({ TokenID: googleResponse.tokenId }).then((apiResponse) => {
+        if (apiResponse.User.Email === googleResponse.getBasicProfile().getEmail()) {
+          this.state.loggedInUsers.push(apiResponse.User.Email);
           this.setState({
             ...this.state,
           });
@@ -59,9 +59,9 @@ class App extends React.Component<{}, AppState> {
   }
 
   facebookLoginResponse = (response: ReactFacebookLoginInfo) => {
-    api.facebookLogin({ accessToken: response.accessToken }).then((apiResponse) => {
-      if (apiResponse.email === response.email) {
-        this.state.loggedInUsers.push(apiResponse.email);
+    api.facebookLogin({ AccessToken: response.accessToken }).then((apiResponse) => {
+      if (apiResponse.User.Email === response.email) {
+        this.state.loggedInUsers.push(apiResponse.User.Email);
         this.setState({
           ...this.state,
         });

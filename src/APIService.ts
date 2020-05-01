@@ -4,6 +4,20 @@ interface Response {
   error: any
 }
 
+interface LoginResponse {
+  User: {
+    ID: number
+    Email: string
+    Admin: {
+      Bool: boolean
+      Valid: boolean
+    }
+    CreatedOn: Date
+    LastLogin?: Date
+  }
+  SessionCookie: string
+}
+
 export default class APIService {
 
   path: string;
@@ -13,7 +27,7 @@ export default class APIService {
     this.path = path;
   }
 
-  async googleLogin(args: { tokenID: string }): Promise<{ email: string }> {
+  async googleLogin(args: { TokenID: string }): Promise<LoginResponse> {
     return new Promise((resolve, reject) => {
       const req = new XMLHttpRequest();
       req.open("POST", this.path);
@@ -35,7 +49,7 @@ export default class APIService {
     });
   }
 
-  async facebookLogin(args: { accessToken: string }): Promise<{ email: string }> {
+  async facebookLogin(args: { AccessToken: string }): Promise<LoginResponse> {
     return new Promise((resolve, reject) => {
       const req = new XMLHttpRequest();
       req.open("POST", this.path);
