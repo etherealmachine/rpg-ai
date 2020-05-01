@@ -5,17 +5,18 @@ interface JSONRPCResponse {
 }
 
 interface LoginResponse {
-  User: {
-    ID: number
-    Email: string
-    Admin: {
-      Bool: boolean
-      Valid: boolean
-    }
-    CreatedOn: Date
-    LastLogin?: Date
+  User: User
+}
+
+export interface User {
+  ID: number
+  Email: string
+  Admin: {
+    Bool: boolean
+    Valid: boolean
   }
-  SessionCookie: string
+  CreatedOn: Date
+  LastLogin?: Date
 }
 
 function jsonrpc<ReturnType>(path: string, method: string, requestID: number, args: any): Promise<ReturnType> {
