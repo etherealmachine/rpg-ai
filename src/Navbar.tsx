@@ -31,10 +31,7 @@ export default class Navbar extends React.Component<{}, State> {
       const googleResponse = (response as GoogleLoginResponse)
       api.googleLogin({ TokenID: googleResponse.tokenId }).then((apiResponse) => {
         if (apiResponse.User.Email === googleResponse.getBasicProfile().getEmail()) {
-          this.setState({
-            ...this.state,
-            user: apiResponse.User,
-          });
+          window.location.reload();
         }
       }).catch((error: any) => {
         console.log(error);
@@ -43,15 +40,13 @@ export default class Navbar extends React.Component<{}, State> {
   }
 
   googleLoginFailure = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
+    console.log(response);
   }
 
   facebookLoginResponse = (response: ReactFacebookLoginInfo) => {
     api.facebookLogin({ AccessToken: response.accessToken }).then((apiResponse) => {
       if (apiResponse.User.Email === response.email) {
-        this.setState({
-          ...this.state,
-          user: apiResponse.User,
-        });
+        window.location.reload();
       }
     }).catch((error: any) => {
       console.log(error);
@@ -66,7 +61,7 @@ export default class Navbar extends React.Component<{}, State> {
     document.cookie = "internal_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "google_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "facebook_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
-    window.location = window.location; // eslint-disable-line no-self-assign
+    window.location.reload();
   }
 
   render() {
