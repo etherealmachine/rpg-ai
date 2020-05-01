@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/rpc"
 	"github.com/gorilla/rpc/json"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/net/html"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 	"github.com/etherealmachine/rpg.ai/server/views"
@@ -28,23 +29,41 @@ var (
 	DatabaseURL    = os.Getenv("DATABASE_URL")
 )
 
-var db *models.Database
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "build/index.html")
-}
+var (
+	db      *models.Database
+	scripts []*html.Node
+	links   []*html.Node
+	styles  []*html.Node
+)
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	publicURL := "https://rpg-ai.herokuapp.com"
 	if CORS {
 		publicURL = "http://localhost:8000"
 	}
+
 	users := []models.User{}
-	err := db.Select(&users, "SELECT * FROM users")
-	if err != nil {
-		log.Fatal(err)
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser.InternalUser != nil {
+		err := db.Select(&users, "SELECT * FROM users")
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	views.WriteUsers(w, publicURL, users)
+	views.WriteUsers(w, publicURL, users, scripts, links, styles)
+}
+
+func detectNodes(n *html.Node) {
+	if n.Type == html.ElementNode && n.Data == "script" {
+		scripts = append(scripts, n)
+	} else if n.Type == html.ElementNode && n.Data == "link" {
+		links = append(links, n)
+	} else if n.Type == html.ElementNode && n.Data == "style" {
+		styles = append(styles, n)
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		detectNodes(c)
+	}
 }
 
 func main() {
@@ -53,8 +72,18 @@ func main() {
 		port = "8000"
 	}
 
+	f, err := os.Open("build/index.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	doc, err := html.Parse(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	detectNodes(doc)
+
 	var sqlxDB *sqlx.DB
-	var err error
 	if DatabaseURL != "" {
 		sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
 		if err != nil {
@@ -84,7 +113,6 @@ func main() {
 	r.Handle("/api", apiHandler)
 
 	r.HandleFunc("/session/{code}", sessionHandler)
-	r.PathPrefix("/app").HandlerFunc(indexHandler)
 	r.PathPrefix("/users").HandlerFunc(usersHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 

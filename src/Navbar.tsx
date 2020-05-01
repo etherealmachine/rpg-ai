@@ -21,9 +21,6 @@ export default class Navbar extends React.Component<{}, State> {
       cookies[name] = value;
       return cookies;
     }, {});
-    if (cookies["internal_user"] !== undefined) {
-      console.log(JSON.parse(atob(cookies["internal_user"])));
-    }
     this.state = {
       user: cookies["internal_user"] !== undefined ? JSON.parse(atob(cookies["internal_user"])) : undefined,
     };

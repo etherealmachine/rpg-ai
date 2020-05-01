@@ -1,5 +1,8 @@
-{% import "github.com/etherealmachine/rpg.ai/server/models" %}
-{% func Users(publicURL string, users []models.User) %}
+{% import (
+  "github.com/etherealmachine/rpg.ai/server/models"
+	"golang.org/x/net/html"
+)%}
+{% func Users(publicURL string, users []models.User, scripts []*html.Node, links []*html.Node, styles []*html.Node) %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,32 +13,29 @@
   <meta name="theme-color" content="#000000" />
   <link rel="apple-touch-icon" href="{%s publicURL %}/logo192.png" />
   <title>RPG.ai</title>
-  <style>
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-  </style>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
-  <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
-    integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  {% for _, node := range styles %}
+  <style>{% if node.FirstChild != nil %} {% s= node.FirstChild.Data %} {% endif %}</style>
+  {% endfor %}
+  {% for _, node := range links %}
+  <link {% for _, attr := range node.Attr %}{%s attr.Key %}={%s attr.Val %} {% endfor %} />
+  {% endfor %}
 </head>
 
 <body>
-  <div id="root" style="height: 100%">
+  <div style="height: 100%">
+    <div id="navbar"></div>
     <ol>
       {% for _, user := range users %}
       <li>{%v user.ID %}: {%s user.Email %}, {%v user.CreatedOn %}</li>
       {% endfor %}
     </ol>
   </div>
+
+  {% for _, node := range scripts %}
+  <script{% for _, attr := range node.Attr %} {%s attr.Key %}={%s attr.Val %} {% endfor %}>
+    {% if node.FirstChild != nil %} {% s= node.FirstChild.Data %} {% endif %}
+  </script>{% endfor %}
+
 </body>
 
 </html>

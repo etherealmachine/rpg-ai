@@ -5,24 +5,27 @@
 package views
 
 //line server/views/users.html.qtpl:1
-import "github.com/etherealmachine/rpg.ai/server/models"
+import (
+	"github.com/etherealmachine/rpg.ai/server/models"
+	"golang.org/x/net/html"
+)
 
-//line server/views/users.html.qtpl:2
+//line server/views/users.html.qtpl:5
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line server/views/users.html.qtpl:2
+//line server/views/users.html.qtpl:5
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line server/views/users.html.qtpl:2
-func StreamUsers(qw422016 *qt422016.Writer, publicURL string, users []models.User) {
-//line server/views/users.html.qtpl:2
+//line server/views/users.html.qtpl:5
+func StreamUsers(qw422016 *qt422016.Writer, publicURL string, users []models.User, scripts []*html.Node, links []*html.Node, styles []*html.Node) {
+//line server/views/users.html.qtpl:5
 	qw422016.N().S(`
 <!DOCTYPE html>
 <html lang="en">
@@ -30,64 +33,139 @@ func StreamUsers(qw422016 *qt422016.Writer, publicURL string, users []models.Use
 <head>
   <meta charset="utf-8" />
   <link rel="icon" href="`)
-//line server/views/users.html.qtpl:8
+//line server/views/users.html.qtpl:11
 	qw422016.E().S(publicURL)
-//line server/views/users.html.qtpl:8
+//line server/views/users.html.qtpl:11
 	qw422016.N().S(`/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <link rel="apple-touch-icon" href="`)
-//line server/views/users.html.qtpl:11
+//line server/views/users.html.qtpl:14
 	qw422016.E().S(publicURL)
-//line server/views/users.html.qtpl:11
+//line server/views/users.html.qtpl:14
 	qw422016.N().S(`/logo192.png" />
   <title>RPG.ai</title>
-  <style>
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-  </style>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
-  <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
-    integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  `)
+//line server/views/users.html.qtpl:16
+	for _, node := range styles {
+//line server/views/users.html.qtpl:16
+		qw422016.N().S(`
+  <style>`)
+//line server/views/users.html.qtpl:17
+		if node.FirstChild != nil {
+//line server/views/users.html.qtpl:17
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:17
+			qw422016.N().S(node.FirstChild.Data)
+//line server/views/users.html.qtpl:17
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:17
+		}
+//line server/views/users.html.qtpl:17
+		qw422016.N().S(`</style>
+  `)
+//line server/views/users.html.qtpl:18
+	}
+//line server/views/users.html.qtpl:18
+	qw422016.N().S(`
+  `)
+//line server/views/users.html.qtpl:19
+	for _, node := range links {
+//line server/views/users.html.qtpl:19
+		qw422016.N().S(`
+  <link `)
+//line server/views/users.html.qtpl:20
+		for _, attr := range node.Attr {
+//line server/views/users.html.qtpl:20
+			qw422016.E().S(attr.Key)
+//line server/views/users.html.qtpl:20
+			qw422016.N().S(`=`)
+//line server/views/users.html.qtpl:20
+			qw422016.E().S(attr.Val)
+//line server/views/users.html.qtpl:20
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:20
+		}
+//line server/views/users.html.qtpl:20
+		qw422016.N().S(` />
+  `)
+//line server/views/users.html.qtpl:21
+	}
+//line server/views/users.html.qtpl:21
+	qw422016.N().S(`
 </head>
 
 <body>
-  <div id="root" style="height: 100%">
+  <div style="height: 100%">
+    <div id="navbar"></div>
     <ol>
       `)
-//line server/views/users.html.qtpl:34
+//line server/views/users.html.qtpl:28
 	for _, user := range users {
-//line server/views/users.html.qtpl:34
+//line server/views/users.html.qtpl:28
 		qw422016.N().S(`
       <li>`)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.E().V(user.ID)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.N().S(`: `)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.E().S(user.Email)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.N().S(`, `)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.E().V(user.CreatedOn)
-//line server/views/users.html.qtpl:35
+//line server/views/users.html.qtpl:29
 		qw422016.N().S(`</li>
       `)
-//line server/views/users.html.qtpl:36
+//line server/views/users.html.qtpl:30
 	}
-//line server/views/users.html.qtpl:36
+//line server/views/users.html.qtpl:30
 	qw422016.N().S(`
     </ol>
   </div>
+
+  `)
+//line server/views/users.html.qtpl:34
+	for _, node := range scripts {
+//line server/views/users.html.qtpl:34
+		qw422016.N().S(`
+  <script`)
+//line server/views/users.html.qtpl:35
+		for _, attr := range node.Attr {
+//line server/views/users.html.qtpl:35
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:35
+			qw422016.E().S(attr.Key)
+//line server/views/users.html.qtpl:35
+			qw422016.N().S(`=`)
+//line server/views/users.html.qtpl:35
+			qw422016.E().S(attr.Val)
+//line server/views/users.html.qtpl:35
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:35
+		}
+//line server/views/users.html.qtpl:35
+		qw422016.N().S(`>
+    `)
+//line server/views/users.html.qtpl:36
+		if node.FirstChild != nil {
+//line server/views/users.html.qtpl:36
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:36
+			qw422016.N().S(node.FirstChild.Data)
+//line server/views/users.html.qtpl:36
+			qw422016.N().S(` `)
+//line server/views/users.html.qtpl:36
+		}
+//line server/views/users.html.qtpl:36
+		qw422016.N().S(`
+  </script>`)
+//line server/views/users.html.qtpl:37
+	}
+//line server/views/users.html.qtpl:37
+	qw422016.N().S(`
+
 </body>
 
 </html>
@@ -96,22 +174,22 @@ func StreamUsers(qw422016 *qt422016.Writer, publicURL string, users []models.Use
 }
 
 //line server/views/users.html.qtpl:42
-func WriteUsers(qq422016 qtio422016.Writer, publicURL string, users []models.User) {
+func WriteUsers(qq422016 qtio422016.Writer, publicURL string, users []models.User, scripts []*html.Node, links []*html.Node, styles []*html.Node) {
 //line server/views/users.html.qtpl:42
 	qw422016 := qt422016.AcquireWriter(qq422016)
 //line server/views/users.html.qtpl:42
-	StreamUsers(qw422016, publicURL, users)
+	StreamUsers(qw422016, publicURL, users, scripts, links, styles)
 //line server/views/users.html.qtpl:42
 	qt422016.ReleaseWriter(qw422016)
 //line server/views/users.html.qtpl:42
 }
 
 //line server/views/users.html.qtpl:42
-func Users(publicURL string, users []models.User) string {
+func Users(publicURL string, users []models.User, scripts []*html.Node, links []*html.Node, styles []*html.Node) string {
 //line server/views/users.html.qtpl:42
 	qb422016 := qt422016.AcquireByteBuffer()
 //line server/views/users.html.qtpl:42
-	WriteUsers(qb422016, publicURL, users)
+	WriteUsers(qb422016, publicURL, users, scripts, links, styles)
 //line server/views/users.html.qtpl:42
 	qs422016 := string(qb422016.B)
 //line server/views/users.html.qtpl:42
