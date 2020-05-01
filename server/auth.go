@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 
 	session_cookies "github.com/gorilla/sessions"
@@ -22,26 +22,41 @@ type AuthenticatedUser struct {
 	FacebookUser interface{}
 }
 
-func AuthenticateSessionMiddleware(h http.Handler) http.Handler {
+func GetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := SessionCookieStore.Get(r, "authenticated_user")
 		if err != nil {
 			panic(err)
 		}
-
 		authenticatedUser := new(AuthenticatedUser)
-		if encodedInternalUser, ok := session.Values["internal_user"].(*string); ok {
-			json.Unmarshal([]byte(*encodedInternalUser), authenticatedUser.InternalUser)
+		if encodedInternalUser, ok := session.Values["internal_user"].(string); ok {
+			json.Unmarshal([]byte(encodedInternalUser), &authenticatedUser.InternalUser)
 		}
 		if encodedGoogleUser, ok := session.Values["google_user"].(*string); ok {
-			json.Unmarshal([]byte(*encodedGoogleUser), authenticatedUser.GoogleUser)
+			json.Unmarshal([]byte(*encodedGoogleUser), &authenticatedUser.GoogleUser)
 		}
 		if encodedFacebookUser, ok := session.Values["facebook_user"].(*string); ok {
-			json.Unmarshal([]byte(*encodedFacebookUser), authenticatedUser.FacebookUser)
+			json.Unmarshal([]byte(*encodedFacebookUser), &authenticatedUser.FacebookUser)
 		}
-
 		h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ContextAuthenticatedUserKey, authenticatedUser)))
+	})
+}
 
+func SetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, r)
+		for k, v := range rec.Header() {
+			w.Header()[k] = v
+		}
+		session, err := SessionCookieStore.Get(r, "authenticated_user")
+		if err != nil {
+			panic(err)
+		}
+		if os.Getenv("CORS") == "" {
+			session.Options.Secure = true
+		}
+		authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
 		if authenticatedUser.InternalUser != nil {
 			bs, err := json.Marshal(authenticatedUser.InternalUser)
 			if err != nil {
@@ -50,7 +65,6 @@ func AuthenticateSessionMiddleware(h http.Handler) http.Handler {
 				session.Values["internal_user"] = string(bs)
 			}
 		}
-
 		if authenticatedUser.GoogleUser != nil {
 			bs, err := json.Marshal(authenticatedUser.GoogleUser)
 			if err != nil {
@@ -67,10 +81,9 @@ func AuthenticateSessionMiddleware(h http.Handler) http.Handler {
 				session.Values["facebook_user"] = string(bs)
 			}
 		}
-		log.Println("saving session")
 		if err := session.Save(r, w); err != nil {
 			panic(err)
 		}
-		w.Header().Add("X-Session-Middleware", "hello")
+		w.Write(rec.Body.Bytes())
 	})
 }

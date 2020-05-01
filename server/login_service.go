@@ -21,11 +21,16 @@ type LoginResponse struct {
 	User *User
 }
 
-type APIService struct {
+type LoginService struct {
 	db *Database
 }
 
-func (s *APIService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
+func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser.InternalUser != nil {
+		reply.User = authenticatedUser.InternalUser
+		return nil
+	}
 	v := googleAuthIDTokenVerifier.Verifier{}
 	if err := v.VerifyIDToken(args.TokenID, []string{os.Getenv("GOOGLE_CLIENT_ID")}); err != nil {
 		return err
@@ -39,13 +44,17 @@ func (s *APIService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, repl
 		return err
 	}
 	reply.User = user
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
 	authenticatedUser.InternalUser = user
 	authenticatedUser.GoogleUser = claimSet
 	return nil
 }
 
-func (s *APIService) FacebookLogin(r *http.Request, args *FacebookLoginRequest, reply *LoginResponse) error {
+func (s *LoginService) FacebookLogin(r *http.Request, args *FacebookLoginRequest, reply *LoginResponse) error {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser.InternalUser != nil {
+		reply.User = authenticatedUser.InternalUser
+		return nil
+	}
 	url := "https://graph.facebook.com/v3.2/me?fields=email&access_token=" + args.AccessToken
 	resp, err := http.Get(url)
 	if err != nil {
@@ -68,7 +77,6 @@ func (s *APIService) FacebookLogin(r *http.Request, args *FacebookLoginRequest, 
 		return err
 	}
 	reply.User = user
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
 	authenticatedUser.InternalUser = user
 	authenticatedUser.FacebookUser = fbResp
 	return nil

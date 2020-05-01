@@ -1,14 +1,14 @@
 import React from 'react';
 import styled from 'styled-components';
 
-import APIService from './APIService';
+import LoginService from './LoginService';
 import Shell from './Shell';
 import GameState from './GameState';
 import Phaser from './Phaser';
 import { GoogleLogin, GoogleLoginResponse, GoogleLoginResponseOffline } from 'react-google-login';
 import FacebookLogin, { ReactFacebookLoginInfo } from 'react-facebook-login';
 
-const api = new APIService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
+const api = new LoginService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
 
 const Container = styled.div`
   height: 100%;

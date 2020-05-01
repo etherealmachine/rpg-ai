@@ -18,11 +18,7 @@ import (
 )
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	if authenticatedUser.InternalUser != nil {
-		w.WriteHeader(200)
-		return
-	}
+	// authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
 	http.ServeFile(w, r, "build/index.html")
 }
 
@@ -50,19 +46,23 @@ func main() {
 
 	api := rpc.NewServer()
 	api.RegisterCodec(json.NewCodec(), "application/json")
-	api.RegisterService(&APIService{db: &Database{db}}, "")
+	api.RegisterService(&LoginService{db: &Database{db}}, "")
+	apiHandler := SetAuthenticatedSessionMiddleware(api)
 	if os.Getenv("CORS") != "" {
-		r.Handle("/api", handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(api))
-	} else {
-		r.Handle("/api", api)
+		apiHandler = handlers.CORS(
+			handlers.AllowCredentials(),
+			handlers.AllowedHeaders([]string{"Content-Type"}),
+			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
+		)(apiHandler)
 	}
+	r.Handle("/api", apiHandler)
 
 	r.HandleFunc("/session/{code}", sessionHandler)
 	r.PathPrefix("/app").HandlerFunc(indexHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{
-		Handler:      AuthenticateSessionMiddleware(r),
+		Handler:      GetAuthenticatedSessionMiddleware(r),
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
