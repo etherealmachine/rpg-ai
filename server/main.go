@@ -13,6 +13,9 @@ import (
 	"github.com/gorilla/rpc/json"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/etherealmachine/rpg.ai/server/models"
+	"github.com/etherealmachine/rpg.ai/server/views"
+
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -25,8 +28,23 @@ var (
 	DatabaseURL    = os.Getenv("DATABASE_URL")
 )
 
+var db *models.Database
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "build/index.html")
+}
+
+func usersHandler(w http.ResponseWriter, r *http.Request) {
+	publicURL := "https://rpg-ai.herokuapp.com"
+	if CORS {
+		publicURL = "http://localhost:8000"
+	}
+	users := []models.User{}
+	err := db.Select(&users, "SELECT * FROM users")
+	if err != nil {
+		log.Fatal(err)
+	}
+	views.WriteUsers(w, publicURL, users)
 }
 
 func main() {
@@ -35,25 +53,26 @@ func main() {
 		port = "8000"
 	}
 
-	var db *sqlx.DB
+	var sqlxDB *sqlx.DB
 	var err error
 	if DatabaseURL != "" {
-		db, err = sqlx.Connect("postgres", DatabaseURL)
+		sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		db, err = sqlx.Connect("sqlite3", "database.sqlite")
+		sqlxDB, err = sqlx.Connect("sqlite3", "database.sqlite")
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
+	db = &models.Database{sqlxDB}
 
 	r := mux.NewRouter().StrictSlash(true)
 
 	api := rpc.NewServer()
 	api.RegisterCodec(json.NewCodec(), "application/json")
-	api.RegisterService(&LoginService{db: &Database{db}}, "")
+	api.RegisterService(&LoginService{db: db}, "")
 	apiHandler := SetAuthenticatedSessionMiddleware(api)
 	if CORS {
 		apiHandler = handlers.CORS(
@@ -66,6 +85,7 @@ func main() {
 
 	r.HandleFunc("/session/{code}", sessionHandler)
 	r.PathPrefix("/app").HandlerFunc(indexHandler)
+	r.PathPrefix("/users").HandlerFunc(usersHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{

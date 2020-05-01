@@ -1,15 +1,9 @@
-package main
+package models
 
 import (
 	"database/sql"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
-
-type Database struct {
-	*sqlx.DB
-}
 
 type User struct {
 	ID        int32        `db:"id"`

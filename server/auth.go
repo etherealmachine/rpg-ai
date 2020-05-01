@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 
 	session_cookies "github.com/gorilla/sessions"
+
+	"github.com/etherealmachine/rpg.ai/server/models"
 )
 
 var SessionCookieStore = session_cookies.NewCookieStore([]byte(SessionKey))
@@ -33,7 +35,7 @@ func setCookie(w http.ResponseWriter, name string, value []byte) {
 }
 
 type AuthenticatedUser struct {
-	InternalUser *User
+	InternalUser *models.User
 	GoogleUser   interface{}
 	FacebookUser interface{}
 }

@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	googleAuthIDTokenVerifier "github.com/futurenda/google-auth-id-token-verifier"
+
+	"github.com/etherealmachine/rpg.ai/server/models"
 )
 
 type GoogleLoginRequest struct {
@@ -17,11 +19,11 @@ type FacebookLoginRequest struct {
 }
 
 type LoginResponse struct {
-	User *User
+	User *models.User
 }
 
 type LoginService struct {
-	db *Database
+	db *models.Database
 }
 
 func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
