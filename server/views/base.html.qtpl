@@ -1,0 +1,61 @@
+{% import "golang.org/x/net/html" %}
+
+{%
+interface Page {
+  Header()
+  Content()
+  BodyScripts()
+}
+%}
+
+{% code
+type BasePage struct {
+  PublicURL string
+  Scripts []*html.Node
+  Links []*html.Node
+  Styles []*html.Node
+}
+%}
+
+{% func (p *BasePage) Header() %}
+  <meta charset="utf-8" />
+  <link rel="icon" href="{%s p.PublicURL %}/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="apple-touch-icon" href="{%s p.PublicURL %}/logo192.png" />
+  <title>RPG.ai</title>
+  {% for _, node := range p.Styles %}
+    <style>{% if node.FirstChild != nil %}{%s= node.FirstChild.Data %}{% endif %}</style>
+  {% endfor %}
+  {% for _, node := range p.Links %}
+    <link {% for _, attr := range node.Attr %}{%s attr.Key %}={%s attr.Val %} {% endfor %} />
+  {% endfor %}
+{% endfunc %}
+
+{% func (p *BasePage) BodyScripts() %}
+  {% for _, node := range p.Scripts %}
+    <script{% for _, attr := range node.Attr %} {%s attr.Key %}={%s attr.Val %} {% endfor %}>
+      {% if node.FirstChild != nil %}{%s= node.FirstChild.Data %}{% endif %}
+    </script>
+  {% endfor %}
+{% endfunc %}
+
+{% func PageTemplate(p Page) %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {%= p.Header() %}
+</head>
+
+<body>
+  <div style="height: 100%">
+    <div id="navbar"></div>
+    {%= p.Content() %}
+  </div>
+
+  {%= p.BodyScripts() %}
+</body>
+
+</html>
+{% endfunc %}

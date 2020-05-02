@@ -1,0 +1,29 @@
+{% import "github.com/etherealmachine/rpg.ai/server/models" %}
+
+{% code
+type UserProfilePage struct {
+  *BasePage
+  User models.User
+  UserAssets []models.Asset
+}
+%}
+
+{% func UploadAssetComponent() %}
+<form action="/upload" enctype="multipart/form-data">
+  <input type="file" id="fileupload" name="filename[]" multiple>
+  <input type="submit" value="Upload">
+</form>
+{% endfunc %}
+
+{% func (p *UserProfilePage) Content() %}
+  <div class="container">
+    <p class="my-4">{%s p.User.Email %}, a member since {%v p.User.CreatedAt %}</p>
+    <h4>Assets</h4>
+    <ul>
+    {% for _, asset := range p.UserAssets %}
+      <li>{%s asset.Filename %}</li>
+    {% endfor %}
+    </ul>
+    <div id="asset-uploader"></div>
+  </div>
+{% endfunc %}

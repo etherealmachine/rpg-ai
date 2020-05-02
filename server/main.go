@@ -30,27 +30,37 @@ var (
 )
 
 var (
-	db      *models.Database
+	db      *models.Queries
 	scripts []*html.Node
 	links   []*html.Node
 	styles  []*html.Node
 )
 
-func usersHandler(w http.ResponseWriter, r *http.Request) {
+func profileHandler(w http.ResponseWriter, r *http.Request) {
 	publicURL := "https://rpg-ai.herokuapp.com"
 	if CORS {
 		publicURL = "http://localhost:8000"
 	}
 
-	users := []models.User{}
 	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	if authenticatedUser.InternalUser != nil {
-		err := db.Select(&users, "SELECT * FROM users")
-		if err != nil {
-			log.Fatal(err)
-		}
+	if authenticatedUser.InternalUser == nil {
+		http.Redirect(w, r, publicURL, http.StatusTemporaryRedirect)
+		return
 	}
-	views.WriteUsers(w, publicURL, users, scripts, links, styles)
+	assets, err := db.GetAssetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	if err != nil {
+		panic(err)
+	}
+	views.WritePageTemplate(w, &views.UserProfilePage{
+		BasePage: &views.BasePage{
+			PublicURL: publicURL,
+			Scripts:   scripts,
+			Links:     links,
+			Styles:    styles,
+		},
+		User:       *authenticatedUser.InternalUser,
+		UserAssets: assets,
+	})
 }
 
 func detectNodes(n *html.Node) {
@@ -67,6 +77,8 @@ func detectNodes(n *html.Node) {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	port := Port
 	if port == "" {
 		port = "8000"
@@ -95,7 +107,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	db = &models.Database{sqlxDB}
+	db = models.New(sqlxDB)
 
 	r := mux.NewRouter().StrictSlash(true)
 
@@ -113,7 +125,7 @@ func main() {
 	r.Handle("/api", apiHandler)
 
 	r.HandleFunc("/session/{code}", sessionHandler)
-	r.PathPrefix("/users").HandlerFunc(usersHandler)
+	r.PathPrefix("/profile").HandlerFunc(profileHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{

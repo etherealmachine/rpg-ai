@@ -23,7 +23,7 @@ type LoginResponse struct {
 }
 
 type LoginService struct {
-	db *models.Database
+	db *models.Queries
 }
 
 func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
@@ -40,12 +40,12 @@ func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, re
 	if err != nil {
 		return err
 	}
-	user, err := s.db.GetUserByEmail(claimSet.Email)
+	user, err := s.db.GetUserByEmail(r.Context(), claimSet.Email)
 	if err != nil {
 		return err
 	}
-	reply.User = user
-	authenticatedUser.InternalUser = user
+	reply.User = &user
+	authenticatedUser.InternalUser = &user
 	authenticatedUser.GoogleUser = claimSet
 	return nil
 }
@@ -73,12 +73,12 @@ func (s *LoginService) FacebookLogin(r *http.Request, args *FacebookLoginRequest
 	if err := json.Unmarshal(body, &fbResp); err != nil {
 		return err
 	}
-	user, err := s.db.GetUserByEmail(fbResp.Email)
+	user, err := s.db.GetUserByEmail(r.Context(), fbResp.Email)
 	if err != nil {
 		return err
 	}
-	reply.User = user
-	authenticatedUser.InternalUser = user
+	reply.User = &user
+	authenticatedUser.InternalUser = &user
 	authenticatedUser.FacebookUser = fbResp
 	return nil
 }

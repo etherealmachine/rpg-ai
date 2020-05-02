@@ -8,7 +8,7 @@ import (
 )
 
 type AssetService struct {
-	db *models.Database
+	db *models.Queries
 }
 
 type ListAssetsRequest struct {
@@ -23,7 +23,7 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 	if authenticatedUser.InternalUser == nil {
 		return errors.New("no authenticated user found")
 	}
-	assets, err := s.db.GetAssetsByOwnerID(authenticatedUser.InternalUser.ID)
+	assets, err := s.db.GetAssetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
 	if err != nil {
 		return err
 	}
