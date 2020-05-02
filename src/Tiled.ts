@@ -17,10 +17,11 @@ export interface Tileset {
   tileheight: number
   type: string
   version: number
+  firstgid: number
   tiles: TileDefinition[]
 }
 
-interface TileDefinition {
+export interface TileDefinition {
   id: number
   type: string
 }
@@ -37,17 +38,17 @@ export interface Tilemap {
   version: number
   tileheight: number
   tilewidth: number
-  tilesets: TilemapTileset[]
+  tilesets: (Tileset | TilesetSource)[]
   layers: TilemapLayer[]
   type: string
 }
 
-interface TilemapTileset {
+export interface TilesetSource {
   firstgid: number
   source: string
 }
 
-interface TilemapLayer {
+export interface TilemapLayer {
   id: number
   name: string
   type: string

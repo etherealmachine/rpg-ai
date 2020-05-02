@@ -1,10 +1,14 @@
-{ "compressionlevel":-1,
+ { "compressionlevel":-1,
  "editorsettings":
     {
      "chunksize":
         {
          "height":32,
          "width":32
+        },
+     "export":
+        {
+         "target":"."
         }
     },
  "height":20,
@@ -70,7 +74,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "source":"hex.json"
+	 "source":"hex.json"
         }],
  "tilewidth":32,
  "type":"map",

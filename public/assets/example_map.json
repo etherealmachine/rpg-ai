@@ -137,43 +137,16 @@
  "tileheight":16,
  "tilesets":[
         {
-         "columns":57,
          "firstgid":1,
-         "image":"general.png",
-         "imageheight":526,
-         "imagewidth":968,
-         "margin":0,
-         "name":"general",
-         "spacing":1,
-         "tilecount":1767,
-         "tileheight":16,
-         "tilewidth":16
+         "source":"general.json"
         }, 
         {
-         "columns":29,
          "firstgid":1768,
-         "image":"dungeon.png",
-         "imageheight":305,
-         "imagewidth":492,
-         "margin":0,
-         "name":"dungeon",
-         "spacing":1,
-         "tilecount":522,
-         "tileheight":16,
-         "tilewidth":16
+         "source":"dungeon.json"
         }, 
         {
-         "columns":48,
          "firstgid":2290,
-         "image":"characters.png",
-         "imageheight":203,
-         "imagewidth":815,
-         "margin":0,
-         "name":"characters",
-         "spacing":1,
-         "tilecount":576,
-         "tileheight":16,
-         "tilewidth":16
+         "source":"characters.json"
         }],
  "tilewidth":16,
  "type":"map",

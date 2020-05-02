@@ -1,23 +1,50 @@
 import React from 'react';
-import Card from 'react-bootstrap/Card'
-import Button from 'react-bootstrap/Button'
 
-import { Tileset, Tilemap } from './Tiled';
+import { Tileset, Tilemap, TilesetSource } from './Tiled';
 import AssetService from './AssetService';
 
 const api = new AssetService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
 
 interface State {
   assets: Asset[]
+  everyReferenceExists: boolean
+  everyImageIsReferenced: boolean
 }
 
 interface Asset {
   file: File
   loaded: boolean
-  tilemap?: Tilemap
-  tileset?: Tileset
-  image?: string
+  content?: Tilemap | Tileset | string
   error?: string
+}
+
+function hasFile(assets: Asset[], filename: string): boolean {
+  return assets.some(asset => asset.file.name === filename);
+}
+
+function fileIndicator(assets: Asset[], filename: string) {
+  if (hasFile(assets, filename)) {
+    return <i style={{ color: "#28a745" }} className="fa fa-check-square" />;
+  }
+  return <i className="fa fa-exclamation-circle" style={{ color: "#dc3545" }} />;
+}
+
+function references(assets: Asset[]) {
+  return new Set(assets.map(asset => {
+    if (typeof asset.content === 'object' && asset.content.type === 'map') {
+      return (asset.content as Tilemap).tilesets.map(tileset => {
+        if ((tileset as Tileset).image) {
+          return (tileset as Tileset).image;
+        } else if ((tileset as TilesetSource).source) {
+          return (tileset as TilesetSource).source;
+        }
+        return null;
+      });
+    } else if (typeof asset.content === 'object' && asset.content.type === 'tileset') {
+      return (asset.content as Tileset).image;
+    }
+    return null;
+  }).flat().filter(ref => ref));
 }
 
 export default class AssetUploader extends React.Component<{}, State> {
@@ -28,6 +55,8 @@ export default class AssetUploader extends React.Component<{}, State> {
     super(props);
     this.state = {
       assets: [],
+      everyReferenceExists: true,
+      everyImageIsReferenced: true,
     };
   }
 
@@ -39,9 +68,9 @@ export default class AssetUploader extends React.Component<{}, State> {
         try {
           obj = JSON.parse(buf as string);
           if (obj.hasOwnProperty('type') && obj.type === 'tileset') {
-            asset.tileset = obj as Tileset;
+            asset.content = obj;
           } else if (obj.hasOwnProperty('type') && obj.type === 'map') {
-            asset.tilemap = obj as Tilemap;
+            asset.content = obj;
           } else if (obj.hasOwnProperty('type')) {
             asset.error = `unknown object type ${obj.type}`;
           } else {
@@ -51,7 +80,7 @@ export default class AssetUploader extends React.Component<{}, State> {
           asset.error = "JSON parse error";
         }
       } else if (asset.file.name.endsWith('.png') || asset.file.name.endsWith('.jpg') || asset.file.name.endsWith('.jpeg')) {
-        asset.image = buf as string;
+        asset.content = buf as string;
       }
     }
     this.setState({
@@ -59,14 +88,31 @@ export default class AssetUploader extends React.Component<{}, State> {
     });
   }
 
+  checkReferences() {
+    const images = this.state.assets.filter(asset => typeof asset.content === 'string');
+    const filenames = new Set(this.state.assets.map(asset => asset.file.name));
+    const refs = references(this.state.assets);
+    const everyReferenceExists = Array.from(refs.values()).every(ref => filenames.has(ref));
+    const everyImageIsReferenced = images.every(asset => refs.has(asset.file.name));
+    this.setState({
+      ...this.state,
+      everyReferenceExists: everyReferenceExists,
+      everyImageIsReferenced: everyImageIsReferenced,
+    });
+    return everyReferenceExists && everyImageIsReferenced;
+  }
+
   onUploadClicked = (event: React.MouseEvent) => {
     event.preventDefault();
+    if (this.checkReferences()) {
+
+    }
   }
 
   onFilesChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = (this.fileInput.current as any).files as FileList;
     const assets = [...files].map(file => { return { file: file, loaded: false }; });
-    assets.forEach((asset, i) => {
+    assets.forEach(asset => {
       const fileReader = new FileReader();
       fileReader.onload = this.onAssetLoad(asset as Asset);
       if (asset.file.name.endsWith('.json')) {
@@ -77,12 +123,18 @@ export default class AssetUploader extends React.Component<{}, State> {
         (asset as Asset).error = `cannot handle filetype of ${asset.file.name}`;
       }
     });
+    this.checkReferences();
     this.setState({
+      ...this.state,
       assets: assets,
     });
   }
 
   render() {
+    const tilemaps = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'map'));
+    const tilesets = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'tileset'));
+    const images = this.state.assets.filter(asset => typeof asset.content === 'string');
+    const refs = references(this.state.assets);
     return <div>
       <form>
         <input
@@ -92,19 +144,66 @@ export default class AssetUploader extends React.Component<{}, State> {
           ref={this.fileInput}
           onChange={this.onFilesChanged}
           multiple />
-        <Button variant="primary" onClick={this.onUploadClicked}>Upload</Button>
+        <button type="button" className="btn btn-primary" onClick={this.onUploadClicked}>Upload</button>
       </form>
-      <div>{this.state.assets.map((asset, i) => {
-        return <Card key={i} style={{ width: '18rem' }}>
-          {asset.image && <Card.Img variant="top" src={asset.image} />}
-          <Card.Body>
-            {asset.tilemap && <Card.Title>Tilemap</Card.Title>}
-            {asset.tileset && <Card.Title>Tileset</Card.Title>}
-            {asset.image && <Card.Title>Image</Card.Title>}
-            <Card.Text>{asset.file.name}</Card.Text>
-          </Card.Body>
-        </Card>;
-      })}
+      {!this.state.everyReferenceExists && <div className="alert alert-danger" role="alert">
+        Some assets are missing a reference.
+      </div>}
+      {!this.state.everyImageIsReferenced && <div className="alert alert-danger" role="alert">
+        Images exist but don't have a tileset. Either remove the image or upload a tileset definition.
+      </div>}
+      <div className="d-flex">
+        <div>
+          <h5>Tilemaps</h5>
+          {tilemaps.map(asset => {
+            return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
+              <div className="card-body">
+                <h5 className="card-title">{asset.file.name}</h5>
+                {(asset.content as Tilemap).tilesets.map(tileset => {
+                  if ((tileset as Tileset).image) {
+                    const filename = (tileset as Tileset).image;
+                    return <div key={tileset.firstgid} className="card-text">
+                      {fileIndicator(this.state.assets, filename)}
+                    </div>;
+                  } else if ((tileset as TilesetSource).source) {
+                    const filename = (tileset as TilesetSource).source;
+                    return <div key={tileset.firstgid} className="card-text">
+                      {fileIndicator(this.state.assets, filename)}
+                      {filename}
+                    </div>;
+                  }
+                  return null;
+                })}
+              </div>
+            </div>;
+          })}
+        </div>
+        <div>
+          <h5>Tilesets</h5>
+          {tilesets.map(asset => {
+            return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
+              <div className="card-body">
+                <h5 className="card-title">{asset.file.name}</h5>
+                <div className="card-text">
+                  {fileIndicator(this.state.assets, (asset.content as Tileset).image || '')}
+                  {(asset.content as Tileset).image}
+                </div>
+              </div>
+            </div>;
+          })}
+        </div>
+        <div>
+          <h5>Images</h5>
+          {images.map(asset => {
+            return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
+              <img src={asset.content as string} className="card-img-top" alt={asset.file.name} />
+              <div className="card-body">
+                <h5 className="card-title">{asset.file.name}</h5>
+                {!refs.has(asset.file.name) && <i className="fa fa-unlink" style={{ color: "#dc3545" }} />}
+              </div>
+            </div>;
+          })}
+        </div>
       </div>
     </div>;
   }
