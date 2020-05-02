@@ -5,7 +5,15 @@ import Navbar from './Navbar';
 import AssetUploader from './AssetUploader';
 
 if (document.getElementById('root')) {
-  ReactDOM.render(<App />, document.getElementById('root'));
+  if (window.location.host.startsWith('localhost') && window.location.hash !== "") {
+    import('./' + window.location.hash.slice(1)).then(module => {
+      ReactDOM.render(React.createElement(module.default), document.getElementById('root'));
+    }).catch(err => {
+      console.error(err);
+    })
+  } else {
+    ReactDOM.render(<App />, document.getElementById('root'));
+  }
 }
 if (document.getElementById('navbar')) {
   ReactDOM.render(<Navbar />, document.getElementById('navbar'));
