@@ -1,6 +1,7 @@
 module github.com/etherealmachine/rpg.ai
 
-go 1.12
+// +heroku goVersion 1.14.2
+go 1.14
 
 require (
 	github.com/antlr/antlr4 v0.0.0-20200417160354-8c50731894e0 // indirect
