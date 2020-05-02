@@ -1,6 +1,4 @@
 import React from 'react';
-import BootstrapNavbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown'
 
 import LoginService, { User } from './LoginService';
 import { GoogleLogin, GoogleLoginResponse, GoogleLoginResponseOffline } from 'react-google-login';
@@ -65,15 +63,18 @@ export default class Navbar extends React.Component<{}, State> {
   }
 
   render() {
-    return <BootstrapNavbar className="bg-light justify-content-between" expand="lg">
-      <BootstrapNavbar.Brand href="#home">RPG.ai</BootstrapNavbar.Brand>
+    return <nav className="navbar navbar-expand-lg navbar-light bg-light justify-content-between">
+      <a className="navbar-brand" href="#home">RPG.ai</a>
       <div style={{ display: "flex", flexDirection: "row", alignItems: "center", alignSelf: "flex-end" }}>
         {(this.state.user !== undefined) &&
-          <div>
-            <NavDropdown title="Settings" id="settings-dropdown" drop="left">
-              {this.state.user && <NavDropdown.Item>{this.state.user.Email}</NavDropdown.Item>}
-              <NavDropdown.Item href="#logout" onClick={this.logout}>Logout</NavDropdown.Item>
-            </NavDropdown>
+          <div className="nav-item dropdown">
+            <button className="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Settings
+            </button>
+            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+              {this.state.user && <div className="dropdown-item">{this.state.user.Email}</div>}
+              <a className="dropdown-item" href="#logout" onClick={this.logout}>Logout</a>
+            </div>
           </div>
         }
         {(this.state.user === undefined) &&
@@ -95,6 +96,6 @@ export default class Navbar extends React.Component<{}, State> {
           </div>
         }
       </div>
-    </BootstrapNavbar>;
+    </nav>;
   }
 }

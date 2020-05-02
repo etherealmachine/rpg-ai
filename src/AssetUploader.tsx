@@ -1,9 +1,6 @@
 import React from 'react';
 
 import { Tileset, Tilemap, TilesetSource } from './Tiled';
-import AssetService from './AssetService';
-
-const api = new AssetService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
 
 interface State {
   assets: Asset[]
@@ -103,9 +100,8 @@ export default class AssetUploader extends React.Component<{}, State> {
   }
 
   onUploadClicked = (event: React.MouseEvent) => {
-    event.preventDefault();
-    if (this.checkReferences()) {
-
+    if (!this.checkReferences()) {
+      event.preventDefault();
     }
   }
 
@@ -136,7 +132,7 @@ export default class AssetUploader extends React.Component<{}, State> {
     const images = this.state.assets.filter(asset => typeof asset.content === 'string');
     const refs = references(this.state.assets);
     return <div>
-      <form>
+      <form action="/upload-assets" method="POST">
         <input
           type="file"
           id="files"
@@ -144,7 +140,13 @@ export default class AssetUploader extends React.Component<{}, State> {
           ref={this.fileInput}
           onChange={this.onFilesChanged}
           multiple />
-        <button type="button" className="btn btn-primary" onClick={this.onUploadClicked}>Upload</button>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={this.state.assets.length === 0}
+          onClick={this.onUploadClicked}>
+          Upload
+        </button>
       </form>
       {!this.state.everyReferenceExists && <div className="alert alert-danger" role="alert">
         Some assets are missing a reference.
@@ -153,7 +155,7 @@ export default class AssetUploader extends React.Component<{}, State> {
         Images exist but don't have a tileset. Either remove the image or upload a tileset definition.
       </div>}
       <div className="d-flex">
-        <div>
+        {tilemaps.length > 0 && <div className="d-flex flex-column align-items-center mx-4">
           <h5>Tilemaps</h5>
           {tilemaps.map(asset => {
             return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
@@ -177,8 +179,8 @@ export default class AssetUploader extends React.Component<{}, State> {
               </div>
             </div>;
           })}
-        </div>
-        <div>
+        </div>}
+        {tilesets.length > 0 && <div className="d-flex flex-column align-items-center mx-4">
           <h5>Tilesets</h5>
           {tilesets.map(asset => {
             return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
@@ -191,8 +193,8 @@ export default class AssetUploader extends React.Component<{}, State> {
               </div>
             </div>;
           })}
-        </div>
-        <div>
+        </div>}
+        {images.length > 0 && <div className="d-flex flex-column align-items-center mx-4">
           <h5>Images</h5>
           {images.map(asset => {
             return <div className="card" key={asset.file.name} style={{ width: '18rem' }}>
@@ -203,7 +205,7 @@ export default class AssetUploader extends React.Component<{}, State> {
               </div>
             </div>;
           })}
-        </div>
+        </div>}
       </div>
     </div>;
   }
