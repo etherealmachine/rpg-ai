@@ -41,7 +41,7 @@ var (
 
 func profileHandler(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	assets, err := db.GetAssetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	assets, err := db.ListAssetMetadataByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
 	if err != nil {
 		panic(err)
 	}

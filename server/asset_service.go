@@ -15,7 +15,7 @@ type ListAssetsRequest struct {
 }
 
 type ListAssetsResponse struct {
-	Assets []models.Asset
+	Assets []models.ListAssetMetadataByOwnerIDRow
 }
 
 func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, reply *ListAssetsResponse) error {
@@ -23,7 +23,7 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 	if authenticatedUser.InternalUser == nil {
 		return errors.New("no authenticated user found")
 	}
-	assets, err := s.db.GetAssetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	assets, err := s.db.ListAssetMetadataByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ package models
 
 import (
 	"context"
+	"time"
 )
 
 const createAsset = `-- name: CreateAsset :one
@@ -37,26 +38,33 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
-const getAssetsByOwnerID = `-- name: GetAssetsByOwnerID :many
-SELECT id, owner_id, content_type, filename, filedata, created_at FROM assets WHERE owner_id = $1
+const listAssetMetadataByOwnerID = `-- name: ListAssetMetadataByOwnerID :many
+SELECT owner_id, created_at, filename, content_type, octet_length(filedata) as size FROM assets WHERE owner_id = $1
 `
 
-func (q *Queries) GetAssetsByOwnerID(ctx context.Context, ownerID int32) ([]Asset, error) {
-	rows, err := q.db.QueryContext(ctx, getAssetsByOwnerID, ownerID)
+type ListAssetMetadataByOwnerIDRow struct {
+	OwnerID     int32       `json:"owner_id"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Filename    string      `json:"filename"`
+	ContentType string      `json:"content_type"`
+	Size        interface{} `json:"size"`
+}
+
+func (q *Queries) ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32) ([]ListAssetMetadataByOwnerIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAssetMetadataByOwnerID, ownerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Asset
+	var items []ListAssetMetadataByOwnerIDRow
 	for rows.Next() {
-		var i Asset
+		var i ListAssetMetadataByOwnerIDRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.OwnerID,
-			&i.ContentType,
-			&i.Filename,
-			&i.Filedata,
 			&i.CreatedAt,
+			&i.Filename,
+			&i.ContentType,
+			&i.Size,
 		); err != nil {
 			return nil, err
 		}

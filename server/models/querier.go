@@ -8,8 +8,8 @@ import (
 
 type Querier interface {
 	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
-	GetAssetsByOwnerID(ctx context.Context, ownerID int32) ([]Asset, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32) ([]ListAssetMetadataByOwnerIDRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
