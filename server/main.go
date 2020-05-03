@@ -76,6 +76,17 @@ func detectNodes(n *html.Node) {
 	}
 }
 
+func RedirectToHTTPSMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		proto := req.Header.Get("X-Forwarded-Proto")
+		if (proto == "http" || proto == "HTTP") && !CORS {
+			http.Redirect(res, req, fmt.Sprintf("https://%s%s", req.Host, req.URL), http.StatusPermanentRedirect)
+			return
+		}
+		h.ServeHTTP(res, req)
+	})
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -129,7 +140,7 @@ func main() {
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{
-		Handler:      GetAuthenticatedSessionMiddleware(r),
+		Handler:      RedirectToHTTPSMiddleware(GetAuthenticatedSessionMiddleware(r)),
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
