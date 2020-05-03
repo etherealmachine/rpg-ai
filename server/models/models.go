@@ -8,18 +8,18 @@ import (
 )
 
 type Asset struct {
-	ID          int32     `json:"id"`
-	OwnerID     int32     `json:"owner_id"`
-	ContentType string    `json:"content_type"`
-	Filename    string    `json:"filename"`
-	Filedata    []byte    `json:"filedata"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          int32
+	OwnerID     int32
+	ContentType string
+	Filename    string
+	Filedata    []byte
+	CreatedAt   time.Time
 }
 
 type User struct {
-	ID        int32        `json:"id"`
-	Email     string       `json:"email"`
-	Admin     sql.NullBool `json:"admin"`
-	CreatedAt time.Time    `json:"created_at"`
-	LastLogin sql.NullTime `json:"last_login"`
+	ID        int32
+	Email     string
+	Admin     sql.NullBool
+	CreatedAt time.Time
+	LastLogin sql.NullTime
 }

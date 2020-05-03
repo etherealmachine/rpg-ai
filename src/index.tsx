@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
 import Navbar from './Navbar';
+import AssetTable from './AssetTable';
 import AssetUploader from './AssetUploader';
 
 if (document.getElementById('root')) {
@@ -20,4 +21,9 @@ if (document.getElementById('navbar')) {
 }
 if (document.getElementById('asset-uploader')) {
   ReactDOM.render(<AssetUploader />, document.getElementById('asset-uploader'));
+}
+const node = document.getElementById('asset-table');
+if (node) {
+  const props = JSON.parse(JSON.parse(node.getAttribute("data-props") || ""));
+  ReactDOM.render(<AssetTable {...props} />, node);
 }

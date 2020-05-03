@@ -15,7 +15,7 @@ export interface User {
   LastLogin?: Date
 }
 
-export default class LoginService extends JSONRPCService {
+class LoginService extends JSONRPCService {
 
   async googleLogin(args: { TokenID: string }): Promise<LoginResponse> {
     return this.jsonrpc<LoginResponse>("GoogleLogin", args);
@@ -26,3 +26,6 @@ export default class LoginService extends JSONRPCService {
   }
 
 }
+
+const loginService = new LoginService("LoginService");
+export default loginService;

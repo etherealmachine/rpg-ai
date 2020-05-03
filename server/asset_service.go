@@ -30,3 +30,18 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 	reply.Assets = assets
 	return nil
 }
+
+type DeleteAssetRequest struct {
+	ID int32
+}
+
+type DeleteAssetResponse struct {
+}
+
+func (s *AssetService) DeleteAsset(r *http.Request, args *DeleteAssetRequest, reply *DeleteAssetResponse) error {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser.InternalUser == nil {
+		return errors.New("no authenticated user found")
+	}
+	return s.db.DeleteAssetWithOwner(r.Context(), models.DeleteAssetWithOwnerParams{ID: args.ID, OwnerID: authenticatedUser.InternalUser.ID})
+}

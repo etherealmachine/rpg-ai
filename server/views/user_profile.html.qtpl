@@ -19,27 +19,7 @@ type UserProfilePage struct {
   <div class="container">
     <p class="my-4">{%s p.User.Email %}, a member since {%v p.User.CreatedAt %}</p>
     <h4>Assets</h4>
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Filename</th>
-        <th>Content Type</th>
-        <th>Size</th>
-        <th>Uploaded At</th>
-      </tr>
-      </thead>
-      <tbody>
-      {% for _, asset := range p.UserAssets %}
-        <tr>
-          <td>{%s asset.Filename %}</td>
-          <td>{%s asset.ContentType %}</td>
-          <td>{%dl asset.Size.(int64) %} bytes</td>
-          <td>{%v asset.CreatedAt %}</td>
-          <td><button type="button" class="btn btn-danger">Delete</button></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+    <div id="asset-table" data-props="{%q JSON(struct{Assets []models.ListAssetMetadataByOwnerIDRow}{p.UserAssets}) %}"></div>
     <div id="asset-uploader"></div>
   </div>
 {% endfunc %}

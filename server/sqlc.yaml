@@ -1,7 +1,7 @@
 version: "1"
 packages:
   - name: "models"
-    emit_json_tags: true
+    emit_json_tags: false
     emit_prepared_queries: false
     emit_interface: true
     path: "models"

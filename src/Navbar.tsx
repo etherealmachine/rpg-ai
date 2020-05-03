@@ -4,8 +4,6 @@ import LoginService, { User } from './LoginService';
 import { GoogleLogin, GoogleLoginResponse, GoogleLoginResponseOffline } from 'react-google-login';
 import FacebookLogin, { ReactFacebookLoginInfo } from 'react-facebook-login';
 
-const api = new LoginService(window.location.hostname === 'localhost' ? 'http://localhost:8000/api' : '/api');
-
 interface State {
   user?: User
 }
@@ -27,7 +25,7 @@ export default class Navbar extends React.Component<{}, State> {
   googleLoginSuccess = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
     if (response.hasOwnProperty('tokenId')) {
       const googleResponse = (response as GoogleLoginResponse)
-      api.googleLogin({ TokenID: googleResponse.tokenId }).then((apiResponse) => {
+      LoginService.googleLogin({ TokenID: googleResponse.tokenId }).then((apiResponse) => {
         if (apiResponse.User.Email === googleResponse.getBasicProfile().getEmail()) {
           window.location.reload();
         }
@@ -42,7 +40,7 @@ export default class Navbar extends React.Component<{}, State> {
   }
 
   facebookLoginResponse = (response: ReactFacebookLoginInfo) => {
-    api.facebookLogin({ AccessToken: response.accessToken }).then((apiResponse) => {
+    LoginService.facebookLogin({ AccessToken: response.accessToken }).then((apiResponse) => {
       if (apiResponse.User.Email === response.email) {
         window.location.reload();
       }

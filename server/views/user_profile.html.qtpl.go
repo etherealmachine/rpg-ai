@@ -80,79 +80,41 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/user_profile.html.qtpl:20
 	qw422016.N().S(`</p>
     <h4>Assets</h4>
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Filename</th>
-        <th>Content Type</th>
-        <th>Size</th>
-        <th>Uploaded At</th>
-      </tr>
-      </thead>
-      <tbody>
-      `)
-//line views/user_profile.html.qtpl:32
-	for _, asset := range p.UserAssets {
-//line views/user_profile.html.qtpl:32
-		qw422016.N().S(`
-        <tr>
-          <td>`)
-//line views/user_profile.html.qtpl:34
-		qw422016.E().S(asset.Filename)
-//line views/user_profile.html.qtpl:34
-		qw422016.N().S(`</td>
-          <td>`)
-//line views/user_profile.html.qtpl:35
-		qw422016.E().S(asset.ContentType)
-//line views/user_profile.html.qtpl:35
-		qw422016.N().S(`</td>
-          <td>`)
-//line views/user_profile.html.qtpl:36
-		qw422016.N().DL(asset.Size.(int64))
-//line views/user_profile.html.qtpl:36
-		qw422016.N().S(` bytes</td>
-          <td>`)
-//line views/user_profile.html.qtpl:37
-		qw422016.E().V(asset.CreatedAt)
-//line views/user_profile.html.qtpl:37
-		qw422016.N().S(`</td>
-          <td><button type="button" class="btn btn-danger">Delete</button></td>
-        </tr>
-      `)
-//line views/user_profile.html.qtpl:40
-	}
-//line views/user_profile.html.qtpl:40
-	qw422016.N().S(`
-      </tbody>
-    </table>
+    <div id="asset-table" data-props="`)
+//line views/user_profile.html.qtpl:22
+	qw422016.E().Q(JSON(struct {
+		Assets []models.ListAssetMetadataByOwnerIDRow
+	}{p.UserAssets}))
+//line views/user_profile.html.qtpl:22
+	qw422016.N().S(`"></div>
     <div id="asset-uploader"></div>
   </div>
 `)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 }
 
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 }
 
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 	return qs422016
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:25
 }

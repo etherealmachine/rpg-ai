@@ -13,10 +13,10 @@ INSERT INTO assets (owner_id, content_type, filename, filedata) VALUES ($1, $2, 
 `
 
 type CreateAssetParams struct {
-	OwnerID     int32  `json:"owner_id"`
-	ContentType string `json:"content_type"`
-	Filename    string `json:"filename"`
-	Filedata    []byte `json:"filedata"`
+	OwnerID     int32
+	ContentType string
+	Filename    string
+	Filedata    []byte
 }
 
 func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error) {
@@ -38,16 +38,31 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
+const deleteAssetWithOwner = `-- name: DeleteAssetWithOwner :exec
+DELETE FROM assets WHERE id = $1 AND owner_id = $2
+`
+
+type DeleteAssetWithOwnerParams struct {
+	ID      int32
+	OwnerID int32
+}
+
+func (q *Queries) DeleteAssetWithOwner(ctx context.Context, arg DeleteAssetWithOwnerParams) error {
+	_, err := q.db.ExecContext(ctx, deleteAssetWithOwner, arg.ID, arg.OwnerID)
+	return err
+}
+
 const listAssetMetadataByOwnerID = `-- name: ListAssetMetadataByOwnerID :many
-SELECT owner_id, created_at, filename, content_type, octet_length(filedata) as size FROM assets WHERE owner_id = $1
+SELECT id, owner_id, created_at, filename, content_type, octet_length(filedata) as size FROM assets WHERE owner_id = $1
 `
 
 type ListAssetMetadataByOwnerIDRow struct {
-	OwnerID     int32       `json:"owner_id"`
-	CreatedAt   time.Time   `json:"created_at"`
-	Filename    string      `json:"filename"`
-	ContentType string      `json:"content_type"`
-	Size        interface{} `json:"size"`
+	ID          int32
+	OwnerID     int32
+	CreatedAt   time.Time
+	Filename    string
+	ContentType string
+	Size        interface{}
 }
 
 func (q *Queries) ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32) ([]ListAssetMetadataByOwnerIDRow, error) {
@@ -60,6 +75,7 @@ func (q *Queries) ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32)
 	for rows.Next() {
 		var i ListAssetMetadataByOwnerIDRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.OwnerID,
 			&i.CreatedAt,
 			&i.Filename,

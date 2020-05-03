@@ -165,6 +165,7 @@ func main() {
 	api := rpc.NewServer()
 	api.RegisterCodec(json.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: db}, "")
+	api.RegisterService(&AssetService{db: db}, "")
 	apiHandler := SetAuthenticatedSession(api)
 	if Dev {
 		apiHandler = handlers.CORS(
