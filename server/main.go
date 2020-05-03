@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc"
@@ -18,35 +20,27 @@ import (
 	"github.com/etherealmachine/rpg.ai/server/views"
 
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
 	Port           = os.Getenv("PORT")
-	CORS           = os.Getenv("CORS") != ""
+	Dev            = os.Getenv("DEV") != ""
 	SessionKey     = os.Getenv("SESSION_KEY")
 	GoogleClientID = os.Getenv("GOOGLE_CLIENT_ID")
 	DatabaseURL    = os.Getenv("DATABASE_URL")
 )
 
 var (
-	db      *models.Queries
-	scripts []*html.Node
-	links   []*html.Node
-	styles  []*html.Node
+	db        *models.Queries
+	scripts   []*html.Node
+	links     []*html.Node
+	styles    []*html.Node
+	CSRF      = csrf.Protect([]byte(SessionKey))
+	publicURL string
 )
 
 func profileHandler(w http.ResponseWriter, r *http.Request) {
-	publicURL := "https://rpg-ai.herokuapp.com"
-	if CORS {
-		publicURL = "http://localhost:8000"
-	}
-
 	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	if authenticatedUser.InternalUser == nil {
-		http.Redirect(w, r, publicURL, http.StatusTemporaryRedirect)
-		return
-	}
 	assets, err := db.GetAssetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
 	if err != nil {
 		panic(err)
@@ -57,10 +51,43 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 			Scripts:   scripts,
 			Links:     links,
 			Styles:    styles,
+			CSRFToken: csrf.Token(r),
 		},
 		User:       *authenticatedUser.InternalUser,
 		UserAssets: assets,
 	})
+}
+
+func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		panic(err)
+	}
+	fhs := r.MultipartForm.File["files[]"]
+	for _, fh := range fhs {
+		f, err := fh.Open()
+		if err != nil {
+			panic(err)
+		}
+		bs, err := ioutil.ReadAll(f)
+		if err != nil {
+			panic(err)
+		}
+		f.Close()
+		if _, err := db.CreateAsset(r.Context(), models.CreateAssetParams{
+			OwnerID:     authenticatedUser.InternalUser.ID,
+			ContentType: fh.Header.Get("Content-Type"),
+			Filename:    fh.Filename,
+			Filedata:    bs,
+		}); err != nil {
+			panic(err)
+		}
+	}
+	redirectURL := r.URL.Query().Get("redirect")
+	if redirectURL == "" {
+		redirectURL = "/"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
 func detectNodes(n *html.Node) {
@@ -76,14 +103,25 @@ func detectNodes(n *html.Node) {
 	}
 }
 
-func RedirectToHTTPSMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		proto := req.Header.Get("X-Forwarded-Proto")
-		if (proto == "http" || proto == "HTTP") && !CORS {
-			http.Redirect(res, req, fmt.Sprintf("https://%s%s", req.Host, req.URL), http.StatusPermanentRedirect)
+func RedirectToHTTPS(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proto := r.Header.Get("X-Forwarded-Proto")
+		if (proto == "http" || proto == "HTTP") && !Dev {
+			http.Redirect(w, r, fmt.Sprintf("https://%s%s", r.Host, r.URL), http.StatusPermanentRedirect)
 			return
 		}
-		h.ServeHTTP(res, req)
+		h.ServeHTTP(w, r)
+	})
+}
+
+func LoginRequired(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+		if authenticatedUser.InternalUser == nil {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
+		h.ServeHTTP(w, r)
 	})
 }
 
@@ -93,6 +131,16 @@ func main() {
 	port := Port
 	if port == "" {
 		port = "8000"
+	}
+
+	publicURL = "https://rpg-ai.herokuapp.com"
+	if Dev {
+		publicURL = "http://localhost:8000"
+		CSRF = csrf.Protect(
+			[]byte(SessionKey),
+			csrf.Secure(false),
+			csrf.SameSite(csrf.SameSiteNoneMode),
+			csrf.TrustedOrigins([]string{"https://localhost:3000", "http://localhost:8000"}))
 	}
 
 	f, err := os.Open("build/index.html")
@@ -106,17 +154,9 @@ func main() {
 	}
 	detectNodes(doc)
 
-	var sqlxDB *sqlx.DB
-	if DatabaseURL != "" {
-		sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		sqlxDB, err = sqlx.Connect("sqlite3", "database.sqlite")
-		if err != nil {
-			log.Fatal(err)
-		}
+	sqlxDB, err := sqlx.Connect("postgres", DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
 	}
 	db = models.New(sqlxDB)
 
@@ -125,8 +165,8 @@ func main() {
 	api := rpc.NewServer()
 	api.RegisterCodec(json.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: db}, "")
-	apiHandler := SetAuthenticatedSessionMiddleware(api)
-	if CORS {
+	apiHandler := SetAuthenticatedSession(api)
+	if Dev {
 		apiHandler = handlers.CORS(
 			handlers.AllowCredentials(),
 			handlers.AllowedHeaders([]string{"Content-Type"}),
@@ -135,12 +175,12 @@ func main() {
 	}
 	r.Handle("/api", apiHandler)
 
-	r.HandleFunc("/session/{code}", sessionHandler)
-	r.PathPrefix("/profile").HandlerFunc(profileHandler)
+	r.Handle("/profile", LoginRequired(http.HandlerFunc(profileHandler)))
+	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(uploadAssetsHandler))).Methods("POST")
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{
-		Handler:      RedirectToHTTPSMiddleware(GetAuthenticatedSessionMiddleware(r)),
+		Handler:      RedirectToHTTPS(CSRF(GetAuthenticatedSession(r))),
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,

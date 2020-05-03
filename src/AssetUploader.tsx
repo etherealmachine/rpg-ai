@@ -132,7 +132,7 @@ export default class AssetUploader extends React.Component<{}, State> {
     const images = this.state.assets.filter(asset => typeof asset.content === 'string');
     const refs = references(this.state.assets);
     return <div>
-      <form action="/upload-assets" method="POST">
+      <form action={`/upload-assets?redirect=${window.location}`} method="POST" encType="multipart/form-data">
         <input
           type="file"
           id="files"
@@ -140,6 +140,7 @@ export default class AssetUploader extends React.Component<{}, State> {
           ref={this.fileInput}
           onChange={this.onFilesChanged}
           multiple />
+        {(window as any).csrfToken && <input type="hidden" name="gorilla.csrf.Token" value={(window as any).csrfToken} />}
         <button
           type="submit"
           className="btn btn-primary"

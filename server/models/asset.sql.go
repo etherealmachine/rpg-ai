@@ -7,6 +7,36 @@ import (
 	"context"
 )
 
+const createAsset = `-- name: CreateAsset :one
+INSERT INTO assets (owner_id, content_type, filename, filedata) VALUES ($1, $2, $3, $4) RETURNING id, owner_id, content_type, filename, filedata, created_at
+`
+
+type CreateAssetParams struct {
+	OwnerID     int32  `json:"owner_id"`
+	ContentType string `json:"content_type"`
+	Filename    string `json:"filename"`
+	Filedata    []byte `json:"filedata"`
+}
+
+func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error) {
+	row := q.db.QueryRowContext(ctx, createAsset,
+		arg.OwnerID,
+		arg.ContentType,
+		arg.Filename,
+		arg.Filedata,
+	)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.ContentType,
+		&i.Filename,
+		&i.Filedata,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getAssetsByOwnerID = `-- name: GetAssetsByOwnerID :many
 SELECT id, owner_id, content_type, filename, filedata, created_at FROM assets WHERE owner_id = $1
 `

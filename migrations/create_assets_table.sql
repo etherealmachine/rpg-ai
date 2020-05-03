@@ -5,7 +5,7 @@ CREATE TABLE assets
   content_type VARCHAR(100) NOT NULL,
   filename VARCHAR(200) NOT NULL,
   filedata BYTEA NOT NULL,
-  created_at TIMESTAMP NOT NULL
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX index_assets_on_owner_id on assets(owner_id);

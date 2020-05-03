@@ -30,7 +30,7 @@ func setCookie(w http.ResponseWriter, name string, value []byte) {
 		Value:  base64.StdEncoding.EncodeToString(value),
 		Path:   "/",
 		MaxAge: SessionMaxAge,
-		Secure: !CORS,
+		Secure: !Dev,
 	})
 }
 
@@ -40,7 +40,7 @@ type AuthenticatedUser struct {
 	FacebookUser interface{}
 }
 
-func GetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
+func GetAuthenticatedSession(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := SessionCookieStore.Get(r, "authenticated_user")
 		if err != nil {
@@ -63,7 +63,7 @@ func GetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
 	})
 }
 
-func SetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
+func SetAuthenticatedSession(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, r)
@@ -74,7 +74,7 @@ func SetAuthenticatedSessionMiddleware(h http.Handler) http.Handler {
 		if err != nil {
 			panic(err)
 		}
-		if !CORS {
+		if !Dev {
 			session.Options.Secure = true
 		}
 		authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)

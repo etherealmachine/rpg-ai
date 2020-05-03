@@ -14,6 +14,7 @@ type BasePage struct {
   Scripts []*html.Node
   Links []*html.Node
   Styles []*html.Node
+  CSRFToken string
 }
 %}
 
@@ -30,6 +31,9 @@ type BasePage struct {
   {% for _, node := range p.Links %}
     <link {% for _, attr := range node.Attr %}{%s attr.Key %}={%s attr.Val %} {% endfor %} />
   {% endfor %}
+  <script>
+    window.csrfToken = "{%s p.CSRFToken %}";
+  </script>
 {% endfunc %}
 
 {% func (p *BasePage) BodyScripts() %}
@@ -38,6 +42,10 @@ type BasePage struct {
       {% if node.FirstChild != nil %}{%s= node.FirstChild.Data %}{% endif %}
     </script>
   {% endfor %}
+{% endfunc %}
+
+{% func (p *BasePage) CSRFField() %}
+<input type="hidden" name="gorilla.csrf.Token" value="{%s p.CSRFToken %}">
 {% endfunc %}
 
 {% func PageTemplate(p Page) %}

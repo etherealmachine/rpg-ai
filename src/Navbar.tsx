@@ -72,7 +72,7 @@ export default class Navbar extends React.Component<{}, State> {
               Settings
             </button>
             <div className="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-              {this.state.user && <div className="dropdown-item">{this.state.user.Email}</div>}
+              {this.state.user && <a href="/profile" className="dropdown-item">{this.state.user.Email}</a>}
               <a className="dropdown-item" href="#logout" onClick={this.logout}>Logout</a>
             </div>
           </div>
