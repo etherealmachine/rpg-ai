@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/csrf"
@@ -63,6 +65,7 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		panic(err)
 	}
+	var assets []*models.CreateAssetParams
 	fhs := r.MultipartForm.File["files[]"]
 	for _, fh := range fhs {
 		f, err := fh.Open()
@@ -74,20 +77,33 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		f.Close()
-		if _, err := db.CreateAsset(r.Context(), models.CreateAssetParams{
+		assets = append(assets, &models.CreateAssetParams{
 			OwnerID:     authenticatedUser.InternalUser.ID,
 			ContentType: fh.Header.Get("Content-Type"),
 			Filename:    fh.Filename,
 			Filedata:    bs,
-		}); err != nil {
-			panic(err)
-		}
+		})
+	}
+	if err := bulkUploadAssets(r.Context(), db, assets); err != nil {
+		panic(err)
 	}
 	redirectURL := r.URL.Query().Get("redirect")
 	if redirectURL == "" {
 		redirectURL = "/"
 	}
 	http.Redirect(w, r, redirectURL, http.StatusFound)
+}
+
+func assetHandler(w http.ResponseWriter, r *http.Request) {
+	assetID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	if err != nil {
+		panic(err)
+	}
+	asset, err := db.GetAssetByID(r.Context(), int32(assetID))
+	if err != nil {
+		panic(err)
+	}
+	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(asset.Filedata))
 }
 
 func detectNodes(n *html.Node) {
@@ -188,6 +204,7 @@ func main() {
 
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(profileHandler)))
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(uploadAssetsHandler))).Methods("POST")
+	r.Handle("/assets/{id:[0-9]+}", http.HandlerFunc(assetHandler))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{

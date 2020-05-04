@@ -52,6 +52,24 @@ func (q *Queries) DeleteAssetWithOwner(ctx context.Context, arg DeleteAssetWithO
 	return err
 }
 
+const getAssetByID = `-- name: GetAssetByID :one
+SELECT id, owner_id, content_type, filename, filedata, created_at FROM assets WHERE id = $1
+`
+
+func (q *Queries) GetAssetByID(ctx context.Context, id int32) (Asset, error) {
+	row := q.db.QueryRowContext(ctx, getAssetByID, id)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.ContentType,
+		&i.Filename,
+		&i.Filedata,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listAssetMetadataByOwnerID = `-- name: ListAssetMetadataByOwnerID :many
 SELECT id, owner_id, created_at, filename, content_type, octet_length(filedata) as size FROM assets WHERE owner_id = $1
 `

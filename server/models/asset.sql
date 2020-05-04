@@ -7,3 +7,6 @@ SELECT id, owner_id, created_at, filename, content_type, octet_length(filedata) 
 
 -- name: DeleteAssetWithOwner :exec
 DELETE FROM assets WHERE id = $1 AND owner_id = $2;
+
+-- name: GetAssetByID :one
+SELECT * FROM assets WHERE id = $1;

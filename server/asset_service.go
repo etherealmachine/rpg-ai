@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 )
@@ -44,4 +47,84 @@ func (s *AssetService) DeleteAsset(r *http.Request, args *DeleteAssetRequest, re
 		return errors.New("no authenticated user found")
 	}
 	return s.db.DeleteAssetWithOwner(r.Context(), models.DeleteAssetWithOwnerParams{ID: args.ID, OwnerID: authenticatedUser.InternalUser.ID})
+}
+
+type tiledAssetUpload struct {
+	params   *models.CreateAssetParams
+	json     map[string]interface{}
+	image    string
+	tilesets []string
+}
+
+func bulkUploadAssets(ctx context.Context, db *models.Queries, assets []*models.CreateAssetParams) error {
+	images := make(map[string]*models.CreateAssetParams)
+	tilesets := make(map[string]*tiledAssetUpload)
+	tilemaps := make(map[string]*tiledAssetUpload)
+	for _, asset := range assets {
+		if asset.ContentType == "image/png" || asset.ContentType == "image/jpeg" {
+			images[asset.Filename] = asset
+		} else if asset.ContentType == "application/json" {
+			tiledAsset := &tiledAssetUpload{
+				params: asset,
+				json:   make(map[string]interface{}),
+			}
+			if err := json.Unmarshal(asset.Filedata, &(tiledAsset.json)); err != nil {
+				return err
+			}
+			if image, ok := tiledAsset.json["image"].(string); ok {
+				tilesets[asset.Filename] = tiledAsset
+				tiledAsset.image = image
+			} else if tilesets, ok := tiledAsset.json["tilesets"].([]map[string]interface{}); ok {
+				tilemaps[asset.Filename] = tiledAsset
+				for _, tileset := range tilesets {
+					if source, ok := tileset["source"].(string); ok {
+						tiledAsset.tilesets = append(tiledAsset.tilesets, source)
+					}
+				}
+			}
+		}
+	}
+	imageIDs := make(map[string]int32)
+	tilesetIDs := make(map[string]int32)
+	for _, asset := range images {
+		a, err := db.CreateAsset(ctx, *asset)
+		if err != nil {
+			return err
+		}
+		imageIDs[a.Filename] = a.ID
+	}
+	for _, tileset := range tilesets {
+		imageID := imageIDs[tileset.image]
+		tileset.json["image"] = strconv.Itoa(int(imageID))
+		bs, err := json.Marshal(tileset.json)
+		if err != nil {
+			return err
+		}
+		tileset.params.Filedata = bs
+		a, err := db.CreateAsset(ctx, *tileset.params)
+		if err != nil {
+			return err
+		}
+		tilesetIDs[a.Filename] = a.ID
+	}
+	for _, tilemap := range tilemaps {
+		var sourceIDs []int32
+		for _, tileset := range tilemap.tilesets {
+			sourceIDs = append(sourceIDs, tilesetIDs[tileset])
+		}
+		if tilesets, ok := tilemap.json["tilesets"].([]map[string]interface{}); ok {
+			for i, tileset := range tilesets {
+				tileset["source"] = strconv.Itoa(int(sourceIDs[i]))
+			}
+		}
+		bs, err := json.Marshal(tilemap.json)
+		if err != nil {
+			return err
+		}
+		tilemap.params.Filedata = bs
+		if _, err = db.CreateAsset(ctx, *tilemap.params); err != nil {
+			return err
+		}
+	}
+	return nil
 }
