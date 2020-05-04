@@ -38,6 +38,20 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 	return i, err
 }
 
+const createAssetReference = `-- name: CreateAssetReference :exec
+INSERT INTO asset_references (asset_id, referenced_asset_id) VALUES ($1, $2)
+`
+
+type CreateAssetReferenceParams struct {
+	AssetID           int32
+	ReferencedAssetID int32
+}
+
+func (q *Queries) CreateAssetReference(ctx context.Context, arg CreateAssetReferenceParams) error {
+	_, err := q.db.ExecContext(ctx, createAssetReference, arg.AssetID, arg.ReferencedAssetID)
+	return err
+}
+
 const deleteAssetWithOwner = `-- name: DeleteAssetWithOwner :exec
 DELETE FROM assets WHERE id = $1 AND owner_id = $2
 `

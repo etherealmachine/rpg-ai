@@ -33,6 +33,7 @@ var (
 )
 
 var (
+	sqlxDB    *sqlx.DB
 	db        *models.Queries
 	scripts   []*html.Node
 	links     []*html.Node
@@ -84,9 +85,12 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 			Filedata:    bs,
 		})
 	}
-	if err := bulkUploadAssets(r.Context(), db, assets); err != nil {
+	tx := sqlxDB.MustBeginTx(r.Context(), nil)
+	if err := bulkUploadAssets(r.Context(), db.WithTx(tx.Tx), assets); err != nil {
+		tx.Rollback()
 		panic(err)
 	}
+	tx.Commit()
 	redirectURL := r.URL.Query().Get("redirect")
 	if redirectURL == "" {
 		redirectURL = "/"
@@ -180,7 +184,7 @@ func main() {
 	}
 	detectNodes(doc)
 
-	sqlxDB, err := sqlx.Connect("postgres", DatabaseURL)
+	sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}

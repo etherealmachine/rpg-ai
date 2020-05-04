@@ -10,3 +10,6 @@ DELETE FROM assets WHERE id = $1 AND owner_id = $2;
 
 -- name: GetAssetByID :one
 SELECT * FROM assets WHERE id = $1;
+
+-- name: CreateAssetReference :exec
+INSERT INTO asset_references (asset_id, referenced_asset_id) VALUES ($1, $2);

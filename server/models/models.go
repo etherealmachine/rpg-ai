@@ -16,6 +16,12 @@ type Asset struct {
 	CreatedAt   time.Time
 }
 
+type AssetReference struct {
+	ID                int32
+	AssetID           int32
+	ReferencedAssetID int32
+}
+
 type User struct {
 	ID        int32
 	Email     string

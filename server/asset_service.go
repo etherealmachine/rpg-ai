@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 )
@@ -74,11 +73,13 @@ func bulkUploadAssets(ctx context.Context, db *models.Queries, assets []*models.
 			if image, ok := tiledAsset.json["image"].(string); ok {
 				tilesets[asset.Filename] = tiledAsset
 				tiledAsset.image = image
-			} else if tilesets, ok := tiledAsset.json["tilesets"].([]map[string]interface{}); ok {
+			} else if tilesets, ok := tiledAsset.json["tilesets"].([]interface{}); ok {
 				tilemaps[asset.Filename] = tiledAsset
-				for _, tileset := range tilesets {
-					if source, ok := tileset["source"].(string); ok {
-						tiledAsset.tilesets = append(tiledAsset.tilesets, source)
+				for _, iface := range tilesets {
+					if tileset, ok := iface.(map[string]interface{}); ok {
+						if source, ok := tileset["source"].(string); ok {
+							tiledAsset.tilesets = append(tiledAsset.tilesets, source)
+						}
 					}
 				}
 			}
@@ -95,35 +96,31 @@ func bulkUploadAssets(ctx context.Context, db *models.Queries, assets []*models.
 	}
 	for _, tileset := range tilesets {
 		imageID := imageIDs[tileset.image]
-		tileset.json["image"] = strconv.Itoa(int(imageID))
-		bs, err := json.Marshal(tileset.json)
-		if err != nil {
-			return err
-		}
-		tileset.params.Filedata = bs
 		a, err := db.CreateAsset(ctx, *tileset.params)
 		if err != nil {
 			return err
 		}
+		if err := db.CreateAssetReference(ctx, models.CreateAssetReferenceParams{AssetID: a.ID, ReferencedAssetID: imageID}); err != nil {
+			return err
+		}
 		tilesetIDs[a.Filename] = a.ID
+	}
+	if len(tilemaps) == 0 {
+		panic("no tilemaps")
 	}
 	for _, tilemap := range tilemaps {
 		var sourceIDs []int32
 		for _, tileset := range tilemap.tilesets {
 			sourceIDs = append(sourceIDs, tilesetIDs[tileset])
 		}
-		if tilesets, ok := tilemap.json["tilesets"].([]map[string]interface{}); ok {
-			for i, tileset := range tilesets {
-				tileset["source"] = strconv.Itoa(int(sourceIDs[i]))
-			}
-		}
-		bs, err := json.Marshal(tilemap.json)
+		a, err := db.CreateAsset(ctx, *tilemap.params)
 		if err != nil {
 			return err
 		}
-		tilemap.params.Filedata = bs
-		if _, err = db.CreateAsset(ctx, *tilemap.params); err != nil {
-			return err
+		for _, sourceID := range sourceIDs {
+			if err := db.CreateAssetReference(ctx, models.CreateAssetReferenceParams{AssetID: a.ID, ReferencedAssetID: sourceID}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
