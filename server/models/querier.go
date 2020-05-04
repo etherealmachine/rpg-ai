@@ -13,6 +13,7 @@ type Querier interface {
 	GetAssetByID(ctx context.Context, id int32) (Asset, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32) ([]ListAssetMetadataByOwnerIDRow, error)
+	ListReferencesByID(ctx context.Context, id int32) ([]ListReferencesByIDRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

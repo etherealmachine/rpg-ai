@@ -126,3 +126,52 @@ func (q *Queries) ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32)
 	}
 	return items, nil
 }
+
+const listReferencesByID = `-- name: ListReferencesByID :many
+SELECT assets.id, owner_id, content_type, filename, filedata, created_at, r.id, asset_id, referenced_asset_id FROM assets JOIN asset_references r ON r.asset_id = assets.id WHERE assets.id = $1
+`
+
+type ListReferencesByIDRow struct {
+	ID                int32
+	OwnerID           int32
+	ContentType       string
+	Filename          string
+	Filedata          []byte
+	CreatedAt         time.Time
+	ID_2              int32
+	AssetID           int32
+	ReferencedAssetID int32
+}
+
+func (q *Queries) ListReferencesByID(ctx context.Context, id int32) ([]ListReferencesByIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listReferencesByID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReferencesByIDRow
+	for rows.Next() {
+		var i ListReferencesByIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.ContentType,
+			&i.Filename,
+			&i.Filedata,
+			&i.CreatedAt,
+			&i.ID_2,
+			&i.AssetID,
+			&i.ReferencedAssetID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

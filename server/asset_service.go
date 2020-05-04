@@ -48,6 +48,23 @@ func (s *AssetService) DeleteAsset(r *http.Request, args *DeleteAssetRequest, re
 	return s.db.DeleteAssetWithOwner(r.Context(), models.DeleteAssetWithOwnerParams{ID: args.ID, OwnerID: authenticatedUser.InternalUser.ID})
 }
 
+type ListReferencesRequest struct {
+	ID int32
+}
+
+type ListReferencesResponse struct {
+	References []models.ListReferencesByIDRow
+}
+
+func (s *AssetService) ListReferences(r *http.Request, args *ListReferencesRequest, reply *ListReferencesResponse) error {
+	var err error
+	reply.References, err = s.db.ListReferencesByID(r.Context(), args.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type tiledAssetUpload struct {
 	params   *models.CreateAssetParams
 	json     map[string]interface{}

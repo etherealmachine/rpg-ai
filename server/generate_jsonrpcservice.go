@@ -33,7 +33,7 @@ type Field struct {
 
 func NewStructDef(t reflect.Type, structs map[string]*StructDef) *StructDef {
 	if t.Kind() != reflect.Struct && t.Kind() != reflect.Ptr {
-		return nil
+		panic(fmt.Sprintf("expected struct or ptr, gor %s", t.Kind()))
 	}
 	var fields []*Field
 	if t.Kind() == reflect.Ptr {
@@ -83,10 +83,22 @@ func TypeToJS(t reflect.Type, structs map[string]*StructDef) (string, error) {
 		def := NewStructDef(t, structs)
 		return def.Name, nil
 	case reflect.Array, reflect.Slice:
-		def := NewStructDef(t.Elem(), structs)
-		return fmt.Sprintf("%s[]", def.Name), nil
+		if k := t.Elem().Kind(); k == reflect.Struct || k == reflect.Ptr {
+			def := NewStructDef(t.Elem(), structs)
+			return fmt.Sprintf("%s[]", def.Name), nil
+		}
+		if t.Elem().Kind() == reflect.Uint8 {
+			return "string", nil
+		}
+		elementType, err := TypeToJS(t.Elem(), structs)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s[]", elementType), nil
 	case reflect.Map:
-		NewStructDef(t.Elem(), structs)
+		if k := t.Elem().Kind(); k == reflect.Struct || k == reflect.Ptr {
+			NewStructDef(t.Elem(), structs)
+		}
 		keyType, err := TypeToJS(t.Key(), structs)
 		if err != nil {
 			return "", err

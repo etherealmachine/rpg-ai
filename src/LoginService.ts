@@ -17,11 +17,6 @@ export interface LoginResponse {
   User: User
 }
 
-export interface NullTime {
-  Time: Date
-  Valid: boolean
-}
-
 export interface User {
   ID: number
   Email: string
@@ -35,6 +30,11 @@ export interface NullBool {
   Valid: boolean
 }
 
+export interface NullTime {
+  Time: Date
+  Valid: boolean
+}
+
 class LoginService extends JSONRPCService {
     async FacebookLogin(args: FacebookLoginRequest): Promise<LoginResponse> {
       return this.jsonrpc<LoginResponse>("FacebookLogin", args);
@@ -45,4 +45,5 @@ class LoginService extends JSONRPCService {
 }
 
 const service = new LoginService("LoginService");
+(window as any).LoginService = service;
 export default service;

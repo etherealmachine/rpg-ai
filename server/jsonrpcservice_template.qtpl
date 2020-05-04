@@ -27,5 +27,6 @@ class {%s service.Name %} extends JSONRPCService {
 }
 
 const service = new {%s service.Name %}("{%s service.Name %}");
+(window as any).{%s service.Name %} = service;
 export default service;
 {% endfunc %}
