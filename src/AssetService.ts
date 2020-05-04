@@ -1,25 +1,37 @@
+
 import JSONRPCService from './JSONRPCService';
 
-export interface Asset {
+export interface DeleteAssetRequest {
+  ID: number
+}
+
+export interface DeleteAssetResponse {
+}
+
+export interface ListAssetsRequest {
+}
+
+export interface ListAssetsResponse {
+  Assets: ListAssetMetadataByOwnerIDRow[]
+}
+
+export interface ListAssetMetadataByOwnerIDRow {
   ID: number
   OwnerID: number
-  CreatedAt: string
+  CreatedAt: Date
   Filename: string
   ContentType: string
-  Size: number
+  Size: any
 }
 
 class AssetService extends JSONRPCService {
-
-  async deleteAsset(args: { ID: number }): Promise<void> {
-    return this.jsonrpc<void>("DeleteAsset", args);
-  }
-
-  async listAssets(): Promise<{ Assets: Asset[] }> {
-    return this.jsonrpc<{ Assets: Asset[] }>("ListAssets", {});
-  }
-
+    async DeleteAsset(args: DeleteAssetRequest): Promise<DeleteAssetResponse> {
+      return this.jsonrpc<DeleteAssetResponse>("DeleteAsset", args);
+    }
+    async ListAssets(args: ListAssetsRequest): Promise<ListAssetsResponse> {
+      return this.jsonrpc<ListAssetsResponse>("ListAssets", args);
+    }
 }
 
-const assetService = new AssetService("AssetService");
-export default assetService;
+const service = new AssetService("AssetService");
+export default service;

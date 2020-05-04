@@ -133,6 +133,16 @@ func main() {
 		port = "8000"
 	}
 
+	if len(os.Args) == 3 && os.Args[1] == "generate" {
+		if err := generateJSONRPCService(&LoginService{}, os.Args[2]); err != nil {
+			log.Fatal(err)
+		}
+		if err := generateJSONRPCService(&AssetService{}, os.Args[2]); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	publicURL = "https://rpg-ai.herokuapp.com"
 	if Dev {
 		publicURL = "http://localhost:8000"

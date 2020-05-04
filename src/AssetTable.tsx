@@ -1,9 +1,9 @@
 import React from 'react';
 
-import AssetService, { Asset } from './AssetService';
+import AssetService, { ListAssetMetadataByOwnerIDRow } from './AssetService';
 
 interface Props {
-  Assets: Asset[]
+  Assets: ListAssetMetadataByOwnerIDRow[]
 }
 
 interface State extends Props {
@@ -17,10 +17,10 @@ export default class AssetTable extends React.Component<Props, State> {
     this.state = props;
   }
 
-  onDeleteClicked = (asset: Asset) => (event: React.MouseEvent<HTMLButtonElement>) => {
+  onDeleteClicked = (asset: ListAssetMetadataByOwnerIDRow) => (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    AssetService.deleteAsset({ ID: asset.ID }).then(() => {
-      AssetService.listAssets().then(resp => {
+    AssetService.DeleteAsset({ ID: asset.ID }).then(() => {
+      AssetService.ListAssets({}).then(resp => {
         this.setState({
           Assets: resp.Assets,
         });

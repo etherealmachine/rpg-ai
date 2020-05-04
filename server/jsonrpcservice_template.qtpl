@@ -1,0 +1,31 @@
+{% package main %}
+
+{% func Interface(def *StructDef) %}
+export interface {%s def.Name %} {
+{%- for _, field := range def.Fields -%}
+  {%s field.Name %}: {%s field.Type %}
+{%- endfor -%}
+}
+{% endfunc %}
+
+{% func JSONRPCService(service *Service) %}
+import JSONRPCService from './JSONRPCService';
+{%- for _, method := range service.Methods -%}
+{%= Interface(method.RequestDef) -%}
+{%= Interface(method.ResponseDef) -%}
+{%- endfor -%}
+{%- for _, structDef := range service.OtherStructs -%}
+{%-= Interface(structDef) -%}
+{%- endfor -%}
+
+class {%s service.Name %} extends JSONRPCService {
+  {%- for _, method := range service.Methods -%}
+    async {%s method.Name %}(args: {%s method.RequestDef.Name %}): Promise<{%s method.ResponseDef.Name %}> {
+      return this.jsonrpc<{%s method.ResponseDef.Name %}>("{%s method.Name %}", args);
+    }
+  {%- endfor -%}
+}
+
+const service = new {%s service.Name %}("{%s service.Name %}");
+export default service;
+{% endfunc %}
