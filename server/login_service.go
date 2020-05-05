@@ -10,20 +10,16 @@ import (
 	"github.com/etherealmachine/rpg.ai/server/models"
 )
 
-type GoogleLoginRequest struct {
-	TokenID string
-}
-
-type FacebookLoginRequest struct {
-	AccessToken string
-}
-
 type LoginResponse struct {
 	User *models.User
 }
 
 type LoginService struct {
 	db *models.Queries
+}
+
+type GoogleLoginRequest struct {
+	TokenID string
 }
 
 func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, reply *LoginResponse) error {
@@ -48,6 +44,10 @@ func (s *LoginService) GoogleLogin(r *http.Request, args *GoogleLoginRequest, re
 	authenticatedUser.InternalUser = &user
 	authenticatedUser.GoogleUser = claimSet
 	return nil
+}
+
+type FacebookLoginRequest struct {
+	AccessToken string
 }
 
 func (s *LoginService) FacebookLogin(r *http.Request, args *FacebookLoginRequest, reply *LoginResponse) error {

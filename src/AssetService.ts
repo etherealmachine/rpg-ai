@@ -23,15 +23,6 @@ export interface ListReferencesResponse {
   References: ListReferencesByIDRow[]
 }
 
-export interface ListAssetMetadataByOwnerIDRow {
-  ID: number
-  OwnerID: number
-  CreatedAt: Date
-  Filename: string
-  ContentType: string
-  Size: any
-}
-
 export interface ListReferencesByIDRow {
   ID: number
   OwnerID: number
@@ -42,6 +33,15 @@ export interface ListReferencesByIDRow {
   ID_2: number
   AssetID: number
   ReferencedAssetID: number
+}
+
+export interface ListAssetMetadataByOwnerIDRow {
+  ID: number
+  OwnerID: number
+  CreatedAt: Date
+  Filename: string
+  ContentType: string
+  Size: any
 }
 
 class AssetService extends JSONRPCService {

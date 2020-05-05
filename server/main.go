@@ -54,7 +54,6 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 			Scripts:   scripts,
 			Links:     links,
 			Styles:    styles,
-			CSRFToken: csrf.Token(r),
 		},
 		User:       *authenticatedUser.InternalUser,
 		UserAssets: assets,
@@ -108,6 +107,10 @@ func assetHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(asset.Filedata))
+}
+
+func csrfTokenHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(csrf.Token(r)))
 }
 
 func detectNodes(n *html.Node) {
@@ -200,7 +203,7 @@ func main() {
 	if Dev {
 		apiHandler = handlers.CORS(
 			handlers.AllowCredentials(),
-			handlers.AllowedHeaders([]string{"Content-Type"}),
+			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
 			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
 		)(apiHandler)
 	}
@@ -209,6 +212,15 @@ func main() {
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(profileHandler)))
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(uploadAssetsHandler))).Methods("POST")
 	r.Handle("/assets/{id:[0-9]+}", http.HandlerFunc(assetHandler))
+	csrfTokenHandler := LoginRequired(http.HandlerFunc(csrfTokenHandler))
+	if Dev {
+		csrfTokenHandler = handlers.CORS(
+			handlers.AllowCredentials(),
+			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
+			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
+		)(csrfTokenHandler)
+	}
+	r.Handle("/csrf", csrfTokenHandler)
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
 	srv := &http.Server{

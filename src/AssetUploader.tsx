@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Tileset, Tilemap, TilesetSource } from './Tiled';
+import JSONRPCService from './JSONRPCService';
 
 interface State {
   assets: Asset[]
@@ -47,6 +48,7 @@ function references(assets: Asset[]) {
 export default class AssetUploader extends React.Component<{}, State> {
 
   fileInput: React.RefObject<HTMLInputElement> = React.createRef()
+  formRef: React.RefObject<HTMLFormElement> = React.createRef()
 
   constructor(props: {}) {
     super(props);
@@ -100,8 +102,17 @@ export default class AssetUploader extends React.Component<{}, State> {
   }
 
   onUploadClicked = (event: React.MouseEvent) => {
-    if (!this.checkReferences()) {
-      event.preventDefault();
+    event.preventDefault();
+    if (this.checkReferences()) {
+      const csrfInput = this.formRef.current?.querySelector('input[name="gorilla.csrf.Token"]');
+      console.log(csrfInput);
+      if (csrfInput && (csrfInput as HTMLInputElement).value === '') {
+        JSONRPCService.csrfToken().then(token => {
+          (csrfInput as HTMLInputElement).value = token;
+          console.log(token);
+          this.formRef.current?.submit();
+        });
+      }
     }
   }
 
@@ -131,8 +142,9 @@ export default class AssetUploader extends React.Component<{}, State> {
     const tilesets = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'tileset'));
     const images = this.state.assets.filter(asset => typeof asset.content === 'string');
     const refs = references(this.state.assets);
+    const host = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
     return <div>
-      <form action={`/upload-assets?redirect=${window.location}`} method="POST" encType="multipart/form-data">
+      <form action={`${host}/upload-assets?redirect=${window.location}`} method="POST" encType="multipart/form-data" ref={this.formRef}>
         <input
           type="file"
           id="files"
@@ -140,13 +152,13 @@ export default class AssetUploader extends React.Component<{}, State> {
           ref={this.fileInput}
           onChange={this.onFilesChanged}
           multiple />
-        {(window as any).csrfToken && <input type="hidden" name="gorilla.csrf.Token" value={(window as any).csrfToken} />}
         <button
           type="submit"
           className="btn btn-primary"
           disabled={this.state.assets.length === 0}
           onClick={this.onUploadClicked}>
           Upload
+        <input type="hidden" name="gorilla.csrf.Token" value=""></input>
         </button>
       </form>
       {!this.state.everyReferenceExists && <div className="alert alert-danger" role="alert">
