@@ -12,7 +12,7 @@ export interface ListAssetsRequest {
 }
 
 export interface ListAssetsResponse {
-  Assets: ListAssetMetadataByOwnerIDRow[]
+  Assets: ListAssetMetadataByOwnerIDRow[] | null
 }
 
 export interface ListReferencesRequest {
@@ -20,7 +20,16 @@ export interface ListReferencesRequest {
 }
 
 export interface ListReferencesResponse {
-  References: ListReferencesByIDRow[]
+  References: ListReferencesByIDRow[] | null
+}
+
+export interface ListAssetMetadataByOwnerIDRow {
+  ID: number
+  OwnerID: number
+  CreatedAt: Date
+  Filename: string
+  ContentType: string
+  Size: any
 }
 
 export interface ListReferencesByIDRow {
@@ -33,15 +42,6 @@ export interface ListReferencesByIDRow {
   ID_2: number
   AssetID: number
   ReferencedAssetID: number
-}
-
-export interface ListAssetMetadataByOwnerIDRow {
-  ID: number
-  OwnerID: number
-  CreatedAt: Date
-  Filename: string
-  ContentType: string
-  Size: any
 }
 
 class AssetService extends JSONRPCService {

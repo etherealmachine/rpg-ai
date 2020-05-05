@@ -85,7 +85,7 @@ func TypeToJS(t reflect.Type, structs map[string]*StructDef) (string, error) {
 	case reflect.Array, reflect.Slice:
 		if k := t.Elem().Kind(); k == reflect.Struct || k == reflect.Ptr {
 			def := NewStructDef(t.Elem(), structs)
-			return fmt.Sprintf("%s[]", def.Name), nil
+			return fmt.Sprintf("%s[] | null", def.Name), nil
 		}
 		if t.Elem().Kind() == reflect.Uint8 {
 			return "string", nil
@@ -94,7 +94,7 @@ func TypeToJS(t reflect.Type, structs map[string]*StructDef) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%s[]", elementType), nil
+		return fmt.Sprintf("%s[] | null", elementType), nil
 	case reflect.Map:
 		if k := t.Elem().Kind(); k == reflect.Struct || k == reflect.Ptr {
 			NewStructDef(t.Elem(), structs)
@@ -107,7 +107,7 @@ func TypeToJS(t reflect.Type, structs map[string]*StructDef) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("{ [key: %s]: %s }", keyType, valueType), nil
+		return fmt.Sprintf("{ [key: %s]: %s } | null", keyType, valueType), nil
 	case reflect.Ptr:
 		return TypeToJS(t.Elem(), structs)
 	case reflect.Interface:

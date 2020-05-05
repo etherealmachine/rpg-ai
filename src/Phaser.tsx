@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 
 import GameState from './GameState';
 
-import Loading from './scenes/Loading';
+import LoadMap from './scenes/LoadMap';
 import HexMap from './scenes/HexMap';
 import OrthoMap from './scenes/OrthoMap';
 
@@ -29,7 +29,8 @@ function setupPhaser(el: HTMLElement, game: GameState) {
     pixelArt: true,
   };
   const phaser = new Phaser.Game(gameConfig);
-  phaser.scene.add('Loading', Loading, true);
+  const params = new URLSearchParams(window.location.search);
+  phaser.scene.add('LoadMap', LoadMap, true, { mapID: params.get('map') });
   phaser.scene.add('OrthoMap', OrthoMap, false, { game: game });
   phaser.scene.add('HexMap', HexMap, false, { game: game });
   el.addEventListener('click', () => {

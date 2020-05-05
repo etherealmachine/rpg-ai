@@ -17,6 +17,7 @@ export default class AssetTable extends React.Component<Props, State> {
     this.state = props;
     if (!props.Assets) {
       AssetService.ListAssets({}).then(resp => {
+        if (!resp.Assets) return;
         this.setState({
           Assets: resp.Assets,
         });
@@ -28,6 +29,7 @@ export default class AssetTable extends React.Component<Props, State> {
     event.preventDefault();
     AssetService.DeleteAsset({ ID: asset.ID }).then(() => {
       AssetService.ListAssets({}).then(resp => {
+        if (!resp.Assets) return;
         this.setState({
           Assets: resp.Assets,
         });
@@ -47,7 +49,7 @@ export default class AssetTable extends React.Component<Props, State> {
       </thead>
       <tbody>
         {this.state.Assets && this.state.Assets.map(asset => <tr key={asset.Filename}>
-          <td>{asset.Filename}</td>
+          <td><a href={`/?map=${asset.ID}`}>{asset.Filename}</a></td>
           <td>{asset.ContentType}</td>
           <td>{asset.Size} bytes</td>
           <td>{asset.CreatedAt}</td>

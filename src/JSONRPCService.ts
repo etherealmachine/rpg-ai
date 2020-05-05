@@ -4,7 +4,7 @@ interface JSONRPCResponse {
   error: any
 }
 
-const host: string = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
+export const host: string = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
 
 export default class JSONRPCService {
 

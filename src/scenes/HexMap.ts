@@ -1,14 +1,13 @@
 import Phaser from 'phaser';
-import GameState from '../GameState';
-import { Tilemap } from '../Tiled';
+import { Tilemap, TilesetSource } from '../Tiled';
 import { OffsetCoord, Layout } from '../HexMath';
 
 export default class HexMap extends Phaser.Scene {
-  state?: GameState
+  mapName?: string
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
 
   init(args: any) {
-    this.state = args.game;
+    this.mapName = args.mapName;
   }
 
   create() {
@@ -28,7 +27,8 @@ export default class HexMap extends Phaser.Scene {
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
     this.cameras.main.setBackgroundColor('#fff');
 
-    const tiledMap = this.cache.json.get('example_hexmap') as Tilemap;;
+    if (!this.mapName) return;
+    const tiledMap = this.cache.json.get(this.mapName) as Tilemap;
 
     const map: Map<string, { index: number, spritesheet: string }[]> = new Map();
 
@@ -38,7 +38,7 @@ export default class HexMap extends Phaser.Scene {
         map.set(hex.toString(), tiledMap.layers.map(layer => {
           return {
             index: layer.data[r * tiledMap.width + q] - 1,
-            spritesheet: 'hex_spritesheet',
+            spritesheet: (tiledMap.tilesets[0] as TilesetSource).source,
           };
         }));
       }

@@ -106,6 +106,7 @@ func assetHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	w.Header().Add("X-Filename", asset.Filename)
 	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(asset.Filedata))
 }
 
@@ -199,32 +200,26 @@ func main() {
 	api.RegisterCodec(json.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: db}, "")
 	api.RegisterService(&AssetService{db: db}, "")
-	apiHandler := SetAuthenticatedSession(api)
-	if Dev {
-		apiHandler = handlers.CORS(
-			handlers.AllowCredentials(),
-			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
-			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
-		)(apiHandler)
-	}
-	r.Handle("/api", apiHandler)
+	r.Handle("/api", SetAuthenticatedSession(api))
 
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(profileHandler)))
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(uploadAssetsHandler))).Methods("POST")
 	r.Handle("/assets/{id:[0-9]+}", http.HandlerFunc(assetHandler))
-	csrfTokenHandler := LoginRequired(http.HandlerFunc(csrfTokenHandler))
-	if Dev {
-		csrfTokenHandler = handlers.CORS(
-			handlers.AllowCredentials(),
-			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
-			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
-		)(csrfTokenHandler)
-	}
-	r.Handle("/csrf", csrfTokenHandler)
+	r.Handle("/csrf", LoginRequired(http.HandlerFunc(csrfTokenHandler)))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 
+	mainHandler := RedirectToHTTPS(CSRF(GetAuthenticatedSession(r)))
+	if Dev {
+		mainHandler = handlers.CORS(
+			handlers.AllowCredentials(),
+			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
+			handlers.ExposedHeaders([]string{"X-Filename"}),
+			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
+		)(mainHandler)
+	}
+
 	srv := &http.Server{
-		Handler:      RedirectToHTTPS(CSRF(GetAuthenticatedSession(r))),
+		Handler:      mainHandler,
 		Addr:         fmt.Sprintf("0.0.0.0:%s", port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
