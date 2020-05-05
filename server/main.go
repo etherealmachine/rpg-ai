@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -111,37 +112,49 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 func spritesheetImageHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
-	if err != nil {
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		panic(err)
 	}
-	http.ServeContent(w, r, fmt.Sprintf("spritesheet-image-%d", id), spritesheet.CreatedAt, bytes.NewReader(spritesheet.Image))
+	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Image))
 }
 
 func spritesheetDefinitionHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
-	if err != nil {
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		panic(err)
 	}
-	http.ServeContent(w, r, fmt.Sprintf("spritesheet-definition-%d", id), spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
+	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
 }
 
 func tilemapHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
 	if err != nil {
-		panic(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	tilemap, err := db.GetTilemapByID(r.Context(), int32(id))
-	if err != nil {
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
 		panic(err)
 	}
-	http.ServeContent(w, r, fmt.Sprintf("tilemap-%d", id), tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
+	http.ServeContent(w, r, tilemap.Name, tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
 }
 
 func csrfTokenHandler(w http.ResponseWriter, r *http.Request) {

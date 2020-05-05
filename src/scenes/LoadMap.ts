@@ -1,71 +1,75 @@
 import Phaser from 'phaser';
 import { host } from '../JSONRPCService';
 import AssetService from '../AssetService';
-import { Tileset } from '../Tiled';
+import { Tilemap, Tileset } from '../Tiled';
 
 export default class LoadMap extends Phaser.Scene {
   mapID?: number
-  mapName?: string
+  map?: Tilemap
 
   init(args: any) {
     this.mapID = parseInt(args.mapID);
   }
 
-  /*
   preload() {
     if (this.mapID) {
-      this.fetchAsset(this.mapID, -1);
+      this.loadTilemap(this.mapID).then(() => {
+        if (this.map && this.map.orientation === 'orthogonal') {
+          this.game.scene.start('OrthoMap', { map: this.map });
+        } else {
+          this.game.scene.start('HexMap', { map: this.map });
+        }
+      });
     }
   }
 
-  fetchAsset(id: number, parentID: number) {
-    const req = new XMLHttpRequest();
-    req.withCredentials = true;
-    req.open('GET', `${host}/assets/${id}`, true);
-    req.responseType = 'blob';
-    req.onreadystatechange = () => {
-      if (req.readyState === 4 && req.status === 200) {
-        const filename = req.getResponseHeader('x-filename');
-        if (filename) {
-          const contentType = req.getResponseHeader('content-type');
-          switch (contentType) {
-            case 'application/json':
-              const r = new FileReader();
-              r.onload = () => {
-                if (!r.result) return;
-                const obj = JSON.parse(r.result as string);
-                obj['filename'] = filename;
-                this.cache.json.add(filename, obj);
-                if (id === this.mapID) {
-                  this.mapName = filename;
-                }
-              }
-              r.readAsText(req.response);
-              break;
-            case 'image/png':
-            case 'image/jpeg':
-              const image = new Image();
-              image.onload = () => {
-                const tileset = this.cache.json.get(`${parentID}`) as Tileset;
-                const config = {
-                  frameWidth: tileset.tilewidth,
-                  frameHeight: tileset.tileheight,
-                  margin: tileset.margin,
-                  spacing: tileset.spacing,
-                };
-                this.textures.addSpriteSheet((tileset as any).filename, image, config);
-                this.game.scene.start('HexMap', { mapName: this.mapName });
-              };
-              image.src = URL.createObjectURL(req.response);
-              break;
-          }
+  async loadTilemap(id: number) {
+    this.fetch(`${host}/tilemap/${id}`, 'text').then(req => {
+      this.map = JSON.parse(req.responseText);
+    });
+    const refs = (await AssetService.ListReferences({ TilemapID: id })).References;
+    await Promise.all((refs || []).map(async ref => {
+      let req = await this.fetch(`${host}/spritesheet/definition/${ref.SpritesheetID}`, 'text');
+      const tileset = JSON.parse(req.responseText) as Tileset;
+      this.cache.json.add(ref.SpritesheetName, tileset);
+      req = await this.fetch(`${host}/spritesheet/image/${ref.SpritesheetID}`, 'blob');
+      return this.loadSpriteSheet(ref.SpritesheetName, tileset, req.response as Blob);
+    }));
+  }
+
+  async fetch(url: string, responseType: XMLHttpRequestResponseType): Promise<XMLHttpRequest> {
+    return new Promise((resolve, reject) => {
+      const req = new XMLHttpRequest();
+      req.withCredentials = true;
+      req.open('GET', url, true);
+      req.responseType = responseType;
+      req.onreadystatechange = () => {
+        if (req.readyState === 4 && req.status === 200) {
+          resolve(req);
+        } else if (req.status !== 200) {
+          reject(req);
         }
       }
-    };
-    req.send();
-    AssetService.ListReferences({ ID: id }).then(resp => {
-      resp.References?.forEach(ref => this.fetchAsset(ref.ReferencedAssetID, id));
+      req.send();
     });
   }
-  */
+
+  async loadSpriteSheet(name: string, tileset: Tileset, blob: Blob): Promise<Phaser.Textures.Texture> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        const config = {
+          frameWidth: tileset.tilewidth,
+          frameHeight: tileset.tileheight,
+          margin: tileset.margin,
+          spacing: tileset.spacing,
+        };
+        resolve(this.textures.addSpriteSheet(name, image, config));
+      };
+      image.onerror = err => {
+        reject(err);
+      };
+      image.src = URL.createObjectURL(blob);
+    });
+  }
 }

@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
-import GameState from '../GameState';
+import { Tilemap, Tileset, TilesetSource } from '../Tiled';
 
 export default class OrthoMap extends Phaser.Scene {
-  state?: GameState
+  tiledMap?: Tilemap
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
 
   init(args: any) {
-    this.state = args.game;
+    this.tiledMap = args.map;
   }
 
   create() {
@@ -29,19 +29,22 @@ export default class OrthoMap extends Phaser.Scene {
       }
     });
     this.cameras.main.setBackgroundColor('#ddd');
-    const map = this.add.tilemap("example_map");
-    const tilesets = map.tilesets.map(tileset => map.addTilesetImage(tileset.name, `${tileset.name}_spritesheet`));
-    const newLayers = map.layers.map(layer => {
-      return tilesets.map(tileset => {
-        return new Phaser.Tilemaps.LayerData({
-          ...layer,
-          name: layer.name + ' - ' + tileset.name,
-        });
-      });
-    }).flat();
-    map.layers = newLayers;
+    const tiledMap = this.tiledMap;
+    if (!tiledMap) return;
+    const map = this.make.tilemap({
+      width: tiledMap.width,
+      height: tiledMap.height,
+      tileWidth: tiledMap.tilewidth,
+      tileHeight: tiledMap.tileheight,
+    });
+    const tilesets = tiledMap.tilesets.map(tileset => {
+      const source = tileset as TilesetSource;
+      const ts = (this.cache.json.get(source.source) as Tileset);
+      return map.addTilesetImage(source.source, source.source, ts.tilewidth, ts.tileheight, ts.margin, ts.spacing, source.firstgid);
+    });
+    map.layers = Phaser.Tilemaps.Parsers.Tiled.ParseTileLayers(tiledMap, false);
     map.layers.forEach(layer => {
-      map.createStaticLayer(layer.name, layer.name.split(' - ')[1]);
+      map.createStaticLayer(layer.name, tilesets);
     });
   }
 

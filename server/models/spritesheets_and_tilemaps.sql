@@ -26,4 +26,4 @@ SELECT * FROM tilemaps WHERE id = $1;
 INSERT INTO tilemap_references (tilemap_id, spritesheet_id) VALUES ($1, $2);
 
 -- name: ListSpritesheetsForTilemap :many
-SELECT * FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1;
+SELECT tilemap_id, spritesheet_id, s.name as spritesheet_name FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1;

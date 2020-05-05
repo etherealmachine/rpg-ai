@@ -61,7 +61,7 @@ func (s *AssetService) DeleteTilemap(r *http.Request, args *DeleteAssetRequest, 
 }
 
 type ListSpritesheetsForTilemapRequest struct {
-	ID int32
+	TilemapID int32
 }
 
 type ListSpritesheetsForTilemapResponse struct {
@@ -70,7 +70,7 @@ type ListSpritesheetsForTilemapResponse struct {
 
 func (s *AssetService) ListReferences(r *http.Request, args *ListSpritesheetsForTilemapRequest, reply *ListSpritesheetsForTilemapResponse) error {
 	var err error
-	reply.References, err = s.db.ListSpritesheetsForTilemap(r.Context(), args.ID)
+	reply.References, err = s.db.ListSpritesheetsForTilemap(r.Context(), args.TilemapID)
 	if err != nil {
 		return err
 	}

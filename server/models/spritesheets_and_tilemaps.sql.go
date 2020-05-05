@@ -181,19 +181,13 @@ func (q *Queries) ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) 
 }
 
 const listSpritesheetsForTilemap = `-- name: ListSpritesheetsForTilemap :many
-SELECT r.id, tilemap_id, spritesheet_id, s.id, owner_id, name, definition, image, created_at FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
+SELECT tilemap_id, spritesheet_id, s.name as spritesheet_name FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
 `
 
 type ListSpritesheetsForTilemapRow struct {
-	ID            int32
-	TilemapID     int32
-	SpritesheetID int32
-	ID_2          int32
-	OwnerID       int32
-	Name          string
-	Definition    json.RawMessage
-	Image         []byte
-	CreatedAt     time.Time
+	TilemapID       int32
+	SpritesheetID   int32
+	SpritesheetName string
 }
 
 func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error) {
@@ -205,17 +199,7 @@ func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int3
 	var items []ListSpritesheetsForTilemapRow
 	for rows.Next() {
 		var i ListSpritesheetsForTilemapRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.TilemapID,
-			&i.SpritesheetID,
-			&i.ID_2,
-			&i.OwnerID,
-			&i.Name,
-			&i.Definition,
-			&i.Image,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.TilemapID, &i.SpritesheetID, &i.SpritesheetName); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
