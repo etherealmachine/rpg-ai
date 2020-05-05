@@ -7,13 +7,17 @@ import (
 )
 
 type Querier interface {
-	CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error)
-	CreateAssetReference(ctx context.Context, arg CreateAssetReferenceParams) error
-	DeleteAssetWithOwner(ctx context.Context, arg DeleteAssetWithOwnerParams) error
-	GetAssetByID(ctx context.Context, id int32) (Asset, error)
+	CreateSpritesheet(ctx context.Context, arg CreateSpritesheetParams) (Spritesheet, error)
+	CreateTilemap(ctx context.Context, arg CreateTilemapParams) (Tilemap, error)
+	CreateTilemapReference(ctx context.Context, arg CreateTilemapReferenceParams) error
+	DeleteSpritesheetWithOwner(ctx context.Context, arg DeleteSpritesheetWithOwnerParams) error
+	DeleteTilemapWithOwner(ctx context.Context, arg DeleteTilemapWithOwnerParams) error
+	GetSpritesheetByID(ctx context.Context, id int32) (Spritesheet, error)
+	GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	ListAssetMetadataByOwnerID(ctx context.Context, ownerID int32) ([]ListAssetMetadataByOwnerIDRow, error)
-	ListReferencesByID(ctx context.Context, id int32) ([]ListReferencesByIDRow, error)
+	ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) ([]ListSpritesheetsByOwnerIDRow, error)
+	ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error)
+	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

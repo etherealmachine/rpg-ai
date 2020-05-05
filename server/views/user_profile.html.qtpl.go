@@ -23,98 +23,104 @@ var (
 //line views/user_profile.html.qtpl:4
 type UserProfilePage struct {
 	*BasePage
-	User       models.User
-	UserAssets []models.ListAssetMetadataByOwnerIDRow
+	User             models.User
+	UserSpritesheets []models.ListSpritesheetsByOwnerIDRow
+	UserTilemaps     []models.ListTilemapsByOwnerIDRow
 }
 
-//line views/user_profile.html.qtpl:11
+//line views/user_profile.html.qtpl:12
 func StreamUploadAssetComponent(qw422016 *qt422016.Writer) {
-//line views/user_profile.html.qtpl:11
+//line views/user_profile.html.qtpl:12
 	qw422016.N().S(`
 <form action="/upload" enctype="multipart/form-data">
   <input type="file" id="fileupload" name="filename[]" multiple>
   <input type="submit" value="Upload">
 </form>
 `)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 }
 
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 func WriteUploadAssetComponent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	StreamUploadAssetComponent(qw422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 }
 
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 func UploadAssetComponent() string {
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	WriteUploadAssetComponent(qb422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 	return qs422016
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:17
 }
 
-//line views/user_profile.html.qtpl:18
+//line views/user_profile.html.qtpl:19
 func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/user_profile.html.qtpl:18
+//line views/user_profile.html.qtpl:19
 	qw422016.N().S(`
   <div class="container">
     <p class="my-4">`)
-//line views/user_profile.html.qtpl:20
+//line views/user_profile.html.qtpl:21
 	qw422016.E().S(p.User.Email)
-//line views/user_profile.html.qtpl:20
+//line views/user_profile.html.qtpl:21
 	qw422016.N().S(`, a member since `)
-//line views/user_profile.html.qtpl:20
+//line views/user_profile.html.qtpl:21
 	qw422016.E().V(p.User.CreatedAt)
-//line views/user_profile.html.qtpl:20
+//line views/user_profile.html.qtpl:21
 	qw422016.N().S(`</p>
     <h4>Assets</h4>
     <div id="asset-table" data-props="`)
-//line views/user_profile.html.qtpl:22
-	qw422016.E().Q(JSON(struct {
-		Assets []models.ListAssetMetadataByOwnerIDRow
-	}{p.UserAssets}))
-//line views/user_profile.html.qtpl:22
+//line views/user_profile.html.qtpl:23
+	qw422016.E().Q(JSON(
+		struct {
+			Spritesheets []models.ListSpritesheetsByOwnerIDRow
+			Tilemaps     []models.ListTilemapsByOwnerIDRow
+		}{
+			p.UserSpritesheets,
+			p.UserTilemaps,
+		}))
+//line views/user_profile.html.qtpl:30
 	qw422016.N().S(`"></div>
     <div id="asset-uploader"></div>
   </div>
 `)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 }
 
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 }
 
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 	return qs422016
-//line views/user_profile.html.qtpl:25
+//line views/user_profile.html.qtpl:33
 }

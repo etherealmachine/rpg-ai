@@ -8,51 +8,68 @@ export interface DeleteAssetRequest {
 export interface DeleteAssetResponse {
 }
 
+export interface DeleteAssetRequest {
+  ID: number
+}
+
+export interface DeleteAssetResponse {
+}
+
 export interface ListAssetsRequest {
 }
 
 export interface ListAssetsResponse {
-  Assets: ListAssetMetadataByOwnerIDRow[] | null
+  Spritesheets: ListSpritesheetsByOwnerIDRow[] | null
+  Tilemaps: ListTilemapsByOwnerIDRow[] | null
 }
 
-export interface ListReferencesRequest {
+export interface ListSpritesheetsForTilemapRequest {
   ID: number
 }
 
-export interface ListReferencesResponse {
-  References: ListReferencesByIDRow[] | null
+export interface ListSpritesheetsForTilemapResponse {
+  References: ListSpritesheetsForTilemapRow[] | null
 }
 
-export interface ListAssetMetadataByOwnerIDRow {
+export interface ListTilemapsByOwnerIDRow {
   ID: number
-  OwnerID: number
   CreatedAt: Date
-  Filename: string
-  ContentType: string
-  Size: any
+  Name: string
+  TilemapSize: any
 }
 
-export interface ListReferencesByIDRow {
+export interface ListSpritesheetsByOwnerIDRow {
   ID: number
-  OwnerID: number
-  ContentType: string
-  Filename: string
-  Filedata: string
   CreatedAt: Date
+  Name: string
+  SpritesheetSize: any
+  ImageSize: any
+}
+
+export interface ListSpritesheetsForTilemapRow {
+  ID: number
+  TilemapID: number
+  SpritesheetID: number
   ID_2: number
-  AssetID: number
-  ReferencedAssetID: number
+  OwnerID: number
+  Name: string
+  Definition: string
+  Image: string
+  CreatedAt: Date
 }
 
 class AssetService extends JSONRPCService {
-    async DeleteAsset(args: DeleteAssetRequest): Promise<DeleteAssetResponse> {
-      return this.jsonrpc<DeleteAssetResponse>("DeleteAsset", args);
+    async DeleteSpritesheet(args: DeleteAssetRequest): Promise<DeleteAssetResponse> {
+      return this.jsonrpc<DeleteAssetResponse>("DeleteSpritesheet", args);
+    }
+    async DeleteTilemap(args: DeleteAssetRequest): Promise<DeleteAssetResponse> {
+      return this.jsonrpc<DeleteAssetResponse>("DeleteTilemap", args);
     }
     async ListAssets(args: ListAssetsRequest): Promise<ListAssetsResponse> {
       return this.jsonrpc<ListAssetsResponse>("ListAssets", args);
     }
-    async ListReferences(args: ListReferencesRequest): Promise<ListReferencesResponse> {
-      return this.jsonrpc<ListReferencesResponse>("ListReferences", args);
+    async ListReferences(args: ListSpritesheetsForTilemapRequest): Promise<ListSpritesheetsForTilemapResponse> {
+      return this.jsonrpc<ListSpritesheetsForTilemapResponse>("ListReferences", args);
     }
 }
 

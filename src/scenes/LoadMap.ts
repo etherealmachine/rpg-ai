@@ -11,6 +11,7 @@ export default class LoadMap extends Phaser.Scene {
     this.mapID = parseInt(args.mapID);
   }
 
+  /*
   preload() {
     if (this.mapID) {
       this.fetchAsset(this.mapID, -1);
@@ -35,7 +36,6 @@ export default class LoadMap extends Phaser.Scene {
                 const obj = JSON.parse(r.result as string);
                 obj['filename'] = filename;
                 this.cache.json.add(filename, obj);
-                this.cache.json.add(`${id}`, obj);
                 if (id === this.mapID) {
                   this.mapName = filename;
                 }
@@ -67,4 +67,5 @@ export default class LoadMap extends Phaser.Scene {
       resp.References?.forEach(ref => this.fetchAsset(ref.ReferencedAssetID, id));
     });
   }
+  */
 }

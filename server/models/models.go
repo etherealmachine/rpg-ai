@@ -4,22 +4,31 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
-type Asset struct {
-	ID          int32
-	OwnerID     int32
-	ContentType string
-	Filename    string
-	Filedata    []byte
-	CreatedAt   time.Time
+type Spritesheet struct {
+	ID         int32
+	OwnerID    int32
+	Name       string
+	Definition json.RawMessage
+	Image      []byte
+	CreatedAt  time.Time
 }
 
-type AssetReference struct {
-	ID                int32
-	AssetID           int32
-	ReferencedAssetID int32
+type Tilemap struct {
+	ID         int32
+	OwnerID    int32
+	Name       string
+	Definition json.RawMessage
+	CreatedAt  time.Time
+}
+
+type TilemapReference struct {
+	ID            int32
+	TilemapID     int32
+	SpritesheetID int32
 }
 
 type User struct {

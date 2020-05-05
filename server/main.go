@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,7 +15,7 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc"
-	"github.com/gorilla/rpc/json"
+	jsonrpc "github.com/gorilla/rpc/json"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/net/html"
 
@@ -44,7 +45,11 @@ var (
 
 func profileHandler(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	assets, err := db.ListAssetMetadataByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	spritesheets, err := db.ListSpritesheetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	if err != nil {
+		panic(err)
+	}
+	tilemaps, err := db.ListTilemapsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
 	if err != nil {
 		panic(err)
 	}
@@ -55,8 +60,9 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 			Links:     links,
 			Styles:    styles,
 		},
-		User:       *authenticatedUser.InternalUser,
-		UserAssets: assets,
+		User:             *authenticatedUser.InternalUser,
+		UserSpritesheets: spritesheets,
+		UserTilemaps:     tilemaps,
 	})
 }
 
@@ -65,9 +71,13 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		panic(err)
 	}
-	var assets []*models.CreateAssetParams
 	fhs := r.MultipartForm.File["files[]"]
+	var assets []*models.Upload
 	for _, fh := range fhs {
+		contentType := fh.Header.Get("Content-Type")
+		if !(contentType == "application/json" || contentType == "image/png" || contentType == "image/jpeg") {
+			panic(fmt.Sprintf("unsupported Content-Type %s", contentType))
+		}
 		f, err := fh.Open()
 		if err != nil {
 			panic(err)
@@ -77,15 +87,16 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		f.Close()
-		assets = append(assets, &models.CreateAssetParams{
-			OwnerID:     authenticatedUser.InternalUser.ID,
-			ContentType: fh.Header.Get("Content-Type"),
-			Filename:    fh.Filename,
-			Filedata:    bs,
-		})
+		asset := &models.Upload{Filename: fh.Filename, Filedata: bs}
+		if contentType == "application/json" {
+			if err := json.Unmarshal(bs, &asset.Json); err != nil {
+				panic(err)
+			}
+		}
+		assets = append(assets, asset)
 	}
 	tx := sqlxDB.MustBeginTx(r.Context(), nil)
-	if err := bulkUploadAssets(r.Context(), db.WithTx(tx.Tx), assets); err != nil {
+	if err := models.CreateAssets(r.Context(), db.WithTx(tx.Tx), authenticatedUser.InternalUser.ID, assets); err != nil {
 		tx.Rollback()
 		panic(err)
 	}
@@ -97,17 +108,40 @@ func uploadAssetsHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func assetHandler(w http.ResponseWriter, r *http.Request) {
-	assetID, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+func spritesheetImageHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
 	if err != nil {
 		panic(err)
 	}
-	asset, err := db.GetAssetByID(r.Context(), int32(assetID))
+	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
 	if err != nil {
 		panic(err)
 	}
-	w.Header().Add("X-Filename", asset.Filename)
-	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(asset.Filedata))
+	http.ServeContent(w, r, fmt.Sprintf("spritesheet-image-%d", id), spritesheet.CreatedAt, bytes.NewReader(spritesheet.Image))
+}
+
+func spritesheetDefinitionHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	if err != nil {
+		panic(err)
+	}
+	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
+	if err != nil {
+		panic(err)
+	}
+	http.ServeContent(w, r, fmt.Sprintf("spritesheet-definition-%d", id), spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
+}
+
+func tilemapHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	if err != nil {
+		panic(err)
+	}
+	tilemap, err := db.GetTilemapByID(r.Context(), int32(id))
+	if err != nil {
+		panic(err)
+	}
+	http.ServeContent(w, r, fmt.Sprintf("tilemap-%d", id), tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
 }
 
 func csrfTokenHandler(w http.ResponseWriter, r *http.Request) {
@@ -197,14 +231,16 @@ func main() {
 	r := mux.NewRouter().StrictSlash(true)
 
 	api := rpc.NewServer()
-	api.RegisterCodec(json.NewCodec(), "application/json")
+	api.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: db}, "")
 	api.RegisterService(&AssetService{db: db}, "")
 	r.Handle("/api", SetAuthenticatedSession(api))
 
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(profileHandler)))
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(uploadAssetsHandler))).Methods("POST")
-	r.Handle("/assets/{id:[0-9]+}", http.HandlerFunc(assetHandler))
+	r.Handle("/tilemap/{id:[0-9]+}", http.HandlerFunc(tilemapHandler))
+	r.Handle("/spritesheet/image/{id:[0-9]+}", http.HandlerFunc(spritesheetImageHandler))
+	r.Handle("/spritesheet/definition/{id:[0-9]+}", http.HandlerFunc(spritesheetDefinitionHandler))
 	r.Handle("/csrf", LoginRequired(http.HandlerFunc(csrfTokenHandler)))
 	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build"))))
 

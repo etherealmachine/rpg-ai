@@ -4,7 +4,8 @@
 type UserProfilePage struct {
   *BasePage
   User models.User
-  UserAssets []models.ListAssetMetadataByOwnerIDRow
+  UserSpritesheets []models.ListSpritesheetsByOwnerIDRow
+  UserTilemaps []models.ListTilemapsByOwnerIDRow
 }
 %}
 
@@ -19,7 +20,14 @@ type UserProfilePage struct {
   <div class="container">
     <p class="my-4">{%s p.User.Email %}, a member since {%v p.User.CreatedAt %}</p>
     <h4>Assets</h4>
-    <div id="asset-table" data-props="{%q JSON(struct{Assets []models.ListAssetMetadataByOwnerIDRow}{p.UserAssets}) %}"></div>
+    <div id="asset-table" data-props="{%q JSON(
+      struct{
+        Spritesheets []models.ListSpritesheetsByOwnerIDRow
+        Tilemaps []models.ListTilemapsByOwnerIDRow
+      }{
+        p.UserSpritesheets,
+        p.UserTilemaps,
+      }) %}"></div>
     <div id="asset-uploader"></div>
   </div>
 {% endfunc %}
