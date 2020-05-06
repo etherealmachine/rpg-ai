@@ -31,13 +31,6 @@ export interface ListSpritesheetsForTilemapResponse {
   References: ListSpritesheetsForTilemapRow[] | null
 }
 
-export interface ListTilemapsByOwnerIDRow {
-  ID: number
-  CreatedAt: Date
-  Name: string
-  TilemapSize: any
-}
-
 export interface ListSpritesheetsByOwnerIDRow {
   ID: number
   CreatedAt: Date
@@ -50,6 +43,13 @@ export interface ListSpritesheetsForTilemapRow {
   TilemapID: number
   SpritesheetID: number
   SpritesheetName: string
+}
+
+export interface ListTilemapsByOwnerIDRow {
+  ID: number
+  CreatedAt: Date
+  Name: string
+  TilemapSize: any
 }
 
 class AssetService extends JSONRPCService {

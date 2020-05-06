@@ -230,49 +230,47 @@ func StreamPageTemplate(qw422016 *qt422016.Writer, p Page) {
 </head>
 
 <body>
-  <div style="height: 100%">
-    <div id="navbar"></div>
-    `)
-//line views/base.html.qtpl:54
+  <div class="Navbar"></div>
+  `)
+//line views/base.html.qtpl:53
 	p.StreamContent(qw422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:53
 	qw422016.N().S(`
-  </div>
 
   `)
-//line views/base.html.qtpl:57
+//line views/base.html.qtpl:55
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:57
+//line views/base.html.qtpl:55
 	qw422016.N().S(`
 </body>
 
 </html>
 `)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 }
 
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 func WritePageTemplate(qq422016 qtio422016.Writer, p Page) {
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	StreamPageTemplate(qw422016, p)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 }
 
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 func PageTemplate(p Page) string {
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	WritePageTemplate(qb422016, p)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 	return qs422016
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:59
 }

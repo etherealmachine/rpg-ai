@@ -49,10 +49,8 @@ type BasePage struct {
 </head>
 
 <body>
-  <div style="height: 100%">
-    <div id="navbar"></div>
-    {%= p.Content() %}
-  </div>
+  <div class="Navbar"></div>
+  {%= p.Content() %}
 
   {%= p.BodyScripts() %}
 </body>

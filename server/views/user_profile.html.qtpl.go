@@ -81,7 +81,7 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/user_profile.html.qtpl:21
 	qw422016.N().S(`</p>
     <h4>Assets</h4>
-    <div id="asset-table" data-props="`)
+    <div class="AssetTable" data-props="`)
 //line views/user_profile.html.qtpl:23
 	qw422016.E().Q(JSON(
 		struct {
@@ -93,7 +93,7 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 		}))
 //line views/user_profile.html.qtpl:30
 	qw422016.N().S(`"></div>
-    <div id="asset-uploader"></div>
+    <div class="AssetUploader"></div>
   </div>
 `)
 //line views/user_profile.html.qtpl:33

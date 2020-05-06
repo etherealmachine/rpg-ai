@@ -61,39 +61,41 @@ export default class Navbar extends React.Component<{}, State> {
   }
 
   render() {
-    return <nav className="navbar navbar-expand-lg navbar-light bg-light justify-content-between">
-      <a className="navbar-brand" href="#home">RPG.ai</a>
-      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", alignSelf: "flex-end" }}>
-        {(this.state.user !== undefined) &&
-          <div className="nav-item dropdown">
-            <button className="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Settings
+    return <div className="container">
+      <nav className="navbar navbar-expand-lg navbar-light justify-content-between">
+        <a className="navbar-brand" href="/">RPG.ai</a>
+        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", alignSelf: "flex-end" }}>
+          {(this.state.user !== undefined) &&
+            <div className="nav-item dropdown">
+              <button className="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Settings
             </button>
-            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-              {this.state.user && <a href="/profile" className="dropdown-item">{this.state.user.Email}</a>}
-              <a className="dropdown-item" href="#logout" onClick={this.logout}>Logout</a>
+              <div className="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                {this.state.user && <a href="/profile" className="dropdown-item">{this.state.user.Email}</a>}
+                <a className="dropdown-item" href="#logout" onClick={this.logout}>Logout</a>
+              </div>
             </div>
-          </div>
-        }
-        {(this.state.user === undefined) &&
-          <div>
-            <GoogleLogin
-              className="google-button"
-              clientId={`${process.env.REACT_APP_GOOGLE_CLIENT_ID}`}
-              buttonText="Login With Google"
-              onSuccess={this.googleLoginSuccess}
-              onFailure={this.googleLoginFailure}
-              cookiePolicy={"single_host_origin"}
-            />
-            <FacebookLogin
-              cssClass="facebook-button"
-              icon="fa-facebook"
-              appId={`${process.env.REACT_APP_FACEBOOK_APP_ID}`}
-              fields="email"
-              callback={this.facebookLoginResponse} />
-          </div>
-        }
-      </div>
-    </nav>;
+          }
+          {(this.state.user === undefined) &&
+            <div>
+              <GoogleLogin
+                className="google-button"
+                clientId={`${process.env.REACT_APP_GOOGLE_CLIENT_ID}`}
+                buttonText="Login With Google"
+                onSuccess={this.googleLoginSuccess}
+                onFailure={this.googleLoginFailure}
+                cookiePolicy={"single_host_origin"}
+              />
+              <FacebookLogin
+                cssClass="facebook-button"
+                icon="fa-facebook"
+                appId={`${process.env.REACT_APP_FACEBOOK_APP_ID}`}
+                fields="email"
+                callback={this.facebookLoginResponse} />
+            </div>
+          }
+        </div>
+      </nav>
+    </div>;
   }
 }
