@@ -43,9 +43,21 @@ export default class OrthoMap extends Phaser.Scene {
       return map.addTilesetImage(source.source, source.source, ts.tilewidth, ts.tileheight, ts.margin, ts.spacing, source.firstgid);
     });
     map.layers = Phaser.Tilemaps.Parsers.Tiled.ParseTileLayers(tiledMap, false);
+    map.objects = Phaser.Tilemaps.Parsers.Tiled.ParseObjectLayers(tiledMap);
     map.layers.forEach(layer => {
       map.createStaticLayer(layer.name, tilesets);
     });
+    const gidIndices = tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
+    const objects = map.objects.map(layer => this.add.group(layer.objects.map(object => {
+      const { gid, x, y } = object;
+      const i = (gidIndices.find(gidindex => (gid || 0) >= gidindex[1]) || [0, 0])[0];
+      const tileset = tiledMap.tilesets[i] as TilesetSource;
+      const s = this.add.sprite(x || 0, y || 0, tileset.source, (gid || 0) - tileset.firstgid);
+      s.setDisplayOrigin(0, tiledMap.tileheight);
+      return s;
+    }), {
+      name: layer.name,
+    }));
   }
 
   update(time: number, delta: number) {
