@@ -5,6 +5,7 @@ interface Page {
   Header()
   Content()
   BodyScripts()
+  Footer()
 }
 %}
 
@@ -40,6 +41,18 @@ type BasePage struct {
   {% endfor %}
 {% endfunc %}
 
+{% func (p *BasePage) Footer() %}
+  <footer class="mt-auto py-2 bg-light">
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-light d-flex justify-content-between">
+        <a class="nav-item" href="/about">About</a>
+        <a class="nav-item" href="mailto:james.l.pettit@gmail.com">Contact</a>
+        <small class="nav-item">&copy; Copyright 2020, James Pettit</small>
+      </nav>
+    </div>
+  </footer>
+{% endfunc %}
+
 {% func PageTemplate(p Page) %}
 <!DOCTYPE html>
 <html lang="en">
@@ -53,6 +66,8 @@ type BasePage struct {
   {%= p.Content() %}
 
   {%= p.BodyScripts() %}
+
+  {%= p.Footer() %}
 </body>
 
 </html>

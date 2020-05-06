@@ -1,0 +1,14 @@
+{% import "github.com/etherealmachine/rpg.ai/server/models" %}
+
+{% code
+type IndexPage struct {
+  *BasePage
+  User models.User
+}
+%}
+
+{% func (p *IndexPage) Content() %}
+  <div class="container">
+    <h2>Newest Content</h2>
+  </div>
+{% endfunc %}
