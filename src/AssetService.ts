@@ -31,17 +31,17 @@ export interface ListSpritesheetsForTilemapResponse {
   References: ListSpritesheetsForTilemapRow[] | null
 }
 
-export interface ListSpritesheetsForTilemapRow {
-  TilemapID: number
-  SpritesheetID: number
-  SpritesheetName: string
-}
-
 export interface ListTilemapsByOwnerIDRow {
   ID: number
   CreatedAt: Date
   Name: string
   TilemapSize: any
+}
+
+export interface ListSpritesheetsForTilemapRow {
+  TilemapID: number
+  SpritesheetID: number
+  SpritesheetName: string
 }
 
 export interface ListSpritesheetsByOwnerIDRow {

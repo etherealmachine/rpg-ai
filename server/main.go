@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/csrf"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc"
 	jsonrpc "github.com/gorilla/rpc/json"
@@ -60,7 +59,7 @@ func main() {
 			[]byte(SessionKey),
 			csrf.Secure(false),
 			csrf.SameSite(csrf.SameSiteNoneMode),
-			csrf.TrustedOrigins([]string{"https://localhost:3000", "http://localhost:8000"}))
+			csrf.TrustedOrigins([]string{"http://localhost:8000"}))
 	}
 
 	if err := loadAssets(); err != nil {
@@ -98,14 +97,6 @@ func main() {
 	}
 
 	mainHandler := RedirectToHTTPS(CSRF(GetAuthenticatedSession(r)))
-	if Dev {
-		mainHandler = handlers.CORS(
-			handlers.AllowCredentials(),
-			handlers.AllowedHeaders([]string{"Content-Type", "X-CSRF-Token"}),
-			handlers.ExposedHeaders([]string{"X-Filename"}),
-			handlers.AllowedOrigins([]string{"https://localhost:3000"}),
-		)(mainHandler)
-	}
 
 	srv := &http.Server{
 		Handler:      mainHandler,
