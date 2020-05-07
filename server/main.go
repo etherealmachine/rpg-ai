@@ -107,7 +107,7 @@ func main() {
 	r.Handle("/", http.HandlerFunc(IndexController)).Methods("GET")
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(ProfileController))).Methods("GET")
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(UploadAssetsController))).Methods("POST")
-	r.Handle("/map", http.HandlerFunc(MapController)).Methods("GET")
+	r.Handle("/map/{id:[0-9]+}", http.HandlerFunc(MapController)).Methods("GET")
 	r.Handle("/tilemap/{id:[0-9]+}", http.HandlerFunc(TilemapController)).Methods("GET")
 	r.Handle("/spritesheet/image/{id:[0-9]+}", http.HandlerFunc(SpritesheetImageController)).Methods("GET")
 	r.Handle("/spritesheet/definition/{id:[0-9]+}", http.HandlerFunc(SpritesheetDefinitionController)).Methods("GET")

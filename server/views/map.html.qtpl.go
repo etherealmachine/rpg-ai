@@ -5,58 +5,62 @@
 package views
 
 //line views/map.html.qtpl:1
-import "github.com/etherealmachine/rpg.ai/server/models"
-
-//line views/map.html.qtpl:3
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/map.html.qtpl:3
+//line views/map.html.qtpl:1
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/map.html.qtpl:4
+//line views/map.html.qtpl:2
 type MapPage struct {
 	*BasePage
-	User models.User
+	MapID int32
 }
 
-//line views/map.html.qtpl:10
+//line views/map.html.qtpl:8
 func (p *MapPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/map.html.qtpl:10
+//line views/map.html.qtpl:8
 	qw422016.N().S(`
-  <div style="flex: 1" class="Map"></div>
+  <div style="flex: 1" class="Map" data-props=`)
+//line views/map.html.qtpl:9
+	qw422016.E().Q(JSON(map[string]interface{}{
+		"MapID": p.MapID,
+	}))
+//line views/map.html.qtpl:12
+	qw422016.N().S(`>
+  </div>
 `)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 }
 
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 func (p *MapPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	p.StreamContent(qw422016)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	qt422016.ReleaseWriter(qw422016)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 }
 
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 func (p *MapPage) Content() string {
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	p.WriteContent(qb422016)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	qs422016 := string(qb422016.B)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 	return qs422016
-//line views/map.html.qtpl:12
+//line views/map.html.qtpl:14
 }

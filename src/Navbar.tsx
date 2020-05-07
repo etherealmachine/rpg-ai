@@ -5,21 +5,14 @@ import { GoogleLogin, GoogleLoginResponse, GoogleLoginResponseOffline } from 're
 import FacebookLogin, { ReactFacebookLoginInfo } from 'react-facebook-login';
 
 interface State {
-  user?: User
+  User?: User
 }
 
-export default class Navbar extends React.Component<{}, State> {
+export default class Navbar extends React.Component<State, State> {
 
-  constructor(props: any) {
+  constructor(props: State) {
     super(props);
-    const cookies = document.cookie.split(';').reduce((cookies: any, cookie) => {
-      const [name, value] = cookie.split('=').map(c => c.trim());
-      cookies[name] = value;
-      return cookies;
-    }, {});
-    this.state = {
-      user: cookies["internal_user"] !== undefined ? JSON.parse(atob(cookies["internal_user"])) : undefined,
-    };
+    this.state = props;
   }
 
   googleLoginSuccess = (response: GoogleLoginResponse | GoogleLoginResponseOffline) => {
@@ -52,11 +45,7 @@ export default class Navbar extends React.Component<{}, State> {
   logout = (event: React.MouseEvent<any, MouseEvent>) => {
     event.preventDefault();
     event.stopPropagation();
-
     document.cookie = "authenticated_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "internal_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "google_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "facebook_user= ; expires = Thu, 01 Jan 1970 00:00:00 GMT";
     window.location.reload();
   }
 
@@ -65,18 +54,18 @@ export default class Navbar extends React.Component<{}, State> {
       <nav className="navbar navbar-expand-lg navbar-light justify-content-between">
         <a className="navbar-brand" href="/">RPG.ai</a>
         <div style={{ display: "flex", flexDirection: "row", alignItems: "center", alignSelf: "flex-end" }}>
-          {(this.state.user !== undefined) &&
+          {this.state.User &&
             <div className="nav-item dropdown">
               <button className="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 Settings
             </button>
               <div className="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                {this.state.user && <a href="/profile" className="dropdown-item">{this.state.user.Email}</a>}
+                {this.state.User && <a href="/profile" className="dropdown-item">{this.state.User.Email}</a>}
                 <a className="dropdown-item" href="#logout" onClick={this.logout}>Logout</a>
               </div>
             </div>
           }
-          {(this.state.user === undefined) &&
+          {!this.state.User &&
             <div>
               <GoogleLogin
                 className="google-button"

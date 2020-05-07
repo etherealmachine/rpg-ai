@@ -7,222 +7,271 @@ package views
 //line views/base.html.qtpl:1
 import "golang.org/x/net/html"
 
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:2
+import "github.com/etherealmachine/rpg.ai/server/models"
+
+//line views/base.html.qtpl:5
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 type Page interface {
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	Header() string
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	StreamHeader(qw422016 *qt422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	WriteHeader(qq422016 qtio422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
+	Navbar() string
+//line views/base.html.qtpl:5
+	StreamNavbar(qw422016 *qt422016.Writer)
+//line views/base.html.qtpl:5
+	WriteNavbar(qq422016 qtio422016.Writer)
+//line views/base.html.qtpl:5
 	Content() string
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	StreamContent(qw422016 *qt422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	WriteContent(qq422016 qtio422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	BodyScripts() string
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	StreamBodyScripts(qw422016 *qt422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	WriteBodyScripts(qq422016 qtio422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	Footer() string
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	StreamFooter(qw422016 *qt422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 	WriteFooter(qq422016 qtio422016.Writer)
-//line views/base.html.qtpl:4
+//line views/base.html.qtpl:5
 }
 
-//line views/base.html.qtpl:13
+//line views/base.html.qtpl:15
 type BasePage struct {
 	PublicURL string
 	Scripts   []*html.Node
 	Links     []*html.Node
 	Styles    []*html.Node
+	User      *models.User
 }
 
-//line views/base.html.qtpl:21
+//line views/base.html.qtpl:24
 func (p *BasePage) StreamHeader(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:21
+//line views/base.html.qtpl:24
 	qw422016.N().S(`
   <meta charset="utf-8" />
   <link rel="icon" href="`)
-//line views/base.html.qtpl:23
+//line views/base.html.qtpl:26
 	qw422016.E().S(p.PublicURL)
-//line views/base.html.qtpl:23
+//line views/base.html.qtpl:26
 	qw422016.N().S(`/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
   <link rel="apple-touch-icon" href="`)
-//line views/base.html.qtpl:26
+//line views/base.html.qtpl:29
 	qw422016.E().S(p.PublicURL)
-//line views/base.html.qtpl:26
+//line views/base.html.qtpl:29
 	qw422016.N().S(`/logo192.png" />
   <title>RPG.ai</title>
   `)
-//line views/base.html.qtpl:28
+//line views/base.html.qtpl:31
 	for _, node := range p.Styles {
-//line views/base.html.qtpl:28
+//line views/base.html.qtpl:31
 		qw422016.N().S(`
     <style>`)
-//line views/base.html.qtpl:29
+//line views/base.html.qtpl:32
 		if node.FirstChild != nil {
-//line views/base.html.qtpl:29
+//line views/base.html.qtpl:32
 			qw422016.N().S(node.FirstChild.Data)
-//line views/base.html.qtpl:29
+//line views/base.html.qtpl:32
 		}
-//line views/base.html.qtpl:29
+//line views/base.html.qtpl:32
 		qw422016.N().S(`</style>
   `)
-//line views/base.html.qtpl:30
+//line views/base.html.qtpl:33
 	}
-//line views/base.html.qtpl:30
+//line views/base.html.qtpl:33
 	qw422016.N().S(`
   `)
-//line views/base.html.qtpl:31
+//line views/base.html.qtpl:34
 	for _, node := range p.Links {
-//line views/base.html.qtpl:31
+//line views/base.html.qtpl:34
 		qw422016.N().S(`
     <link `)
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 		for _, attr := range node.Attr {
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 			qw422016.E().S(attr.Key)
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 			qw422016.N().S(`=`)
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 			qw422016.E().S(attr.Val)
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 			qw422016.N().S(` `)
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 		}
-//line views/base.html.qtpl:32
+//line views/base.html.qtpl:35
 		qw422016.N().S(` />
   `)
-//line views/base.html.qtpl:33
+//line views/base.html.qtpl:36
 	}
-//line views/base.html.qtpl:33
+//line views/base.html.qtpl:36
 	qw422016.N().S(`
 `)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 }
 
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 func (p *BasePage) WriteHeader(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	p.StreamHeader(qw422016)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 }
 
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 func (p *BasePage) Header() string {
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	p.WriteHeader(qb422016)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 	return qs422016
-//line views/base.html.qtpl:34
+//line views/base.html.qtpl:37
 }
 
-//line views/base.html.qtpl:36
+//line views/base.html.qtpl:39
 func (p *BasePage) StreamBodyScripts(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:36
+//line views/base.html.qtpl:39
 	qw422016.N().S(`
   `)
-//line views/base.html.qtpl:37
+//line views/base.html.qtpl:40
 	for _, node := range p.Scripts {
-//line views/base.html.qtpl:37
+//line views/base.html.qtpl:40
 		qw422016.N().S(`
     <script`)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 		for _, attr := range node.Attr {
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 			qw422016.N().S(` `)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 			qw422016.E().S(attr.Key)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 			qw422016.N().S(`=`)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 			qw422016.E().S(attr.Val)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 			qw422016.N().S(` `)
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 		}
-//line views/base.html.qtpl:38
+//line views/base.html.qtpl:41
 		qw422016.N().S(`>
       `)
-//line views/base.html.qtpl:39
+//line views/base.html.qtpl:42
 		if node.FirstChild != nil {
-//line views/base.html.qtpl:39
+//line views/base.html.qtpl:42
 			qw422016.N().S(node.FirstChild.Data)
-//line views/base.html.qtpl:39
+//line views/base.html.qtpl:42
 		}
-//line views/base.html.qtpl:39
+//line views/base.html.qtpl:42
 		qw422016.N().S(`
     </script>
   `)
-//line views/base.html.qtpl:41
+//line views/base.html.qtpl:44
 	}
-//line views/base.html.qtpl:41
+//line views/base.html.qtpl:44
 	qw422016.N().S(`
 `)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 }
 
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 func (p *BasePage) WriteBodyScripts(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 }
 
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 func (p *BasePage) BodyScripts() string {
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	p.WriteBodyScripts(qb422016)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 	return qs422016
-//line views/base.html.qtpl:42
+//line views/base.html.qtpl:45
 }
 
-//line views/base.html.qtpl:44
+//line views/base.html.qtpl:47
+func (p *BasePage) StreamNavbar(qw422016 *qt422016.Writer) {
+//line views/base.html.qtpl:47
+	qw422016.N().S(`
+  <div class="Navbar" data-props=`)
+//line views/base.html.qtpl:48
+	qw422016.E().Q(JSON(map[string]interface{}{"User": p.User}))
+//line views/base.html.qtpl:48
+	qw422016.N().S(`></div>
+`)
+//line views/base.html.qtpl:49
+}
+
+//line views/base.html.qtpl:49
+func (p *BasePage) WriteNavbar(qq422016 qtio422016.Writer) {
+//line views/base.html.qtpl:49
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line views/base.html.qtpl:49
+	p.StreamNavbar(qw422016)
+//line views/base.html.qtpl:49
+	qt422016.ReleaseWriter(qw422016)
+//line views/base.html.qtpl:49
+}
+
+//line views/base.html.qtpl:49
+func (p *BasePage) Navbar() string {
+//line views/base.html.qtpl:49
+	qb422016 := qt422016.AcquireByteBuffer()
+//line views/base.html.qtpl:49
+	p.WriteNavbar(qb422016)
+//line views/base.html.qtpl:49
+	qs422016 := string(qb422016.B)
+//line views/base.html.qtpl:49
+	qt422016.ReleaseByteBuffer(qb422016)
+//line views/base.html.qtpl:49
+	return qs422016
+//line views/base.html.qtpl:49
+}
+
+//line views/base.html.qtpl:51
 func (p *BasePage) StreamFooter(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:44
+//line views/base.html.qtpl:51
 	qw422016.N().S(`
   <footer class="mt-auto py-2 bg-light">
     <div class="container">
@@ -234,98 +283,102 @@ func (p *BasePage) StreamFooter(qw422016 *qt422016.Writer) {
     </div>
   </footer>
 `)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 }
 
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 func (p *BasePage) WriteFooter(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 }
 
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 func (p *BasePage) Footer() string {
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	p.WriteFooter(qb422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 	return qs422016
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:61
 }
 
-//line views/base.html.qtpl:56
+//line views/base.html.qtpl:63
 func StreamPageTemplate(qw422016 *qt422016.Writer, p Page) {
-//line views/base.html.qtpl:56
+//line views/base.html.qtpl:63
 	qw422016.N().S(`
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   `)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:68
 	p.StreamHeader(qw422016)
-//line views/base.html.qtpl:61
+//line views/base.html.qtpl:68
 	qw422016.N().S(`
 </head>
 
 <body>
-  <div class="Navbar"></div>
   `)
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:72
+	p.StreamNavbar(qw422016)
+//line views/base.html.qtpl:72
+	qw422016.N().S(`
+  `)
+//line views/base.html.qtpl:73
 	p.StreamContent(qw422016)
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:73
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:68
+//line views/base.html.qtpl:75
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:68
+//line views/base.html.qtpl:75
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:70
+//line views/base.html.qtpl:77
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:70
+//line views/base.html.qtpl:77
 	qw422016.N().S(`
 </body>
 
 </html>
 `)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 }
 
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 func WritePageTemplate(qq422016 qtio422016.Writer, p Page) {
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	StreamPageTemplate(qw422016, p)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 }
 
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 func PageTemplate(p Page) string {
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	WritePageTemplate(qb422016, p)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 	return qs422016
-//line views/base.html.qtpl:74
+//line views/base.html.qtpl:81
 }

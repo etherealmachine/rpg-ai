@@ -2,14 +2,12 @@ import React from 'react';
 import styled from 'styled-components';
 import Phaser from 'phaser';
 
-import GameState from './GameState';
-
 import LoadMap from './scenes/LoadMap';
 import HexMap from './scenes/HexMap';
 import OrthoMap from './scenes/OrthoMap';
 
 interface Props {
-  game: GameState;
+  MapID: number
 }
 
 const Game = styled.div`
@@ -19,7 +17,7 @@ const Game = styled.div`
 
 const setup = new Set<HTMLElement>();
 
-function setupPhaser(el: HTMLElement, game: GameState) {
+function setupPhaserMap(el: HTMLElement, mapID: number) {
   if (setup.has(el)) return;
   setup.add(el);
   const gameConfig = {
@@ -29,10 +27,9 @@ function setupPhaser(el: HTMLElement, game: GameState) {
     pixelArt: true,
   }
   const phaser = new Phaser.Game(gameConfig);
-  const params = new URLSearchParams(window.location.search);
-  phaser.scene.add('LoadMap', LoadMap, true, { mapID: params.get('map') });
-  phaser.scene.add('OrthoMap', OrthoMap, false, { game: game });
-  phaser.scene.add('HexMap', HexMap, false, { game: game });
+  phaser.scene.add('LoadMap', LoadMap, true, { mapID: mapID });
+  phaser.scene.add('OrthoMap', OrthoMap, false);
+  phaser.scene.add('HexMap', HexMap, false);
   el.addEventListener('click', () => {
     (document.activeElement as any).blur();
     el.focus();
@@ -41,5 +38,5 @@ function setupPhaser(el: HTMLElement, game: GameState) {
 }
 
 export default function Map(props: Props) {
-  return <Game ref={el => el && setupPhaser(el, props.game)} />;
+  return <Game ref={el => el && setupPhaserMap(el, props.MapID)} />;
 }

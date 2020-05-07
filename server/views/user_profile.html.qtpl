@@ -3,7 +3,6 @@
 {% code
 type UserProfilePage struct {
   *BasePage
-  User models.User
   UserSpritesheets []models.ListSpritesheetsByOwnerIDRow
   UserTilemaps []models.ListTilemapsByOwnerIDRow
 }
@@ -20,14 +19,11 @@ type UserProfilePage struct {
   <div class="container">
     <p class="my-4">{%s p.User.Email %}, a member since {%v p.User.CreatedAt %}</p>
     <h4>Assets</h4>
-    <div class="AssetTable" data-props="{%q JSON(
-      struct{
-        Spritesheets []models.ListSpritesheetsByOwnerIDRow
-        Tilemaps []models.ListTilemapsByOwnerIDRow
-      }{
-        p.UserSpritesheets,
-        p.UserTilemaps,
-      }) %}"></div>
+    <div class="AssetTable" data-props={%q JSON(map[string]interface{}{
+      "Spritesheets": p.UserSpritesheets,
+      "Tilemaps": p.UserTilemaps,
+      })
+    %}></div>
     <div class="AssetUploader"></div>
   </div>
 {% endfunc %}

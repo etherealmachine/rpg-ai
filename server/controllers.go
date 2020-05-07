@@ -15,61 +15,56 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func IndexController(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	var user models.User
-	if authenticatedUser != nil && authenticatedUser.InternalUser != nil {
-		user = *authenticatedUser.InternalUser
+func basePage(r *http.Request) *views.BasePage {
+	return &views.BasePage{
+		PublicURL: publicURL,
+		Scripts:   scripts,
+		Links:     links,
+		Styles:    styles,
+		User:      currentUser(r),
 	}
-	views.WritePageTemplate(w, &views.IndexPage{
-		BasePage: &views.BasePage{
-			PublicURL: publicURL,
-			Scripts:   scripts,
-			Links:     links,
-			Styles:    styles,
-		},
-		User: user,
-	})
+}
+
+func currentUser(r *http.Request) *models.User {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser != nil && authenticatedUser.InternalUser != nil {
+		return authenticatedUser.InternalUser
+	}
+	return nil
+}
+
+func IndexController(w http.ResponseWriter, r *http.Request) {
+	views.WritePageTemplate(w, &views.IndexPage{basePage(r)})
 }
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	spritesheets, err := db.ListSpritesheetsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	currentUserID := currentUser(r).ID
+	spritesheets, err := db.ListSpritesheetsByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
 	}
-	tilemaps, err := db.ListTilemapsByOwnerID(r.Context(), authenticatedUser.InternalUser.ID)
+	tilemaps, err := db.ListTilemapsByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
 	}
 	views.WritePageTemplate(w, &views.UserProfilePage{
-		BasePage: &views.BasePage{
-			PublicURL: publicURL,
-			Scripts:   scripts,
-			Links:     links,
-			Styles:    styles,
-		},
-		User:             *authenticatedUser.InternalUser,
+		BasePage:         basePage(r),
 		UserSpritesheets: spritesheets,
 		UserTilemaps:     tilemaps,
 	})
 }
 
 func MapController(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	views.WritePageTemplate(w, &views.MapPage{
-		BasePage: &views.BasePage{
-			PublicURL: publicURL,
-			Scripts:   scripts,
-			Links:     links,
-			Styles:    styles,
-		},
-		User: *authenticatedUser.InternalUser,
-	})
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	views.WritePageTemplate(w, &views.MapPage{BasePage: basePage(r), MapID: int32(id)})
 }
 
 func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	currentUserID := currentUser(r).ID
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		panic(err)
 	}
@@ -98,7 +93,7 @@ func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
 		assets = append(assets, asset)
 	}
 	tx := sqlxDB.MustBeginTx(r.Context(), nil)
-	if err := models.CreateAssets(r.Context(), db.WithTx(tx.Tx), authenticatedUser.InternalUser.ID, assets); err != nil {
+	if err := models.CreateAssets(r.Context(), db.WithTx(tx.Tx), currentUserID, assets); err != nil {
 		tx.Rollback()
 		panic(err)
 	}

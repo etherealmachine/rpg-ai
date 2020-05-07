@@ -1,12 +1,14 @@
-{% import "github.com/etherealmachine/rpg.ai/server/models" %}
-
 {% code
 type MapPage struct {
   *BasePage
-  User models.User
+  MapID int32
 }
 %}
 
 {% func (p *MapPage) Content() %}
-  <div style="flex: 1" class="Map"></div>
+  <div style="flex: 1" class="Map" data-props={%q JSON(map[string]interface{}{
+      "MapID": p.MapID,
+    })
+  %}>
+  </div>
 {% endfunc %}

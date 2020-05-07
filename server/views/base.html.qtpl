@@ -1,8 +1,10 @@
 {% import "golang.org/x/net/html" %}
+{% import "github.com/etherealmachine/rpg.ai/server/models" %}
 
 {%
 interface Page {
   Header()
+  Navbar()
   Content()
   BodyScripts()
   Footer()
@@ -15,6 +17,7 @@ type BasePage struct {
   Scripts []*html.Node
   Links []*html.Node
   Styles []*html.Node
+  User *models.User
 }
 %}
 
@@ -41,6 +44,10 @@ type BasePage struct {
   {% endfor %}
 {% endfunc %}
 
+{% func (p *BasePage) Navbar() %}
+  <div class="Navbar" data-props={%q JSON(map[string]interface{}{"User": p.User}) %}></div>
+{% endfunc %}
+
 {% func (p *BasePage) Footer() %}
   <footer class="mt-auto py-2 bg-light">
     <div class="container">
@@ -62,7 +69,7 @@ type BasePage struct {
 </head>
 
 <body>
-  <div class="Navbar"></div>
+  {%= p.Navbar() %}
   {%= p.Content() %}
 
   {%= p.BodyScripts() %}

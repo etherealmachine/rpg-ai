@@ -41,7 +41,7 @@ export default class AssetTable extends React.Component<ListAssetsResponse, List
       </thead>
       <tbody>
         {this.state.Tilemaps && this.state.Tilemaps.map(asset => <tr key={asset.Name}>
-          <td><a href={`/?map=${asset.ID}`}>{asset.Name}</a></td>
+          <td><a href={`/map/${asset.ID}`}>{asset.Name}</a></td>
           <td>{asset.CreatedAt}</td>
           <td><button type="button" className="btn btn-danger" onClick={this.onDeleteClicked(asset)}>Delete</button></td>
         </tr>
