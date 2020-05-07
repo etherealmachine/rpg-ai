@@ -17,6 +17,11 @@ export interface LoginResponse {
   User: User
 }
 
+export interface NullTime {
+  Time: Date
+  Valid: boolean
+}
+
 export interface User {
   ID: number
   Email: string
@@ -27,11 +32,6 @@ export interface User {
 
 export interface NullBool {
   Bool: boolean
-  Valid: boolean
-}
-
-export interface NullTime {
-  Time: Date
   Valid: boolean
 }
 

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -18,9 +19,10 @@ import (
 )
 
 var (
-	scripts []*html.Node
-	links   []*html.Node
-	styles  []*html.Node
+	scripts   []*html.Node
+	links     []*html.Node
+	styles    []*html.Node
+	assetLock sync.Mutex
 )
 
 type WebpackProxy struct {
@@ -121,6 +123,8 @@ func detectNodes(n *html.Node) {
 }
 
 func loadAssets() error {
+	assetLock.Lock()
+	defer assetLock.Unlock()
 	scripts = nil
 	links = nil
 	styles = nil
