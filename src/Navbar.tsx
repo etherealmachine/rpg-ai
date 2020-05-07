@@ -20,7 +20,9 @@ export default class Navbar extends React.Component<State, State> {
       const googleResponse = (response as GoogleLoginResponse)
       LoginService.GoogleLogin({ TokenID: googleResponse.tokenId }).then((resp) => {
         if (resp.User.Email === googleResponse.getBasicProfile().getEmail()) {
-          window.location.reload();
+          this.setState({
+            User: resp.User,
+          });
         }
       }).catch((error: any) => {
         console.log(error);
@@ -35,7 +37,9 @@ export default class Navbar extends React.Component<State, State> {
   facebookLoginResponse = (response: ReactFacebookLoginInfo) => {
     LoginService.FacebookLogin({ AccessToken: response.accessToken }).then(resp => {
       if (resp.User.Email === response.email) {
-        window.location.reload();
+        this.setState({
+          User: resp.User,
+        });
       }
     }).catch((error: any) => {
       console.log(error);

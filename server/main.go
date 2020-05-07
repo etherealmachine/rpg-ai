@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/gorilla/rpc"
 	jsonrpc "github.com/gorilla/rpc/json"
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/net/html"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 
@@ -31,25 +31,9 @@ var (
 var (
 	sqlxDB    *sqlx.DB
 	db        *models.Queries
-	scripts   []*html.Node
-	links     []*html.Node
-	styles    []*html.Node
 	CSRF      = csrf.Protect([]byte(SessionKey))
 	publicURL string
 )
-
-func detectNodes(n *html.Node) {
-	if n.Type == html.ElementNode && n.Data == "script" {
-		scripts = append(scripts, n)
-	} else if n.Type == html.ElementNode && n.Data == "link" {
-		links = append(links, n)
-	} else if n.Type == html.ElementNode && n.Data == "style" {
-		styles = append(styles, n)
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		detectNodes(c)
-	}
-}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -79,17 +63,11 @@ func main() {
 			csrf.TrustedOrigins([]string{"https://localhost:3000", "http://localhost:8000"}))
 	}
 
-	f, err := os.Open("build/index.html")
-	if err != nil {
+	if err := loadAssets(); err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
-	doc, err := html.Parse(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	detectNodes(doc)
 
+	var err error
 	sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
@@ -112,7 +90,12 @@ func main() {
 	r.Handle("/spritesheet/image/{id:[0-9]+}", http.HandlerFunc(SpritesheetImageController)).Methods("GET")
 	r.Handle("/spritesheet/definition/{id:[0-9]+}", http.HandlerFunc(SpritesheetDefinitionController)).Methods("GET")
 	r.Handle("/csrf", http.HandlerFunc(CsrfTokenController)).Methods("GET")
-	r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build")))).Methods("GET")
+	if Dev {
+		u, _ := url.Parse("http://localhost:3000")
+		r.PathPrefix("/").Handler(NewWebpackProxy(u)).Methods("GET")
+	} else {
+		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("build")))).Methods("GET")
+	}
 
 	mainHandler := RedirectToHTTPS(CSRF(GetAuthenticatedSession(r)))
 	if Dev {
