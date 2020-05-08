@@ -41,14 +41,6 @@ export interface ListThumbnailsResponse {
   SpritesheetThumbnailIDs: { [key: number]: number[] | null } | null
 }
 
-export interface ListSpritesheetsByOwnerIDRow {
-  ID: number
-  CreatedAt: Date
-  Name: string
-  SpritesheetSize: any
-  ImageSize: any
-}
-
 export interface ListTilemapsByOwnerIDRow {
   ID: number
   CreatedAt: Date
@@ -60,6 +52,14 @@ export interface ListSpritesheetsForTilemapRow {
   TilemapID: number
   SpritesheetID: number
   SpritesheetName: string
+}
+
+export interface ListSpritesheetsByOwnerIDRow {
+  ID: number
+  CreatedAt: Date
+  Name: string
+  SpritesheetSize: any
+  ImageSize: any
 }
 
 class AssetService extends JSONRPCService {

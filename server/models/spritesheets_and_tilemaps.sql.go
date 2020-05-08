@@ -173,6 +173,39 @@ func (q *Queries) GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
 	return i, err
 }
 
+const insertThumbnailForOwnedTilemap = `-- name: InsertThumbnailForOwnedTilemap :execrows
+WITH owned_tilemap AS (
+  SELECT id FROM tilemaps WHERE owner_id = $6 AND id = $5
+)
+INSERT INTO thumbnails (tilemap_id, content_type, image, width, height)
+SELECT owned_tilemap.id, $1, $2, $3, $4 FROM owned_tilemap
+WHERE NOT EXISTS (SELECT id FROM thumbnails WHERE thumbnails.tilemap_id = $5)
+`
+
+type InsertThumbnailForOwnedTilemapParams struct {
+	ContentType string
+	Image       []byte
+	Width       int32
+	Height      int32
+	TilemapID   sql.NullInt32
+	OwnerID     int32
+}
+
+func (q *Queries) InsertThumbnailForOwnedTilemap(ctx context.Context, arg InsertThumbnailForOwnedTilemapParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, insertThumbnailForOwnedTilemap,
+		arg.ContentType,
+		arg.Image,
+		arg.Width,
+		arg.Height,
+		arg.TilemapID,
+		arg.OwnerID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const listSpritesheetsByOwnerID = `-- name: ListSpritesheetsByOwnerID :many
 SELECT id, created_at, name, octet_length(definition::text) AS spritesheet_size, octet_length(image) AS image_size FROM spritesheets WHERE owner_id = $1
 `
@@ -372,32 +405,31 @@ func (q *Queries) ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]L
 	return items, nil
 }
 
-const setThumbnailForOwnedTilemap = `-- name: SetThumbnailForOwnedTilemap :exec
+const updateThumbnailForOwnedTilemap = `-- name: UpdateThumbnailForOwnedTilemap :exec
 WITH owned_tilemap AS (
-  SELECT id FROM tilemaps WHERE owner_id = $1 AND id = $2
+  SELECT id FROM tilemaps WHERE owner_id = $5 AND tilemaps.id = $6
 )
-INSERT INTO thumbnails (tilemap_id, content_type, image, width, height)
-SELECT owned_tilemap.id, $3, $4, $5, $6 FROM owned_tilemap
-WHERE NOT EXISTS (SELECT id FROM thumbnails WHERE thumbnails.tilemap_id = $2)
+UPDATE thumbnails SET content_type = $1, image = $2, width = $3, height = $4, created_at = NOW()
+WHERE tilemap_id = (SELECT id FROM owned_tilemap)
 `
 
-type SetThumbnailForOwnedTilemapParams struct {
-	OwnerID     int32
-	TilemapID   sql.NullInt32
+type UpdateThumbnailForOwnedTilemapParams struct {
 	ContentType string
 	Image       []byte
 	Width       int32
 	Height      int32
+	OwnerID     int32
+	TilemapID   int32
 }
 
-func (q *Queries) SetThumbnailForOwnedTilemap(ctx context.Context, arg SetThumbnailForOwnedTilemapParams) error {
-	_, err := q.db.ExecContext(ctx, setThumbnailForOwnedTilemap,
-		arg.OwnerID,
-		arg.TilemapID,
+func (q *Queries) UpdateThumbnailForOwnedTilemap(ctx context.Context, arg UpdateThumbnailForOwnedTilemapParams) error {
+	_, err := q.db.ExecContext(ctx, updateThumbnailForOwnedTilemap,
 		arg.ContentType,
 		arg.Image,
 		arg.Width,
 		arg.Height,
+		arg.OwnerID,
+		arg.TilemapID,
 	)
 	return err
 }

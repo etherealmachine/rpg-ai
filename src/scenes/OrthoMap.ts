@@ -12,6 +12,31 @@ export default class OrthoMap extends Phaser.Scene {
     this.tiledMap = args.map;
   }
 
+  generateThumbnail() {
+    const tiledMap = this.tiledMap;
+    if (!tiledMap) return;
+    const mapWidth = tiledMap.tilewidth * tiledMap.width;
+    const mapHeight = tiledMap.tileheight * tiledMap.height;
+    this.cameras.main.setZoom(1);
+    this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2);
+
+    this.game.renderer.snapshotArea(
+      (this.game.canvas.width - mapWidth) / 2, (this.game.canvas.height - mapHeight) / 2,
+      mapWidth, mapHeight,
+      image => {
+        const c = document.createElement("canvas");
+        c.setAttribute("width", `${mapWidth}px`);
+        c.setAttribute("height", `${mapHeight}px`);
+        c.getContext("2d")?.drawImage(image as HTMLImageElement, 0, 0);
+        (c as HTMLCanvasElement).toBlob(blob => {
+          if (!blob) return;
+          const mapID = this.mapID;
+          if (!mapID) return;
+          SetTilemapThumbnail(mapID, blob);
+        });
+      })
+  }
+
   create() {
     const tiledMap = this.tiledMap;
     if (!tiledMap) return;
@@ -32,16 +57,7 @@ export default class OrthoMap extends Phaser.Scene {
     this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
       switch (event.keyCode) {
         case Phaser.Input.Keyboard.KeyCodes.P:
-          const mapWidth = tiledMap.tilewidth * tiledMap.width;
-          const mapHeight = tiledMap.tileheight * tiledMap.height;
-          this.cameras.main.setZoom(1);
-          this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2);
-          this.game.canvas.toBlob(blob => {
-            if (!blob) return;
-            const mapID = this.mapID;
-            if (!mapID) return;
-            SetTilemapThumbnail(mapID, blob);
-          });
+          this.generateThumbnail();
       }
     });
     this.cameras.main.setBackgroundColor('#ddd');

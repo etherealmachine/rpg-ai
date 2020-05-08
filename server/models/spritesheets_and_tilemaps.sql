@@ -34,13 +34,20 @@ SELECT id, tilemap_id, content_type, width, height, created_at FROM thumbnails W
 -- name: ListThumbnailsForSpritesheets :many
 SELECT id, spritesheet_id, content_type, width, height, created_at FROM thumbnails WHERE spritesheet_id = ANY($1::INTEGER[]);
 
--- name: SetThumbnailForOwnedTilemap :exec
+-- name: InsertThumbnailForOwnedTilemap :execrows
 WITH owned_tilemap AS (
-  SELECT id FROM tilemaps WHERE owner_id = $1 AND id = $2
+  SELECT id FROM tilemaps WHERE owner_id = @owner_id AND id = @tilemap_id
 )
 INSERT INTO thumbnails (tilemap_id, content_type, image, width, height)
-SELECT owned_tilemap.id, $3, $4, $5, $6 FROM owned_tilemap
-WHERE NOT EXISTS (SELECT id FROM thumbnails WHERE thumbnails.tilemap_id = $2);
+SELECT owned_tilemap.id, @content_type, @image, @width, @height FROM owned_tilemap
+WHERE NOT EXISTS (SELECT id FROM thumbnails WHERE thumbnails.tilemap_id = @tilemap_id);
+
+-- name: UpdateThumbnailForOwnedTilemap :exec
+WITH owned_tilemap AS (
+  SELECT id FROM tilemaps WHERE owner_id = @owner_id AND tilemaps.id = @tilemap_id
+)
+UPDATE thumbnails SET content_type = @content_type, image = @image, width = @width, height = @height, created_at = NOW()
+WHERE tilemap_id = (SELECT id FROM owned_tilemap);
 
 -- name: GetThumbnailByID :one
 SELECT id, tilemap_id, spritesheet_id, content_type, image, width, height, created_at FROM thumbnails WHERE id = $1;
