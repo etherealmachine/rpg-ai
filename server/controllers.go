@@ -180,6 +180,7 @@ func SpritesheetImageController(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		panic(err)
 	}
+	w.Header().Add("Content-Type", http.DetectContentType(spritesheet.Image))
 	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Image))
 }
 
@@ -196,6 +197,7 @@ func SpritesheetDefinitionController(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		panic(err)
 	}
+	w.Header().Add("Content-Type", "application/json")
 	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
 }
 
@@ -228,6 +230,7 @@ func ThumbnailController(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		panic(err)
 	}
+	w.Header().Add("Content-Type", thumbnail.ContentType)
 	http.ServeContent(w, r, fmt.Sprintf("thumbnail-%d", thumbnail.ID), thumbnail.CreatedAt, bytes.NewReader(thumbnail.Image))
 }
 
