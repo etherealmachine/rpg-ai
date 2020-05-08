@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -13,6 +14,9 @@ import (
 	"github.com/etherealmachine/rpg.ai/server/views"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+
+	_ "image/jpeg"
+	_ "image/png"
 )
 
 func basePage(r *http.Request) *views.BasePage {
@@ -105,6 +109,51 @@ func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
+func SetTilemapThumbnailController(w http.ResponseWriter, r *http.Request) {
+	currentUserID := currentUser(r).ID
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		panic(err)
+	}
+	tilemapID, err := strconv.Atoi(r.FormValue("tilemapID"))
+	if err != nil {
+		panic(err)
+	}
+	f, header, err := r.FormFile("thumbnail")
+	if err != nil {
+		panic(err)
+	}
+	contentType := header.Header.Get("Content-Type")
+	if !(contentType == "image/png" || contentType == "image/jpeg") {
+		panic(fmt.Sprintf("unsupported Content-Type %s", contentType))
+	}
+	imageBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+	img, format, err := image.DecodeConfig(bytes.NewReader(imageBytes))
+	if err != nil {
+		panic(err)
+	}
+	if (contentType == "image/png" && format != "png") || (contentType == "image/jpeg" && format != "jpeg") {
+		panic(fmt.Sprintf("incorrect Content-Type %s", contentType))
+	}
+	if err := db.SetThumbnailForOwnedTilemap(r.Context(), models.SetThumbnailForOwnedTilemapParams{
+		OwnerID:     currentUserID,
+		TilemapID:   sql.NullInt32{Int32: int32(tilemapID), Valid: true},
+		Image:       imageBytes,
+		ContentType: contentType,
+		Width:       int32(img.Width),
+		Height:      int32(img.Height),
+	}); err != nil {
+		panic(err)
+	}
+	redirectURL := r.URL.Query().Get("redirect")
+	if redirectURL == "" {
+		redirectURL = "/"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusFound)
+}
+
 func SpritesheetImageController(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
 	if err != nil {
@@ -151,6 +200,22 @@ func TilemapController(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	http.ServeContent(w, r, tilemap.Name, tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
+}
+
+func ThumbnailController(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	thumbnail, err := db.GetThumbnailByID(r.Context(), int32(id))
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	http.ServeContent(w, r, fmt.Sprintf("thumbnail-%d", thumbnail.ID), thumbnail.CreatedAt, bytes.NewReader(thumbnail.Image))
 }
 
 func CsrfTokenController(w http.ResponseWriter, r *http.Request) {

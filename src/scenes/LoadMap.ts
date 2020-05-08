@@ -15,9 +15,9 @@ export default class LoadMap extends Phaser.Scene {
     if (this.mapID) {
       this.loadTilemap(this.mapID).then(() => {
         if (this.map && this.map.orientation === 'orthogonal') {
-          this.game.scene.start('OrthoMap', { map: this.map });
+          this.game.scene.start('OrthoMap', { mapID: this.mapID, map: this.map });
         } else {
-          this.game.scene.start('HexMap', { map: this.map });
+          this.game.scene.start('HexMap', { mapID: this.mapID, map: this.map });
         }
       });
     }

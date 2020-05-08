@@ -13,11 +13,15 @@ type Querier interface {
 	DeleteSpritesheetWithOwner(ctx context.Context, arg DeleteSpritesheetWithOwnerParams) error
 	DeleteTilemapWithOwner(ctx context.Context, arg DeleteTilemapWithOwnerParams) error
 	GetSpritesheetByID(ctx context.Context, id int32) (Spritesheet, error)
+	GetThumbnailByID(ctx context.Context, id int32) (GetThumbnailByIDRow, error)
 	GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) ([]ListSpritesheetsByOwnerIDRow, error)
 	ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error)
+	ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForSpritesheetsRow, error)
+	ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForTilemapsRow, error)
 	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
+	SetThumbnailForOwnedTilemap(ctx context.Context, arg SetThumbnailForOwnedTilemapParams) error
 }
 
 var _ Querier = (*Queries)(nil)

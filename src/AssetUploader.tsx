@@ -105,11 +105,9 @@ export default class AssetUploader extends React.Component<{}, State> {
     event.preventDefault();
     if (this.checkReferences()) {
       const csrfInput = this.formRef.current?.querySelector('input[name="gorilla.csrf.Token"]');
-      console.log(csrfInput);
       if (csrfInput && (csrfInput as HTMLInputElement).value === '') {
         JSONRPCService.csrfToken().then(token => {
           (csrfInput as HTMLInputElement).value = token;
-          console.log(token);
           this.formRef.current?.submit();
         });
       }
@@ -222,4 +220,16 @@ export default class AssetUploader extends React.Component<{}, State> {
       </div>
     </div>;
   }
+}
+
+export function SetTilemapThumbnail(tilemapID: number, blob: Blob) {
+  JSONRPCService.csrfToken().then(token => {
+    const req = new XMLHttpRequest();
+    req.open("POST", "/set-tilemap-thumbnail", true);
+    const formData = new FormData();
+    formData.append("tilemapID", `${tilemapID}`);
+    formData.append("gorilla.csrf.Token", token);
+    formData.append("thumbnail", blob);
+    req.send(formData);
+  });
 }

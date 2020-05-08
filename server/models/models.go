@@ -17,6 +17,17 @@ type Spritesheet struct {
 	CreatedAt  time.Time
 }
 
+type Thumbnail struct {
+	ID            int32
+	TilemapID     sql.NullInt32
+	SpritesheetID sql.NullInt32
+	Image         []byte
+	ContentType   string
+	Width         int32
+	Height        int32
+	CreatedAt     time.Time
+}
+
 type Tilemap struct {
 	ID         int32
 	OwnerID    int32

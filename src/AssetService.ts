@@ -31,6 +31,16 @@ export interface ListSpritesheetsForTilemapResponse {
   References: ListSpritesheetsForTilemapRow[] | null
 }
 
+export interface ListThumbnailsRequest {
+  TilemapIDs: number[] | null
+  SpritesheetIDs: number[] | null
+}
+
+export interface ListThumbnailsResponse {
+  TilemapThumbnailIDs: { [key: number]: number[] | null } | null
+  SpritesheetThumbnailIDs: { [key: number]: number[] | null } | null
+}
+
 export interface ListSpritesheetsByOwnerIDRow {
   ID: number
   CreatedAt: Date
@@ -64,6 +74,9 @@ class AssetService extends JSONRPCService {
     }
     async ListReferences(args: ListSpritesheetsForTilemapRequest): Promise<ListSpritesheetsForTilemapResponse> {
       return this.jsonrpc<ListSpritesheetsForTilemapResponse>("ListReferences", args);
+    }
+    async ListThumbnails(args: ListThumbnailsRequest): Promise<ListThumbnailsResponse> {
+      return this.jsonrpc<ListThumbnailsResponse>("ListThumbnails", args);
     }
 }
 
