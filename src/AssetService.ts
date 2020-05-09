@@ -1,15 +1,14 @@
-
 import JSONRPCService from './JSONRPCService';
 
 export interface DeleteAssetRequest {
-  ID: number
+    ID: number
 }
 
 export interface DeleteAssetResponse {
 }
 
 export interface DeleteAssetRequest {
-  ID: number
+    ID: number
 }
 
 export interface DeleteAssetResponse {
@@ -19,47 +18,79 @@ export interface ListAssetsRequest {
 }
 
 export interface ListAssetsResponse {
-  Spritesheets: ListSpritesheetsByOwnerIDRow[] | null
-  Tilemaps: ListTilemapsByOwnerIDRow[] | null
+    Spritesheets: Spritesheet[] | null
+    Tilemaps: TilemapWithThumbnail[] | null
 }
 
 export interface ListSpritesheetsForTilemapRequest {
-  TilemapID: number
+    TilemapID: number
 }
 
 export interface ListSpritesheetsForTilemapResponse {
-  References: ListSpritesheetsForTilemapRow[] | null
+    References: ListSpritesheetsForTilemapRow[] | null
 }
 
-export interface ListThumbnailsRequest {
-  TilemapIDs: number[] | null
-  SpritesheetIDs: number[] | null
+export interface NullInt32 {
+    Int32: number
+    Valid: boolean
 }
 
-export interface ListThumbnailsResponse {
-  TilemapThumbnailIDs: { [key: number]: number[] | null } | null
-  SpritesheetThumbnailIDs: { [key: number]: number[] | null } | null
-}
-
-export interface ListSpritesheetsByOwnerIDRow {
-  ID: number
-  CreatedAt: Date
-  Name: string
-  SpritesheetSize: any
-  ImageSize: any
-}
-
-export interface ListTilemapsByOwnerIDRow {
-  ID: number
-  CreatedAt: Date
-  Name: string
-  TilemapSize: any
+export interface Thumbnail {
+    ID: number
+    TilemapID: NullInt32
+    SpritesheetID: NullInt32
+    Image: string
+    Hash: string
+    ContentType: string
+    Width: number
+    Height: number
+    CreatedAt: Date
 }
 
 export interface ListSpritesheetsForTilemapRow {
-  TilemapID: number
-  SpritesheetID: number
-  SpritesheetName: string
+    TilemapID: number
+    SpritesheetID: number
+    SpritesheetName: string
+    SpritesheetHash: string
+}
+
+export interface Spritesheet {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Image: string
+    Hash: string
+    CreatedAt: Date
+}
+
+export interface NullString {
+    String: string
+    Valid: boolean
+}
+
+export interface Tilemap {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Hash: string
+    CreatedAt: Date
+}
+
+export interface TilemapWithThumbnail {
+        
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Hash: string
+    CreatedAt: Date
+
+    Thumbnails: Thumbnail[] | null
 }
 
 class AssetService extends JSONRPCService {
@@ -74,9 +105,6 @@ class AssetService extends JSONRPCService {
     }
     async ListReferences(args: ListSpritesheetsForTilemapRequest): Promise<ListSpritesheetsForTilemapResponse> {
       return this.jsonrpc<ListSpritesheetsForTilemapResponse>("ListReferences", args);
-    }
-    async ListThumbnails(args: ListThumbnailsRequest): Promise<ListThumbnailsResponse> {
-      return this.jsonrpc<ListThumbnailsResponse>("ListThumbnails", args);
     }
 }
 

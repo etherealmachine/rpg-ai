@@ -1,38 +1,37 @@
-
 import JSONRPCService from './JSONRPCService';
 
 export interface FacebookLoginRequest {
-  AccessToken: string
+    AccessToken: string
 }
 
 export interface LoginResponse {
-  User: User
+    User: User
 }
 
 export interface GoogleLoginRequest {
-  TokenID: string
+    TokenID: string
 }
 
 export interface LoginResponse {
-  User: User
-}
-
-export interface NullBool {
-  Bool: boolean
-  Valid: boolean
-}
-
-export interface NullTime {
-  Time: Date
-  Valid: boolean
+    User: User
 }
 
 export interface User {
-  ID: number
-  Email: string
-  Admin: NullBool
-  CreatedAt: Date
-  LastLogin: NullTime
+    ID: number
+    Email: string
+    Admin: NullBool
+    CreatedAt: Date
+    LastLogin: NullTime
+}
+
+export interface NullBool {
+    Bool: boolean
+    Valid: boolean
+}
+
+export interface NullTime {
+    Time: Date
+    Valid: boolean
 }
 
 class LoginService extends JSONRPCService {

@@ -5,62 +5,65 @@
 package views
 
 //line views/map.html.qtpl:1
+import "github.com/etherealmachine/rpg.ai/server/models"
+
+//line views/map.html.qtpl:3
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/map.html.qtpl:1
+//line views/map.html.qtpl:3
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/map.html.qtpl:2
+//line views/map.html.qtpl:4
 type MapPage struct {
 	*BasePage
-	MapID int32
+	Map models.Tilemap
 }
 
-//line views/map.html.qtpl:8
+//line views/map.html.qtpl:10
 func (p *MapPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/map.html.qtpl:8
+//line views/map.html.qtpl:10
 	qw422016.N().S(`
-  <div style="flex: 1" class="Map" data-props=`)
-//line views/map.html.qtpl:9
+  <div style="flex: 1" class="Map" data-props="`)
+//line views/map.html.qtpl:11
 	qw422016.E().Q(JSON(map[string]interface{}{
-		"MapID": p.MapID,
+		"Map": p.Map,
 	}))
-//line views/map.html.qtpl:12
-	qw422016.N().S(`>
+//line views/map.html.qtpl:14
+	qw422016.N().S(`">
   </div>
 `)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 }
 
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 func (p *MapPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	p.StreamContent(qw422016)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	qt422016.ReleaseWriter(qw422016)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 }
 
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 func (p *MapPage) Content() string {
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	p.WriteContent(qb422016)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	qs422016 := string(qb422016.B)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 	return qs422016
-//line views/map.html.qtpl:14
+//line views/map.html.qtpl:16
 }

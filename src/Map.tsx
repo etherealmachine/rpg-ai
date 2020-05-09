@@ -2,12 +2,13 @@ import React from 'react';
 import styled from 'styled-components';
 import Phaser from 'phaser';
 
+import { Tilemap } from './AssetService';
 import LoadMap from './scenes/LoadMap';
 import HexMap from './scenes/HexMap';
 import OrthoMap from './scenes/OrthoMap';
 
 interface Props {
-  MapID: number
+  Map: Tilemap
 }
 
 const Game = styled.div`
@@ -17,7 +18,7 @@ const Game = styled.div`
 
 const setup = new Set<HTMLElement>();
 
-function setupPhaserMap(el: HTMLElement, mapID: number) {
+function setupPhaserMap(el: HTMLElement, map: Tilemap) {
   if (setup.has(el)) return;
   setup.add(el);
   const gameConfig = {
@@ -27,7 +28,7 @@ function setupPhaserMap(el: HTMLElement, mapID: number) {
     pixelArt: true,
   }
   const phaser = new Phaser.Game(gameConfig);
-  phaser.scene.add('LoadMap', LoadMap, true, { mapID: mapID });
+  phaser.scene.add('LoadMap', LoadMap, true, { map: map });
   phaser.scene.add('OrthoMap', OrthoMap, false);
   phaser.scene.add('HexMap', HexMap, false);
   el.addEventListener('click', () => {
@@ -38,5 +39,5 @@ function setupPhaserMap(el: HTMLElement, mapID: number) {
 }
 
 export default function Map(props: Props) {
-  return <Game ref={el => el && setupPhaserMap(el, props.MapID)} />;
+  return <Game ref={el => el && setupPhaserMap(el, props.Map)} />;
 }

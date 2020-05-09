@@ -23,8 +23,8 @@ var (
 //line views/user_profile.html.qtpl:4
 type UserProfilePage struct {
 	*BasePage
-	UserSpritesheets []models.ListSpritesheetsByOwnerIDRow
-	UserTilemaps     []models.ListTilemapsByOwnerIDRow
+	UserSpritesheets []models.Spritesheet
+	UserTilemaps     []models.TilemapWithThumbnail
 }
 
 //line views/user_profile.html.qtpl:11
@@ -80,14 +80,14 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/user_profile.html.qtpl:20
 	qw422016.N().S(`</p>
     <h4>Assets</h4>
-    <div class="AssetTable" data-props=`)
+    <div class="AssetTable" data-props="`)
 //line views/user_profile.html.qtpl:22
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Spritesheets": p.UserSpritesheets,
 		"Tilemaps":     p.UserTilemaps,
 	}))
 //line views/user_profile.html.qtpl:26
-	qw422016.N().S(`></div>
+	qw422016.N().S(`"></div>
     <div class="AssetUploader"></div>
   </div>
 `)

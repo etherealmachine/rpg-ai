@@ -27,8 +27,9 @@ type StructDef struct {
 }
 
 type Field struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
+	Embedded bool
 }
 
 func NewStructDef(t reflect.Type, structs map[string]*StructDef) *StructDef {
@@ -54,8 +55,9 @@ func NewStructDef(t reflect.Type, structs map[string]*StructDef) *StructDef {
 			panic(fmt.Sprintf("%s field %s: %v", t.Name(), f.Name, err))
 		}
 		fields = append(fields, &Field{
-			Name: f.Name,
-			Type: jsType,
+			Name:     f.Name,
+			Type:     jsType,
+			Embedded: f.Anonymous,
 		})
 	}
 	def := &StructDef{

@@ -1,21 +1,31 @@
 {% package main %}
 
-{% func Interface(def *StructDef) %}
-export interface {%s def.Name %} {
-{%- for _, field := range def.Fields -%}
-  {%s field.Name %}: {%s field.Type %}
-{%- endfor -%}
-}
+{% func Interface(def *StructDef, defs []*StructDef) %}
+export interface {%s def.Name %} {{%= Fields(def, defs) %}}
 {% endfunc %}
 
-{% func JSONRPCService(service *Service) %}
+{% func Fields(def *StructDef, defs []*StructDef) %}
+{%- for _, field := range def.Fields -%}
+  {%- if field.Embedded -%}
+    {%- for _, structDef := range defs -%}
+      {%- if structDef.Name == field.Type -%}
+        {%s Fields(structDef, defs) %}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- else -%}
+    {%s field.Name %}: {%s field.Type %}
+  {%- endif -%}
+{%- endfor -%}
+{%- endfunc %}
+
+{% func JSONRPCService(service *Service) -%}
 import JSONRPCService from './JSONRPCService';
 {%- for _, method := range service.Methods -%}
-{%= Interface(method.RequestDef) -%}
-{%= Interface(method.ResponseDef) -%}
+{%= Interface(method.RequestDef, service.OtherStructs) -%}
+{%= Interface(method.ResponseDef, service.OtherStructs) -%}
 {%- endfor -%}
 {%- for _, structDef := range service.OtherStructs -%}
-{%-= Interface(structDef) -%}
+{%-= Interface(structDef, service.OtherStructs) -%}
 {%- endfor -%}
 
 class {%s service.Name %} extends JSONRPCService {

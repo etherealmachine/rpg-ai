@@ -13,7 +13,7 @@ import (
 )
 
 const createSpritesheet = `-- name: CreateSpritesheet :one
-INSERT INTO spritesheets (owner_id, name, definition, image) VALUES ($1, $2, $3, $4) RETURNING id, owner_id, name, definition, image, created_at
+INSERT INTO spritesheets (owner_id, name, definition, image) VALUES ($1, $2, $3, $4) RETURNING id, owner_id, name, description, definition, image, hash, created_at
 `
 
 type CreateSpritesheetParams struct {
@@ -35,15 +35,17 @@ func (q *Queries) CreateSpritesheet(ctx context.Context, arg CreateSpritesheetPa
 		&i.ID,
 		&i.OwnerID,
 		&i.Name,
+		&i.Description,
 		&i.Definition,
 		&i.Image,
+		&i.Hash,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const createTilemap = `-- name: CreateTilemap :one
-INSERT INTO tilemaps (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING id, owner_id, name, definition, created_at
+INSERT INTO tilemaps (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING id, owner_id, name, description, definition, hash, created_at
 `
 
 type CreateTilemapParams struct {
@@ -59,7 +61,9 @@ func (q *Queries) CreateTilemap(ctx context.Context, arg CreateTilemapParams) (T
 		&i.ID,
 		&i.OwnerID,
 		&i.Name,
+		&i.Description,
 		&i.Definition,
+		&i.Hash,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -107,29 +111,31 @@ func (q *Queries) DeleteTilemapWithOwner(ctx context.Context, arg DeleteTilemapW
 	return err
 }
 
-const getSpritesheetByID = `-- name: GetSpritesheetByID :one
-SELECT id, owner_id, name, definition, image, created_at FROM spritesheets WHERE id = $1
+const getSpritesheetByHash = `-- name: GetSpritesheetByHash :one
+SELECT id, owner_id, name, description, definition, image, hash, created_at FROM spritesheets WHERE hash = $1
 `
 
-func (q *Queries) GetSpritesheetByID(ctx context.Context, id int32) (Spritesheet, error) {
-	row := q.db.QueryRowContext(ctx, getSpritesheetByID, id)
+func (q *Queries) GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error) {
+	row := q.db.QueryRowContext(ctx, getSpritesheetByHash, hash)
 	var i Spritesheet
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
 		&i.Name,
+		&i.Description,
 		&i.Definition,
 		&i.Image,
+		&i.Hash,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const getThumbnailByID = `-- name: GetThumbnailByID :one
-SELECT id, tilemap_id, spritesheet_id, content_type, image, width, height, created_at FROM thumbnails WHERE id = $1
+const getThumbnailByHash = `-- name: GetThumbnailByHash :one
+SELECT id, tilemap_id, spritesheet_id, content_type, image, width, height, created_at FROM thumbnails WHERE hash = $1
 `
 
-type GetThumbnailByIDRow struct {
+type GetThumbnailByHashRow struct {
 	ID            int32
 	TilemapID     sql.NullInt32
 	SpritesheetID sql.NullInt32
@@ -140,9 +146,9 @@ type GetThumbnailByIDRow struct {
 	CreatedAt     time.Time
 }
 
-func (q *Queries) GetThumbnailByID(ctx context.Context, id int32) (GetThumbnailByIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getThumbnailByID, id)
-	var i GetThumbnailByIDRow
+func (q *Queries) GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error) {
+	row := q.db.QueryRowContext(ctx, getThumbnailByHash, hash)
+	var i GetThumbnailByHashRow
 	err := row.Scan(
 		&i.ID,
 		&i.TilemapID,
@@ -156,18 +162,20 @@ func (q *Queries) GetThumbnailByID(ctx context.Context, id int32) (GetThumbnailB
 	return i, err
 }
 
-const getTilemapByID = `-- name: GetTilemapByID :one
-SELECT id, owner_id, name, definition, created_at FROM tilemaps WHERE id = $1
+const getTilemapByHash = `-- name: GetTilemapByHash :one
+SELECT id, owner_id, name, description, definition, hash, created_at FROM tilemaps WHERE hash = $1
 `
 
-func (q *Queries) GetTilemapByID(ctx context.Context, id int32) (Tilemap, error) {
-	row := q.db.QueryRowContext(ctx, getTilemapByID, id)
+func (q *Queries) GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, error) {
+	row := q.db.QueryRowContext(ctx, getTilemapByHash, hash)
 	var i Tilemap
 	err := row.Scan(
 		&i.ID,
 		&i.OwnerID,
 		&i.Name,
+		&i.Description,
 		&i.Definition,
+		&i.Hash,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -207,7 +215,7 @@ func (q *Queries) InsertThumbnailForOwnedTilemap(ctx context.Context, arg Insert
 }
 
 const listRecentSpritesheets = `-- name: ListRecentSpritesheets :many
-SELECT id, owner_id, name, definition, image, created_at FROM spritesheets ORDER BY created_at DESC LIMIT $1
+SELECT id, owner_id, name, description, definition, image, hash, created_at FROM spritesheets ORDER BY created_at DESC LIMIT $1
 `
 
 func (q *Queries) ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error) {
@@ -223,8 +231,10 @@ func (q *Queries) ListRecentSpritesheets(ctx context.Context, limit int32) ([]Sp
 			&i.ID,
 			&i.OwnerID,
 			&i.Name,
+			&i.Description,
 			&i.Definition,
 			&i.Image,
+			&i.Hash,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -241,7 +251,7 @@ func (q *Queries) ListRecentSpritesheets(ctx context.Context, limit int32) ([]Sp
 }
 
 const listRecentTilemaps = `-- name: ListRecentTilemaps :many
-SELECT id, owner_id, name, definition, created_at FROM tilemaps ORDER BY created_at DESC LIMIT $1
+SELECT id, owner_id, name, description, definition, hash, created_at FROM tilemaps ORDER BY created_at DESC LIMIT $1
 `
 
 func (q *Queries) ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilemap, error) {
@@ -257,7 +267,9 @@ func (q *Queries) ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilema
 			&i.ID,
 			&i.OwnerID,
 			&i.Name,
+			&i.Description,
 			&i.Definition,
+			&i.Hash,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -274,15 +286,15 @@ func (q *Queries) ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilema
 }
 
 const listSpritesheetsByOwnerID = `-- name: ListSpritesheetsByOwnerID :many
-SELECT id, created_at, name, octet_length(definition::text) AS spritesheet_size, octet_length(image) AS image_size FROM spritesheets WHERE owner_id = $1
+SELECT id, created_at, name, description, hash FROM spritesheets WHERE owner_id = $1
 `
 
 type ListSpritesheetsByOwnerIDRow struct {
-	ID              int32
-	CreatedAt       time.Time
-	Name            string
-	SpritesheetSize interface{}
-	ImageSize       interface{}
+	ID          int32
+	CreatedAt   time.Time
+	Name        string
+	Description sql.NullString
+	Hash        []byte
 }
 
 func (q *Queries) ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) ([]ListSpritesheetsByOwnerIDRow, error) {
@@ -298,8 +310,8 @@ func (q *Queries) ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) 
 			&i.ID,
 			&i.CreatedAt,
 			&i.Name,
-			&i.SpritesheetSize,
-			&i.ImageSize,
+			&i.Description,
+			&i.Hash,
 		); err != nil {
 			return nil, err
 		}
@@ -315,13 +327,14 @@ func (q *Queries) ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) 
 }
 
 const listSpritesheetsForTilemap = `-- name: ListSpritesheetsForTilemap :many
-SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
+SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name, s.hash as spritesheet_hash FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
 `
 
 type ListSpritesheetsForTilemapRow struct {
 	TilemapID       int32
 	SpritesheetID   int32
 	SpritesheetName string
+	SpritesheetHash []byte
 }
 
 func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error) {
@@ -333,7 +346,12 @@ func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int3
 	var items []ListSpritesheetsForTilemapRow
 	for rows.Next() {
 		var i ListSpritesheetsForTilemapRow
-		if err := rows.Scan(&i.TilemapID, &i.SpritesheetID, &i.SpritesheetName); err != nil {
+		if err := rows.Scan(
+			&i.TilemapID,
+			&i.SpritesheetID,
+			&i.SpritesheetName,
+			&i.SpritesheetHash,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -348,16 +366,12 @@ func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int3
 }
 
 const listThumbnailsForSpritesheets = `-- name: ListThumbnailsForSpritesheets :many
-SELECT id, spritesheet_id, content_type, width, height, created_at FROM thumbnails WHERE spritesheet_id = ANY($1::INTEGER[])
+SELECT spritesheet_id, hash FROM thumbnails WHERE spritesheet_id = ANY($1::INTEGER[])
 `
 
 type ListThumbnailsForSpritesheetsRow struct {
-	ID            int32
 	SpritesheetID sql.NullInt32
-	ContentType   string
-	Width         int32
-	Height        int32
-	CreatedAt     time.Time
+	Hash          []byte
 }
 
 func (q *Queries) ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForSpritesheetsRow, error) {
@@ -369,14 +383,7 @@ func (q *Queries) ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []
 	var items []ListThumbnailsForSpritesheetsRow
 	for rows.Next() {
 		var i ListThumbnailsForSpritesheetsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.SpritesheetID,
-			&i.ContentType,
-			&i.Width,
-			&i.Height,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.SpritesheetID, &i.Hash); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -391,16 +398,12 @@ func (q *Queries) ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []
 }
 
 const listThumbnailsForTilemaps = `-- name: ListThumbnailsForTilemaps :many
-SELECT id, tilemap_id, content_type, width, height, created_at FROM thumbnails WHERE tilemap_id = ANY($1::INTEGER[])
+SELECT tilemap_id, hash FROM thumbnails WHERE tilemap_id = ANY($1::INTEGER[])
 `
 
 type ListThumbnailsForTilemapsRow struct {
-	ID          int32
-	TilemapID   sql.NullInt32
-	ContentType string
-	Width       int32
-	Height      int32
-	CreatedAt   time.Time
+	TilemapID sql.NullInt32
+	Hash      []byte
 }
 
 func (q *Queries) ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForTilemapsRow, error) {
@@ -412,14 +415,7 @@ func (q *Queries) ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int3
 	var items []ListThumbnailsForTilemapsRow
 	for rows.Next() {
 		var i ListThumbnailsForTilemapsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.TilemapID,
-			&i.ContentType,
-			&i.Width,
-			&i.Height,
-			&i.CreatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.TilemapID, &i.Hash); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -434,14 +430,15 @@ func (q *Queries) ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int3
 }
 
 const listTilemapsByOwnerID = `-- name: ListTilemapsByOwnerID :many
-SELECT id, created_at, name, octet_length(definition::text) AS tilemap_size FROM tilemaps WHERE owner_id = $1
+SELECT id, created_at, name, description, hash FROM tilemaps WHERE owner_id = $1
 `
 
 type ListTilemapsByOwnerIDRow struct {
 	ID          int32
 	CreatedAt   time.Time
 	Name        string
-	TilemapSize interface{}
+	Description sql.NullString
+	Hash        []byte
 }
 
 func (q *Queries) ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error) {
@@ -457,7 +454,8 @@ func (q *Queries) ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]L
 			&i.ID,
 			&i.CreatedAt,
 			&i.Name,
-			&i.TilemapSize,
+			&i.Description,
+			&i.Hash,
 		); err != nil {
 			return nil, err
 		}

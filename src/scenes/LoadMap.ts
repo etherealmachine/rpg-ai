@@ -1,38 +1,37 @@
 import Phaser from 'phaser';
 import { host } from '../JSONRPCService';
-import AssetService from '../AssetService';
+import AssetService, { Tilemap as TilemapModel } from '../AssetService';
 import { Tilemap, Tileset } from '../Tiled';
 
 export default class LoadMap extends Phaser.Scene {
-  mapID?: number
+  mapModel?: TilemapModel
   map?: Tilemap
 
   init(args: any) {
-    this.mapID = parseInt(args.mapID);
+    this.mapModel = args.map;
   }
 
   preload() {
-    if (this.mapID) {
-      this.loadTilemap(this.mapID).then(() => {
+    if (this.mapModel) {
+      this.loadTilemap().then(() => {
         if (this.map && this.map.orientation === 'orthogonal') {
-          this.game.scene.start('OrthoMap', { mapID: this.mapID, map: this.map });
+          this.game.scene.start('OrthoMap', { tilemapModel: this.mapModel, map: this.map });
         } else {
-          this.game.scene.start('HexMap', { mapID: this.mapID, map: this.map });
+          this.game.scene.start('HexMap', { tilemapModel: this.mapModel, map: this.map });
         }
       });
     }
   }
 
-  async loadTilemap(id: number) {
-    this.fetch(`${host}/tilemap/${id}`, 'text').then(req => {
-      this.map = JSON.parse(req.responseText);
-    });
-    const refs = (await AssetService.ListReferences({ TilemapID: id })).References;
+  async loadTilemap() {
+    if (!this.mapModel) return;
+    this.map = ((this.mapModel?.Definition as unknown) as Tilemap);
+    const refs = (await AssetService.ListReferences({ TilemapID: this.mapModel.ID })).References;
     await Promise.all((refs || []).map(async ref => {
-      let req = await this.fetch(`${host}/spritesheet/definition/${ref.SpritesheetID}`, 'text');
+      let req = await this.fetch(`${host}/spritesheet/definition/${ref.SpritesheetHash}`, 'text');
       const tileset = JSON.parse(req.responseText) as Tileset;
       this.cache.json.add(ref.SpritesheetName, tileset);
-      req = await this.fetch(`${host}/spritesheet/image/${ref.SpritesheetID}`, 'blob');
+      req = await this.fetch(`${host}/spritesheet/image/${ref.SpritesheetHash}`, 'blob');
       return this.loadSpriteSheet(ref.SpritesheetName, tileset, req.response as Blob);
     }));
   }

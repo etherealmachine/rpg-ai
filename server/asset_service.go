@@ -15,8 +15,8 @@ type ListAssetsRequest struct {
 }
 
 type ListAssetsResponse struct {
-	Spritesheets []models.ListSpritesheetsByOwnerIDRow
-	Tilemaps     []models.ListTilemapsByOwnerIDRow
+	Spritesheets []models.Spritesheet
+	Tilemaps     []models.TilemapWithThumbnail
 }
 
 func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, reply *ListAssetsResponse) error {
@@ -28,12 +28,32 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 	if err != nil {
 		return err
 	}
-	reply.Spritesheets = spritesheets
+	for _, s := range spritesheets {
+		reply.Spritesheets = append(reply.Spritesheets, models.Spritesheet{
+			ID:          s.ID,
+			OwnerID:     u.ID,
+			Name:        s.Name,
+			Description: s.Description,
+			Hash:        s.Hash,
+			CreatedAt:   s.CreatedAt,
+		})
+	}
 	tilemaps, err := s.db.ListTilemapsByOwnerID(r.Context(), u.ID)
 	if err != nil {
 		return err
 	}
-	reply.Tilemaps = tilemaps
+	for _, t := range tilemaps {
+		reply.Tilemaps = append(reply.Tilemaps, models.TilemapWithThumbnail{
+			Tilemap: models.Tilemap{
+				ID:          t.ID,
+				OwnerID:     u.ID,
+				Name:        t.Name,
+				Description: t.Description,
+				Hash:        t.Hash,
+				CreatedAt:   t.CreatedAt,
+			},
+		})
+	}
 	return nil
 }
 
@@ -73,40 +93,6 @@ func (s *AssetService) ListReferences(r *http.Request, args *ListSpritesheetsFor
 	reply.References, err = s.db.ListSpritesheetsForTilemap(r.Context(), args.TilemapID)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-type ListThumbnailsRequest struct {
-	TilemapIDs     []int32
-	SpritesheetIDs []int32
-}
-
-type ListThumbnailsResponse struct {
-	TilemapThumbnailIDs     map[int32][]int32
-	SpritesheetThumbnailIDs map[int32][]int32
-}
-
-func (s *AssetService) ListThumbnails(r *http.Request, args *ListThumbnailsRequest, reply *ListThumbnailsResponse) error {
-	reply.TilemapThumbnailIDs = make(map[int32][]int32)
-	reply.SpritesheetThumbnailIDs = make(map[int32][]int32)
-	trows, err := s.db.ListThumbnailsForTilemaps(r.Context(), args.TilemapIDs)
-	if err != nil {
-		return err
-	}
-	for _, row := range trows {
-		if row.TilemapID.Valid {
-			reply.TilemapThumbnailIDs[row.TilemapID.Int32] = append(reply.TilemapThumbnailIDs[row.TilemapID.Int32], row.ID)
-		}
-	}
-	srows, err := s.db.ListThumbnailsForSpritesheets(r.Context(), args.SpritesheetIDs)
-	if err != nil {
-		return err
-	}
-	for _, row := range srows {
-		if row.SpritesheetID.Valid {
-			reply.SpritesheetThumbnailIDs[row.SpritesheetID.Int32] = append(reply.SpritesheetThumbnailIDs[row.SpritesheetID.Int32], row.ID)
-		}
 	}
 	return nil
 }

@@ -9,12 +9,14 @@ import (
 )
 
 type Spritesheet struct {
-	ID         int32
-	OwnerID    int32
-	Name       string
-	Definition json.RawMessage
-	Image      []byte
-	CreatedAt  time.Time
+	ID          int32
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	Definition  json.RawMessage
+	Image       []byte
+	Hash        []byte
+	CreatedAt   time.Time
 }
 
 type Thumbnail struct {
@@ -22,6 +24,7 @@ type Thumbnail struct {
 	TilemapID     sql.NullInt32
 	SpritesheetID sql.NullInt32
 	Image         []byte
+	Hash          []byte
 	ContentType   string
 	Width         int32
 	Height        int32
@@ -29,11 +32,13 @@ type Thumbnail struct {
 }
 
 type Tilemap struct {
-	ID         int32
-	OwnerID    int32
-	Name       string
-	Definition json.RawMessage
-	CreatedAt  time.Time
+	ID          int32
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	Definition  json.RawMessage
+	Hash        []byte
+	CreatedAt   time.Time
 }
 
 type TilemapReference struct {

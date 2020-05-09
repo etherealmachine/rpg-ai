@@ -18,163 +18,218 @@ var (
 )
 
 //line jsonrpcservice_template.qtpl:3
-func StreamInterface(qw422016 *qt422016.Writer, def *StructDef) {
+func StreamInterface(qw422016 *qt422016.Writer, def *StructDef, defs []*StructDef) {
 //line jsonrpcservice_template.qtpl:3
 	qw422016.N().S(`
 export interface `)
 //line jsonrpcservice_template.qtpl:4
 	qw422016.E().S(def.Name)
 //line jsonrpcservice_template.qtpl:4
-	qw422016.N().S(` {
-`)
-//line jsonrpcservice_template.qtpl:5
-	for _, field := range def.Fields {
-//line jsonrpcservice_template.qtpl:5
-		qw422016.N().S(`  `)
-//line jsonrpcservice_template.qtpl:6
-		qw422016.E().S(field.Name)
-//line jsonrpcservice_template.qtpl:6
-		qw422016.N().S(`: `)
-//line jsonrpcservice_template.qtpl:6
-		qw422016.E().S(field.Type)
-//line jsonrpcservice_template.qtpl:6
-		qw422016.N().S(`
-`)
-//line jsonrpcservice_template.qtpl:7
-	}
-//line jsonrpcservice_template.qtpl:7
+	qw422016.N().S(` {`)
+//line jsonrpcservice_template.qtpl:4
+	StreamFields(qw422016, def, defs)
+//line jsonrpcservice_template.qtpl:4
 	qw422016.N().S(`}
 `)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
 }
 
-//line jsonrpcservice_template.qtpl:9
-func WriteInterface(qq422016 qtio422016.Writer, def *StructDef) {
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
+func WriteInterface(qq422016 qtio422016.Writer, def *StructDef, defs []*StructDef) {
+//line jsonrpcservice_template.qtpl:5
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line jsonrpcservice_template.qtpl:9
-	StreamInterface(qw422016, def)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
+	StreamInterface(qw422016, def, defs)
+//line jsonrpcservice_template.qtpl:5
 	qt422016.ReleaseWriter(qw422016)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
 }
 
-//line jsonrpcservice_template.qtpl:9
-func Interface(def *StructDef) string {
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
+func Interface(def *StructDef, defs []*StructDef) string {
+//line jsonrpcservice_template.qtpl:5
 	qb422016 := qt422016.AcquireByteBuffer()
-//line jsonrpcservice_template.qtpl:9
-	WriteInterface(qb422016, def)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
+	WriteInterface(qb422016, def, defs)
+//line jsonrpcservice_template.qtpl:5
 	qs422016 := string(qb422016.B)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
 	qt422016.ReleaseByteBuffer(qb422016)
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
 	return qs422016
-//line jsonrpcservice_template.qtpl:9
+//line jsonrpcservice_template.qtpl:5
 }
 
-//line jsonrpcservice_template.qtpl:11
-func StreamJSONRPCService(qw422016 *qt422016.Writer, service *Service) {
-//line jsonrpcservice_template.qtpl:11
+//line jsonrpcservice_template.qtpl:7
+func StreamFields(qw422016 *qt422016.Writer, def *StructDef, defs []*StructDef) {
+//line jsonrpcservice_template.qtpl:7
 	qw422016.N().S(`
-import JSONRPCService from './JSONRPCService';
+`)
+//line jsonrpcservice_template.qtpl:8
+	for _, field := range def.Fields {
+//line jsonrpcservice_template.qtpl:9
+		if field.Embedded {
+//line jsonrpcservice_template.qtpl:10
+			for _, structDef := range defs {
+//line jsonrpcservice_template.qtpl:11
+				if structDef.Name == field.Type {
+//line jsonrpcservice_template.qtpl:11
+					qw422016.N().S(`        `)
+//line jsonrpcservice_template.qtpl:12
+					qw422016.E().S(Fields(structDef, defs))
+//line jsonrpcservice_template.qtpl:12
+					qw422016.N().S(`
 `)
 //line jsonrpcservice_template.qtpl:13
-	for _, method := range service.Methods {
+				}
 //line jsonrpcservice_template.qtpl:14
-		StreamInterface(qw422016, method.RequestDef)
+			}
 //line jsonrpcservice_template.qtpl:15
-		StreamInterface(qw422016, method.ResponseDef)
+		} else {
+//line jsonrpcservice_template.qtpl:15
+			qw422016.N().S(`    `)
 //line jsonrpcservice_template.qtpl:16
-	}
+			qw422016.E().S(field.Name)
+//line jsonrpcservice_template.qtpl:16
+			qw422016.N().S(`: `)
+//line jsonrpcservice_template.qtpl:16
+			qw422016.E().S(field.Type)
+//line jsonrpcservice_template.qtpl:16
+			qw422016.N().S(`
+`)
 //line jsonrpcservice_template.qtpl:17
-	for _, structDef := range service.OtherStructs {
+		}
 //line jsonrpcservice_template.qtpl:18
-		StreamInterface(qw422016, structDef)
-//line jsonrpcservice_template.qtpl:19
 	}
 //line jsonrpcservice_template.qtpl:19
+}
+
+//line jsonrpcservice_template.qtpl:19
+func WriteFields(qq422016 qtio422016.Writer, def *StructDef, defs []*StructDef) {
+//line jsonrpcservice_template.qtpl:19
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line jsonrpcservice_template.qtpl:19
+	StreamFields(qw422016, def, defs)
+//line jsonrpcservice_template.qtpl:19
+	qt422016.ReleaseWriter(qw422016)
+//line jsonrpcservice_template.qtpl:19
+}
+
+//line jsonrpcservice_template.qtpl:19
+func Fields(def *StructDef, defs []*StructDef) string {
+//line jsonrpcservice_template.qtpl:19
+	qb422016 := qt422016.AcquireByteBuffer()
+//line jsonrpcservice_template.qtpl:19
+	WriteFields(qb422016, def, defs)
+//line jsonrpcservice_template.qtpl:19
+	qs422016 := string(qb422016.B)
+//line jsonrpcservice_template.qtpl:19
+	qt422016.ReleaseByteBuffer(qb422016)
+//line jsonrpcservice_template.qtpl:19
+	return qs422016
+//line jsonrpcservice_template.qtpl:19
+}
+
+//line jsonrpcservice_template.qtpl:21
+func StreamJSONRPCService(qw422016 *qt422016.Writer, service *Service) {
+//line jsonrpcservice_template.qtpl:21
+	qw422016.N().S(`import JSONRPCService from './JSONRPCService';
+`)
+//line jsonrpcservice_template.qtpl:23
+	for _, method := range service.Methods {
+//line jsonrpcservice_template.qtpl:24
+		StreamInterface(qw422016, method.RequestDef, service.OtherStructs)
+//line jsonrpcservice_template.qtpl:25
+		StreamInterface(qw422016, method.ResponseDef, service.OtherStructs)
+//line jsonrpcservice_template.qtpl:26
+	}
+//line jsonrpcservice_template.qtpl:27
+	for _, structDef := range service.OtherStructs {
+//line jsonrpcservice_template.qtpl:28
+		StreamInterface(qw422016, structDef, service.OtherStructs)
+//line jsonrpcservice_template.qtpl:29
+	}
+//line jsonrpcservice_template.qtpl:29
 	qw422016.N().S(`
 class `)
-//line jsonrpcservice_template.qtpl:21
+//line jsonrpcservice_template.qtpl:31
 	qw422016.E().S(service.Name)
-//line jsonrpcservice_template.qtpl:21
+//line jsonrpcservice_template.qtpl:31
 	qw422016.N().S(` extends JSONRPCService {
 `)
-//line jsonrpcservice_template.qtpl:22
+//line jsonrpcservice_template.qtpl:32
 	for _, method := range service.Methods {
-//line jsonrpcservice_template.qtpl:22
+//line jsonrpcservice_template.qtpl:32
 		qw422016.N().S(`    async `)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.E().S(method.Name)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.N().S(`(args: `)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.E().S(method.RequestDef.Name)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.N().S(`): Promise<`)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.E().S(method.ResponseDef.Name)
-//line jsonrpcservice_template.qtpl:23
+//line jsonrpcservice_template.qtpl:33
 		qw422016.N().S(`> {
       return this.jsonrpc<`)
-//line jsonrpcservice_template.qtpl:24
+//line jsonrpcservice_template.qtpl:34
 		qw422016.E().S(method.ResponseDef.Name)
-//line jsonrpcservice_template.qtpl:24
+//line jsonrpcservice_template.qtpl:34
 		qw422016.N().S(`>("`)
-//line jsonrpcservice_template.qtpl:24
+//line jsonrpcservice_template.qtpl:34
 		qw422016.E().S(method.Name)
-//line jsonrpcservice_template.qtpl:24
+//line jsonrpcservice_template.qtpl:34
 		qw422016.N().S(`", args);
     }
 `)
-//line jsonrpcservice_template.qtpl:26
+//line jsonrpcservice_template.qtpl:36
 	}
-//line jsonrpcservice_template.qtpl:26
+//line jsonrpcservice_template.qtpl:36
 	qw422016.N().S(`}
 
 const service = new `)
-//line jsonrpcservice_template.qtpl:29
+//line jsonrpcservice_template.qtpl:39
 	qw422016.E().S(service.Name)
-//line jsonrpcservice_template.qtpl:29
+//line jsonrpcservice_template.qtpl:39
 	qw422016.N().S(`("`)
-//line jsonrpcservice_template.qtpl:29
+//line jsonrpcservice_template.qtpl:39
 	qw422016.E().S(service.Name)
-//line jsonrpcservice_template.qtpl:29
+//line jsonrpcservice_template.qtpl:39
 	qw422016.N().S(`");
 (window as any).`)
-//line jsonrpcservice_template.qtpl:30
+//line jsonrpcservice_template.qtpl:40
 	qw422016.E().S(service.Name)
-//line jsonrpcservice_template.qtpl:30
+//line jsonrpcservice_template.qtpl:40
 	qw422016.N().S(` = service;
 export default service;
 `)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 }
 
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 func WriteJSONRPCService(qq422016 qtio422016.Writer, service *Service) {
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	StreamJSONRPCService(qw422016, service)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	qt422016.ReleaseWriter(qw422016)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 }
 
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 func JSONRPCService(service *Service) string {
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	qb422016 := qt422016.AcquireByteBuffer()
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	WriteJSONRPCService(qb422016, service)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	qs422016 := string(qb422016.B)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	qt422016.ReleaseByteBuffer(qb422016)
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 	return qs422016
-//line jsonrpcservice_template.qtpl:32
+//line jsonrpcservice_template.qtpl:42
 }

@@ -12,9 +12,9 @@ type Querier interface {
 	CreateTilemapReference(ctx context.Context, arg CreateTilemapReferenceParams) error
 	DeleteSpritesheetWithOwner(ctx context.Context, arg DeleteSpritesheetWithOwnerParams) error
 	DeleteTilemapWithOwner(ctx context.Context, arg DeleteTilemapWithOwnerParams) error
-	GetSpritesheetByID(ctx context.Context, id int32) (Spritesheet, error)
-	GetThumbnailByID(ctx context.Context, id int32) (GetThumbnailByIDRow, error)
-	GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
+	GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error)
+	GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error)
+	GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	InsertThumbnailForOwnedTilemap(ctx context.Context, arg InsertThumbnailForOwnedTilemapParams) (int64, error)
 	ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error)

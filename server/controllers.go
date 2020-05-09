@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -51,17 +52,26 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 		tilemapIDs = append(tilemapIDs, tilemap.ID)
 	}
 	rows, err := db.ListThumbnailsForTilemaps(r.Context(), tilemapIDs)
-	tilemapThumbnailIDs := make(map[int32]int32)
+	tilemapThumbnails := make(map[int32][]models.Thumbnail)
 	for _, row := range rows {
 		if row.TilemapID.Valid {
-			tilemapThumbnailIDs[row.TilemapID.Int32] = row.ID
+			tilemapThumbnails[row.TilemapID.Int32] = append(tilemapThumbnails[row.TilemapID.Int32], models.Thumbnail{
+				TilemapID: row.TilemapID,
+				Hash:      row.Hash,
+			})
 		}
 	}
+	var tilemapsWithThumbnails []models.TilemapWithThumbnail
+	for _, tilemap := range tilemaps {
+		tilemapsWithThumbnails = append(tilemapsWithThumbnails, models.TilemapWithThumbnail{
+			Tilemap:    tilemap,
+			Thumbnails: tilemapThumbnails[tilemap.ID],
+		})
+	}
 	views.WritePageTemplate(w, &views.IndexPage{
-		BasePage:            basePage(r),
-		Tilemaps:            tilemaps,
-		Spritesheets:        spritesheets,
-		TilemapThumbnailIDs: tilemapThumbnailIDs,
+		BasePage:     basePage(r),
+		Tilemaps:     tilemapsWithThumbnails,
+		Spritesheets: spritesheets,
 	})
 }
 
@@ -83,12 +93,15 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 }
 
 func MapController(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		panic(err)
 	}
-	views.WritePageTemplate(w, &views.MapPage{BasePage: basePage(r), MapID: int32(id)})
+	tilemap, err := db.GetTilemapByHash(r.Context(), hash)
+	if err != nil {
+		panic(err)
+	}
+	views.WritePageTemplate(w, &views.MapPage{BasePage: basePage(r), Map: tilemap})
 }
 
 func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
@@ -192,12 +205,11 @@ func SetTilemapThumbnailController(w http.ResponseWriter, r *http.Request) {
 }
 
 func SpritesheetImageController(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		panic(err)
 	}
-	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
+	spritesheet, err := db.GetSpritesheetByHash(r.Context(), hash)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -209,12 +221,11 @@ func SpritesheetImageController(w http.ResponseWriter, r *http.Request) {
 }
 
 func SpritesheetDefinitionController(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		panic(err)
 	}
-	spritesheet, err := db.GetSpritesheetByID(r.Context(), int32(id))
+	spritesheet, err := db.GetSpritesheetByHash(r.Context(), hash)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -226,12 +237,11 @@ func SpritesheetDefinitionController(w http.ResponseWriter, r *http.Request) {
 }
 
 func TilemapController(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		panic(err)
 	}
-	tilemap, err := db.GetTilemapByID(r.Context(), int32(id))
+	tilemap, err := db.GetTilemapByHash(r.Context(), hash)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -242,12 +252,11 @@ func TilemapController(w http.ResponseWriter, r *http.Request) {
 }
 
 func ThumbnailController(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(mux.Vars(r)["id"], 10, 32)
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		panic(err)
 	}
-	thumbnail, err := db.GetThumbnailByID(r.Context(), int32(id))
+	thumbnail, err := db.GetThumbnailByHash(r.Context(), hash)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(http.StatusNotFound)
 		return

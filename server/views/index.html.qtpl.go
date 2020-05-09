@@ -23,7 +23,7 @@ var (
 //line views/index.html.qtpl:4
 type IndexPage struct {
 	*BasePage
-	Tilemaps            []models.Tilemap
+	Tilemaps            []models.TilemapWithThumbnail
 	Spritesheets        []models.Spritesheet
 	TilemapThumbnailIDs map[int32]int32
 }
@@ -42,9 +42,9 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/index.html.qtpl:17
 		qw422016.N().S(`
           <div class="card m-3" style="width: 18rem">
-            <img src="/spritesheet/image/`)
+            <img src="`)
 //line views/index.html.qtpl:19
-		qw422016.N().D(int(spritesheet.ID))
+		qw422016.E().S(spritesheet.ThumbnailPath())
 //line views/index.html.qtpl:19
 		qw422016.N().S(`" class="card-img-top" alt="Image for `)
 //line views/index.html.qtpl:19
@@ -57,105 +57,130 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
 		qw422016.E().S(spritesheet.Name)
 //line views/index.html.qtpl:21
 		qw422016.N().S(`</h5>
-              <a href="/spritesheet/definition/`)
+              `)
 //line views/index.html.qtpl:22
-		qw422016.N().D(int(spritesheet.ID))
+		if spritesheet.Description.Valid {
 //line views/index.html.qtpl:22
+			qw422016.N().S(`
+                <p class="card-text">`)
+//line views/index.html.qtpl:23
+			qw422016.E().S(spritesheet.Description.String)
+//line views/index.html.qtpl:23
+			qw422016.N().S(`</p>
+              `)
+//line views/index.html.qtpl:24
+		}
+//line views/index.html.qtpl:24
+		qw422016.N().S(`
+              <a href="`)
+//line views/index.html.qtpl:25
+		qw422016.E().S(spritesheet.DownloadPath())
+//line views/index.html.qtpl:25
 		qw422016.N().S(`" class="btn btn-primary">Download</a>
             </div>
           </div>
         `)
-//line views/index.html.qtpl:25
+//line views/index.html.qtpl:28
 	}
-//line views/index.html.qtpl:25
+//line views/index.html.qtpl:28
 	qw422016.N().S(`
       </div>
       <h3>Newest Maps</h3>
       <div class="d-flex flex-wrap">
         `)
-//line views/index.html.qtpl:29
+//line views/index.html.qtpl:32
 	for _, tilemap := range p.Tilemaps {
-//line views/index.html.qtpl:29
+//line views/index.html.qtpl:32
 		qw422016.N().S(`
           <div class="card m-3" style="width: 25rem">
             `)
-//line views/index.html.qtpl:31
-		if p.TilemapThumbnailIDs[tilemap.ID] > 0 {
-//line views/index.html.qtpl:31
+//line views/index.html.qtpl:34
+		if len(tilemap.Thumbnails) > 0 {
+//line views/index.html.qtpl:34
 			qw422016.N().S(`
-              <img src="/thumbnail/`)
-//line views/index.html.qtpl:32
-			qw422016.N().D(int(p.TilemapThumbnailIDs[tilemap.ID]))
-//line views/index.html.qtpl:32
+              <img src="`)
+//line views/index.html.qtpl:35
+			qw422016.E().S(tilemap.Thumbnails[0].Path())
+//line views/index.html.qtpl:35
 			qw422016.N().S(`" class="card-img-top" alt="Image for `)
-//line views/index.html.qtpl:32
+//line views/index.html.qtpl:35
 			qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:32
+//line views/index.html.qtpl:35
 			qw422016.N().S(`">
             `)
-//line views/index.html.qtpl:33
+//line views/index.html.qtpl:36
 		}
-//line views/index.html.qtpl:33
+//line views/index.html.qtpl:36
 		qw422016.N().S(`
             <div class="card-body d-flex flex-column">
               <h5 class="card-title">`)
-//line views/index.html.qtpl:35
+//line views/index.html.qtpl:38
 		qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:35
+//line views/index.html.qtpl:38
 		qw422016.N().S(`</h5>
+              `)
+//line views/index.html.qtpl:39
+		if tilemap.Description.Valid {
+//line views/index.html.qtpl:39
+			qw422016.N().S(`
+                <p class="card-text">`)
+//line views/index.html.qtpl:40
+			qw422016.E().S(tilemap.Description.String)
+//line views/index.html.qtpl:40
+			qw422016.N().S(`</p>
+              `)
+//line views/index.html.qtpl:41
+		}
+//line views/index.html.qtpl:41
+		qw422016.N().S(`
               <div class="d-flex">
-                <a href="/map/`)
-//line views/index.html.qtpl:37
-		qw422016.N().D(int(tilemap.ID))
-//line views/index.html.qtpl:37
+                <a href="`)
+//line views/index.html.qtpl:43
+		qw422016.E().S(tilemap.MapPath())
+//line views/index.html.qtpl:43
 		qw422016.N().S(`" class="btn btn-primary">Preview</a>
-                <a href="/tilemap/`)
-//line views/index.html.qtpl:38
-		qw422016.N().D(int(tilemap.ID))
-//line views/index.html.qtpl:38
+                <a href="`)
+//line views/index.html.qtpl:44
+		qw422016.E().S(tilemap.DownloadPath())
+//line views/index.html.qtpl:44
 		qw422016.N().S(`" class="btn btn-secondary">Download</a>
               </div>
             </div>
           </div>
         `)
-//line views/index.html.qtpl:42
+//line views/index.html.qtpl:48
 	}
-//line views/index.html.qtpl:42
+//line views/index.html.qtpl:48
 	qw422016.N().S(`
-      </div>
-    </div>
-    <div class="d-flex flex-column">
-      <div class="jumbotron jumbotron-fluid">
-
       </div>
     </div>
   </div>
 `)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 }
 
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 func (p *IndexPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	p.StreamContent(qw422016)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	qt422016.ReleaseWriter(qw422016)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 }
 
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 func (p *IndexPage) Content() string {
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	p.WriteContent(qb422016)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	qs422016 := string(qb422016.B)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 	return qs422016
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:52
 }

@@ -1,16 +1,17 @@
 import Phaser from 'phaser';
 import { Tilemap, TilesetSource } from '../Tiled';
 import { OffsetCoord, Layout } from '../HexMath';
+import { Tilemap as TilemapModel } from '../AssetService';
 import { SetTilemapThumbnail } from '../AssetUploader';
 
 export default class HexMap extends Phaser.Scene {
-  mapID?: number
+  tilemapModel?: TilemapModel
   tiledMap?: Tilemap
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
   sprites: Phaser.GameObjects.Sprite[] = []
 
   init(args: any) {
-    this.mapID = args.mapID;
+    this.tilemapModel = args.tilemapModel;
     this.tiledMap = args.map;
   }
 
@@ -38,9 +39,7 @@ export default class HexMap extends Phaser.Scene {
         c.getContext("2d")?.drawImage(image as HTMLImageElement, 0, 0);
         (c as HTMLCanvasElement).toBlob(blob => {
           if (!blob) return;
-          const mapID = this.mapID;
-          if (!mapID) return;
-          SetTilemapThumbnail(mapID, blob);
+          if (this.tilemapModel) SetTilemapThumbnail(this.tilemapModel.ID, blob);
         });
       })
   }
