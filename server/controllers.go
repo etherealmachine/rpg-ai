@@ -234,6 +234,18 @@ func ThumbnailController(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, fmt.Sprintf("thumbnail-%d", thumbnail.ID), thumbnail.CreatedAt, bytes.NewReader(thumbnail.Image))
 }
 
+func LogoutController(w http.ResponseWriter, r *http.Request) {
+	session, err := SessionCookieStore.Get(r, "authenticated_user")
+	if err != nil {
+		panic(err)
+	}
+	session.Options.MaxAge = -1
+	if err := session.Save(r, w); err != nil {
+		panic(err)
+	}
+	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
 func CsrfTokenController(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(csrf.Token(r)))
 }

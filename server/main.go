@@ -90,6 +90,7 @@ func main() {
 	r.Handle("/spritesheet/image/{id:[0-9]+}", http.HandlerFunc(SpritesheetImageController)).Methods("GET")
 	r.Handle("/spritesheet/definition/{id:[0-9]+}", http.HandlerFunc(SpritesheetDefinitionController)).Methods("GET")
 	r.Handle("/thumbnail/{id:[0-9]+}", http.HandlerFunc(ThumbnailController)).Methods("GET")
+	r.Handle("/logout", http.HandlerFunc(LogoutController)).Methods("GET")
 	r.Handle("/csrf", http.HandlerFunc(CsrfTokenController)).Methods("GET")
 	if Dev {
 		u, _ := url.Parse("http://localhost:3000")

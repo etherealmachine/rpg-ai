@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Map from './Map';
-import Navbar from './Navbar';
+import GoogleLoginButton from './GoogleLoginButton';
+import FacebookLoginButton from './FacebookLoginButton';
 import AssetTable from './AssetTable';
 import AssetUploader from './AssetUploader';
 
@@ -15,7 +16,8 @@ if (window.location.host.startsWith('localhost') && window.location.hash !== "")
 }
 
 const components = {
-  'Navbar': Navbar,
+  'GoogleLoginButton': GoogleLoginButton,
+  'FacebookLoginButton': FacebookLoginButton,
   'Map': Map,
   'AssetTable': AssetTable,
   'AssetUploader': AssetUploader,
