@@ -51,3 +51,9 @@ WHERE tilemap_id = (SELECT id FROM owned_tilemap);
 
 -- name: GetThumbnailByID :one
 SELECT id, tilemap_id, spritesheet_id, content_type, image, width, height, created_at FROM thumbnails WHERE id = $1;
+
+-- name: ListRecentTilemaps :many
+SELECT * FROM tilemaps ORDER BY created_at DESC LIMIT $1;
+
+-- name: ListRecentSpritesheets :many
+SELECT * FROM spritesheets ORDER BY created_at DESC LIMIT $1;

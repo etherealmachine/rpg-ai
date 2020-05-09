@@ -206,6 +206,73 @@ func (q *Queries) InsertThumbnailForOwnedTilemap(ctx context.Context, arg Insert
 	return result.RowsAffected()
 }
 
+const listRecentSpritesheets = `-- name: ListRecentSpritesheets :many
+SELECT id, owner_id, name, definition, image, created_at FROM spritesheets ORDER BY created_at DESC LIMIT $1
+`
+
+func (q *Queries) ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentSpritesheets, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Spritesheet
+	for rows.Next() {
+		var i Spritesheet
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.Definition,
+			&i.Image,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRecentTilemaps = `-- name: ListRecentTilemaps :many
+SELECT id, owner_id, name, definition, created_at FROM tilemaps ORDER BY created_at DESC LIMIT $1
+`
+
+func (q *Queries) ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilemap, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentTilemaps, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tilemap
+	for rows.Next() {
+		var i Tilemap
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.Definition,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSpritesheetsByOwnerID = `-- name: ListSpritesheetsByOwnerID :many
 SELECT id, created_at, name, octet_length(definition::text) AS spritesheet_size, octet_length(image) AS image_size FROM spritesheets WHERE owner_id = $1
 `

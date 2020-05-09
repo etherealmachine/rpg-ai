@@ -1,6 +1,11 @@
+{% import "github.com/etherealmachine/rpg.ai/server/models" %}
+
 {% code
 type IndexPage struct {
   *BasePage
+  Tilemaps []models.Tilemap
+  Spritesheets []models.Spritesheet
+  TilemapThumbnailIDs map[int32]int32
 }
 %}
 
@@ -8,7 +13,34 @@ type IndexPage struct {
   <div class="container d-flex">
     <div>
       <h3>Newest Spritesheets</h3>
+      <div class="d-flex flex-wrap">
+        {% for _, spritesheet := range p.Spritesheets %}
+          <div class="card m-3" style="width: 18rem">
+            <img src="/spritesheet/image/{%d int(spritesheet.ID) %}" class="card-img-top" alt="Image for {%s spritesheet.Name %}">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{%s spritesheet.Name %}</h5>
+              <a href="/spritesheet/definition/{%d int(spritesheet.ID) %}" class="btn btn-primary">Download</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
       <h3>Newest Maps</h3>
+      <div class="d-flex flex-wrap">
+        {% for _, tilemap := range p.Tilemaps %}
+          <div class="card m-3" style="width: 25rem">
+            {% if p.TilemapThumbnailIDs[tilemap.ID] > 0 %}
+              <img src="/thumbnail/{%d int(p.TilemapThumbnailIDs[tilemap.ID]) %}" class="card-img-top" alt="Image for {%s tilemap.Name %}">
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{%s tilemap.Name %}</h5>
+              <div class="d-flex">
+                <a href="/map/{%d int(tilemap.ID) %}" class="btn btn-primary">Preview</a>
+                <a href="/tilemap/{%d int(tilemap.ID) %}" class="btn btn-secondary">Download</a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
     <div class="d-flex flex-column">
       <div class="jumbotron jumbotron-fluid">

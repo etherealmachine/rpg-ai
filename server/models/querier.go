@@ -17,6 +17,8 @@ type Querier interface {
 	GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	InsertThumbnailForOwnedTilemap(ctx context.Context, arg InsertThumbnailForOwnedTilemapParams) (int64, error)
+	ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error)
+	ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilemap, error)
 	ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) ([]ListSpritesheetsByOwnerIDRow, error)
 	ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error)
 	ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForSpritesheetsRow, error)

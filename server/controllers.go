@@ -38,7 +38,31 @@ func currentUser(r *http.Request) *models.User {
 }
 
 func IndexController(w http.ResponseWriter, r *http.Request) {
-	views.WritePageTemplate(w, &views.IndexPage{basePage(r)})
+	tilemaps, err := db.ListRecentTilemaps(r.Context(), 10)
+	if err != nil {
+		panic(err)
+	}
+	spritesheets, err := db.ListRecentSpritesheets(r.Context(), 10)
+	if err != nil {
+		panic(err)
+	}
+	var tilemapIDs []int32
+	for _, tilemap := range tilemaps {
+		tilemapIDs = append(tilemapIDs, tilemap.ID)
+	}
+	rows, err := db.ListThumbnailsForTilemaps(r.Context(), tilemapIDs)
+	tilemapThumbnailIDs := make(map[int32]int32)
+	for _, row := range rows {
+		if row.TilemapID.Valid {
+			tilemapThumbnailIDs[row.TilemapID.Int32] = row.ID
+		}
+	}
+	views.WritePageTemplate(w, &views.IndexPage{
+		BasePage:            basePage(r),
+		Tilemaps:            tilemaps,
+		Spritesheets:        spritesheets,
+		TilemapThumbnailIDs: tilemapThumbnailIDs,
+	})
 }
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {

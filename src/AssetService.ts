@@ -41,19 +41,19 @@ export interface ListThumbnailsResponse {
   SpritesheetThumbnailIDs: { [key: number]: number[] | null } | null
 }
 
-export interface ListTilemapsByOwnerIDRow {
-  ID: number
-  CreatedAt: Date
-  Name: string
-  TilemapSize: any
-}
-
 export interface ListSpritesheetsByOwnerIDRow {
   ID: number
   CreatedAt: Date
   Name: string
   SpritesheetSize: any
   ImageSize: any
+}
+
+export interface ListTilemapsByOwnerIDRow {
+  ID: number
+  CreatedAt: Date
+  Name: string
+  TilemapSize: any
 }
 
 export interface ListSpritesheetsForTilemapRow {

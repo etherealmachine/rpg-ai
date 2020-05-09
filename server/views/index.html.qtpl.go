@@ -5,31 +5,124 @@
 package views
 
 //line views/index.html.qtpl:1
+import "github.com/etherealmachine/rpg.ai/server/models"
+
+//line views/index.html.qtpl:3
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/index.html.qtpl:1
+//line views/index.html.qtpl:3
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/index.html.qtpl:2
+//line views/index.html.qtpl:4
 type IndexPage struct {
 	*BasePage
+	Tilemaps            []models.Tilemap
+	Spritesheets        []models.Spritesheet
+	TilemapThumbnailIDs map[int32]int32
 }
 
-//line views/index.html.qtpl:7
+//line views/index.html.qtpl:12
 func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/index.html.qtpl:7
+//line views/index.html.qtpl:12
 	qw422016.N().S(`
   <div class="container d-flex">
     <div>
       <h3>Newest Spritesheets</h3>
+      <div class="d-flex flex-wrap">
+        `)
+//line views/index.html.qtpl:17
+	for _, spritesheet := range p.Spritesheets {
+//line views/index.html.qtpl:17
+		qw422016.N().S(`
+          <div class="card m-3" style="width: 18rem">
+            <img src="/spritesheet/image/`)
+//line views/index.html.qtpl:19
+		qw422016.N().D(int(spritesheet.ID))
+//line views/index.html.qtpl:19
+		qw422016.N().S(`" class="card-img-top" alt="Image for `)
+//line views/index.html.qtpl:19
+		qw422016.E().S(spritesheet.Name)
+//line views/index.html.qtpl:19
+		qw422016.N().S(`">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">`)
+//line views/index.html.qtpl:21
+		qw422016.E().S(spritesheet.Name)
+//line views/index.html.qtpl:21
+		qw422016.N().S(`</h5>
+              <a href="/spritesheet/definition/`)
+//line views/index.html.qtpl:22
+		qw422016.N().D(int(spritesheet.ID))
+//line views/index.html.qtpl:22
+		qw422016.N().S(`" class="btn btn-primary">Download</a>
+            </div>
+          </div>
+        `)
+//line views/index.html.qtpl:25
+	}
+//line views/index.html.qtpl:25
+	qw422016.N().S(`
+      </div>
       <h3>Newest Maps</h3>
+      <div class="d-flex flex-wrap">
+        `)
+//line views/index.html.qtpl:29
+	for _, tilemap := range p.Tilemaps {
+//line views/index.html.qtpl:29
+		qw422016.N().S(`
+          <div class="card m-3" style="width: 25rem">
+            `)
+//line views/index.html.qtpl:31
+		if p.TilemapThumbnailIDs[tilemap.ID] > 0 {
+//line views/index.html.qtpl:31
+			qw422016.N().S(`
+              <img src="/thumbnail/`)
+//line views/index.html.qtpl:32
+			qw422016.N().D(int(p.TilemapThumbnailIDs[tilemap.ID]))
+//line views/index.html.qtpl:32
+			qw422016.N().S(`" class="card-img-top" alt="Image for `)
+//line views/index.html.qtpl:32
+			qw422016.E().S(tilemap.Name)
+//line views/index.html.qtpl:32
+			qw422016.N().S(`">
+            `)
+//line views/index.html.qtpl:33
+		}
+//line views/index.html.qtpl:33
+		qw422016.N().S(`
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">`)
+//line views/index.html.qtpl:35
+		qw422016.E().S(tilemap.Name)
+//line views/index.html.qtpl:35
+		qw422016.N().S(`</h5>
+              <div class="d-flex">
+                <a href="/map/`)
+//line views/index.html.qtpl:37
+		qw422016.N().D(int(tilemap.ID))
+//line views/index.html.qtpl:37
+		qw422016.N().S(`" class="btn btn-primary">Preview</a>
+                <a href="/tilemap/`)
+//line views/index.html.qtpl:38
+		qw422016.N().D(int(tilemap.ID))
+//line views/index.html.qtpl:38
+		qw422016.N().S(`" class="btn btn-secondary">Download</a>
+              </div>
+            </div>
+          </div>
+        `)
+//line views/index.html.qtpl:42
+	}
+//line views/index.html.qtpl:42
+	qw422016.N().S(`
+      </div>
     </div>
     <div class="d-flex flex-column">
       <div class="jumbotron jumbotron-fluid">
@@ -38,31 +131,31 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
     </div>
   </div>
 `)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 }
 
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 func (p *IndexPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	p.StreamContent(qw422016)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	qt422016.ReleaseWriter(qw422016)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 }
 
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 func (p *IndexPage) Content() string {
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	p.WriteContent(qb422016)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	qs422016 := string(qb422016.B)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 	return qs422016
-//line views/index.html.qtpl:19
+//line views/index.html.qtpl:51
 }
