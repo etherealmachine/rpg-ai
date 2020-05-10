@@ -238,7 +238,7 @@ func (p *BasePage) StreamNavbar(qw422016 *qt422016.Writer) {
     <nav class="navbar navbar-expand-lg navbar-light justify-content-between">
       <a class="navbar-brand" href="/">RPG.ai</a>
       <form class="input-group" action="/search" method="GET">
-        <input class="form-control" style="max-width: 400px" type="search" name="query" placeholder="Search tilesets and tilemaps" aria-label="Search">
+        <input class="form-control" style="max-width: 400px" type="search" name="q" placeholder="Search tilesets and tilemaps" aria-label="Search">
         <div class="input-group-append">
           <button class="btn btn-secondary" type="submit">
             <i class="fa fa-search"></i>

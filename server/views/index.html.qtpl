@@ -24,43 +24,65 @@ type IndexPage struct {
           <a href="/search?tag=character">Character</a>
         </div>
       </div>
-      <a href="/by_tag">Browse Tags →</a>
+      <a href="/tags">Browse Tags →</a>
     </div>
     <div>
-      <h3>Newest Spritesheets</h3>
-      <div class="d-flex flex-wrap">
-        {% for _, spritesheet := range p.Spritesheets %}
-          <div class="card m-3" style="width: 18rem">
-            <img src="{%s spritesheet.ThumbnailPath() %}" class="card-img-top" alt="Image for {%s spritesheet.Name %}">
-            <div class="card-body d-flex flex-column">
-              <h5 class="card-title">{%s spritesheet.Name %}</h5>
-              {% if spritesheet.Description.Valid %}
-                <p class="card-text">{%s spritesheet.Description.String %}</p>
-              {% endif %}
-              <a href="{%s spritesheet.DownloadPath() %}" class="btn btn-primary">Download</a>
-            </div>
-          </div>
-        {% endfor %}
+      <div>
+        <h2>Your Online Tabletop Adventure Starts Here!</h2>
+        <ul>
+          <li>Drop your players onto a pre-built map, ready for your game session.</li>
+          <li>Easily add monsters, traps, and rooms using our smart AI to generate content.</li>
+          <li>Run encounters - the app rolls the dice and tracks the stats, you describe the results.</li>
+        </ul>
+        <a class="btn btn-success" href="/start-game">Start Game</a>
       </div>
-      <h3>Newest Maps</h3>
-      <div class="d-flex flex-wrap">
-        {% for _, tilemap := range p.Tilemaps %}
-          <div class="card m-3" style="width: 25rem">
-            {% if len(tilemap.Thumbnails) > 0 %}
-              <img src="{%s tilemap.Thumbnails[0].Path() %}" class="card-img-top" alt="Image for {%s tilemap.Name %}">
-            {% endif %}
-            <div class="card-body d-flex flex-column">
-              <h5 class="card-title">{%s tilemap.Name %}</h5>
-              {% if tilemap.Description.Valid %}
-                <p class="card-text">{%s tilemap.Description.String %}</p>
-              {% endif %}
-              <div class="d-flex">
-                <a href="{%s tilemap.MapPath() %}" class="btn btn-primary">Preview</a>
-                <a href="{%s tilemap.DownloadPath() %}" class="btn btn-secondary">Download</a>
+      <div class="mt-4">
+        <h2>Game-Ready Tile Assets</h2>
+        <ol>
+          <li>Download Tilemaps and Spritesheets ready to drop into your game.</li>
+          <li>Preview assets in-browser with <a href="https://phaser.io">Phaser</a>.</li>
+          <li>Edit assets with <a href="https://www.mapeditor.org">Tiled</a>.</li>
+          <li>Upload your awesome assets.</li>
+        </ol>
+      </div>
+      <div class="mt-4">
+        <h3>Newest Spritesheets</h3>
+        <div class="d-flex flex-wrap">
+          {% for _, spritesheet := range p.Spritesheets %}
+            <div class="card m-3" style="width: 18rem">
+              <img src="{%s spritesheet.ThumbnailPath() %}" class="card-img-top" alt="Image for {%s spritesheet.Name %}">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{%s spritesheet.Name %}</h5>
+                {% if spritesheet.Description.Valid %}
+                  <p class="card-text">{%s spritesheet.Description.String %}</p>
+                {% endif %}
+                <a href="{%s spritesheet.DownloadPath() %}" class="btn btn-primary">Download</a>
               </div>
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mt-4">
+        <h3>Newest Maps</h3>
+        <div class="d-flex flex-wrap">
+          {% for _, tilemap := range p.Tilemaps %}
+            <div class="card m-3" style="width: 25rem">
+              {% if len(tilemap.Thumbnails) > 0 %}
+                <img src="{%s tilemap.Thumbnails[0].Path() %}" class="card-img-top" alt="Image for {%s tilemap.Name %}">
+              {% endif %}
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{%s tilemap.Name %}</h5>
+                {% if tilemap.Description.Valid %}
+                  <p class="card-text">{%s tilemap.Description.String %}</p>
+                {% endif %}
+                <div class="d-flex">
+                  <a href="{%s tilemap.MapPath() %}" class="btn btn-primary">Preview</a>
+                  <a href="{%s tilemap.DownloadPath() %}" class="btn btn-secondary">Download</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
