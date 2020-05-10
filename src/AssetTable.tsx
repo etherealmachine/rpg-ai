@@ -1,9 +1,9 @@
 import React from 'react';
 
-import AssetService, { Spritesheet, TilemapWithThumbnail } from './AssetService';
+import AssetService, { Spritesheet, TilemapWithThumbnails } from './AssetService';
 
 interface State {
-  Tilemaps: TilemapWithThumbnail[]
+  Tilemaps: TilemapWithThumbnails[]
   Spritesheets: Spritesheet[]
 }
 
@@ -23,39 +23,38 @@ export default class AssetTable extends React.Component<State, State> {
     }
   }
 
-  onDeleteClicked = (asset: TilemapWithThumbnail | Spritesheet) => (event: React.MouseEvent<HTMLButtonElement>) => {
+  onDeleteSpritesheetClicked = (spritesheet: Spritesheet) => (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    if ((asset as Spritesheet).Image) {
-      asset = asset as Spritesheet;
-      AssetService.DeleteSpritesheet({ ID: asset.ID }).then(() => {
-        AssetService.ListAssets({}).then(resp => {
-          const state = {
-            ...this.state,
-            Tilemaps: resp.Tilemaps || [],
-            Spritesheets: resp.Spritesheets || [],
-          };
-          this.setState(state);
-        });
+    AssetService.DeleteSpritesheet({ ID: spritesheet.ID }).then(() => {
+      AssetService.ListAssets({}).then(resp => {
+        const state = {
+          ...this.state,
+          Tilemaps: resp.Tilemaps || [],
+          Spritesheets: resp.Spritesheets || [],
+        };
+        this.setState(state);
       });
-    } else {
-      asset = asset as TilemapWithThumbnail;
-      AssetService.DeleteTilemap({ ID: asset.ID }).then(() => {
-        AssetService.ListAssets({}).then(resp => {
-          const state = {
-            ...this.state,
-            Tilemaps: resp.Tilemaps || [],
-            Spritesheets: resp.Spritesheets || [],
-          };
-          this.setState(state);
-        });
-      });
-    }
+    });
   }
 
-  tilemapThumbnail(asset: TilemapWithThumbnail) {
+  onDeleteTilemapClicked = (tilemap: TilemapWithThumbnails) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    AssetService.DeleteTilemap({ ID: tilemap.ID }).then(() => {
+      AssetService.ListAssets({}).then(resp => {
+        const state = {
+          ...this.state,
+          Tilemaps: resp.Tilemaps || [],
+          Spritesheets: resp.Spritesheets || [],
+        };
+        this.setState(state);
+      });
+    });
+  }
+
+  tilemapThumbnail(asset: TilemapWithThumbnails) {
     if (!asset.Thumbnails) return;
     if (asset.Thumbnails?.length > 0) {
-      return <img width="150px" src={`/thumbnail/${asset.Thumbnails[0]}`} alt={`Thumbnail for Tilemap ${asset.Name}`} />;
+      return <img width="150px" src={`/thumbnail/${asset.Thumbnails[0].Hash}`} alt={`Thumbnail for Tilemap ${asset.Name}`} />;
     }
     return null;
   }
@@ -78,14 +77,14 @@ export default class AssetTable extends React.Component<State, State> {
           <td><a href={`/map/${asset.Hash}`}>{asset.Name}</a></td>
           <td>{this.tilemapThumbnail(asset)}</td>
           <td>{asset.CreatedAt}</td>
-          <td><button type="button" className="btn btn-danger" onClick={this.onDeleteClicked(asset)}>Delete</button></td>
+          <td><button type="button" className="btn btn-danger" onClick={this.onDeleteTilemapClicked(asset)}>Delete</button></td>
         </tr>
         )}
         {this.state.Spritesheets && this.state.Spritesheets.map(asset => <tr key={asset.Name}>
           <td>{asset.Name}</td>
           <td>{this.spritesheetThumbnail(asset)}</td>
           <td>{asset.CreatedAt}</td>
-          <td><button type="button" className="btn btn-danger" onClick={this.onDeleteClicked(asset)}>Delete</button></td>
+          <td><button type="button" className="btn btn-danger" onClick={this.onDeleteSpritesheetClicked(asset)}>Delete</button></td>
         </tr>
         )}
       </tbody>

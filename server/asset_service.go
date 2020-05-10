@@ -16,7 +16,7 @@ type ListAssetsRequest struct {
 
 type ListAssetsResponse struct {
 	Spritesheets []models.Spritesheet
-	Tilemaps     []models.TilemapWithThumbnail
+	Tilemaps     []models.TilemapWithThumbnails
 }
 
 func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, reply *ListAssetsResponse) error {
@@ -43,7 +43,7 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 		return err
 	}
 	for _, t := range tilemaps {
-		reply.Tilemaps = append(reply.Tilemaps, models.TilemapWithThumbnail{
+		reply.Tilemaps = append(reply.Tilemaps, models.TilemapWithThumbnails{
 			Tilemap: models.Tilemap{
 				ID:          t.ID,
 				OwnerID:     u.ID,

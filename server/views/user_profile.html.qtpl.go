@@ -24,7 +24,7 @@ var (
 type UserProfilePage struct {
 	*BasePage
 	UserSpritesheets []models.Spritesheet
-	UserTilemaps     []models.TilemapWithThumbnail
+	UserTilemaps     []models.TilemapWithThumbnails
 }
 
 //line views/user_profile.html.qtpl:11

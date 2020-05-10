@@ -25,7 +25,7 @@ func (t *Tilemap) MapPath() string {
 	return fmt.Sprintf("/map/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
 }
 
-type TilemapWithThumbnail struct {
+type TilemapWithThumbnails struct {
 	Tilemap
 	Thumbnails []Thumbnail
 }

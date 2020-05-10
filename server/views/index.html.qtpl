@@ -3,7 +3,7 @@
 {% code
 type IndexPage struct {
   *BasePage
-  Tilemaps []models.TilemapWithThumbnail
+  Tilemaps []models.TilemapWithThumbnails
   Spritesheets []models.Spritesheet
   TilemapThumbnailIDs map[int32]int32
 }

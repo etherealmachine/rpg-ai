@@ -23,7 +23,7 @@ var (
 //line views/index.html.qtpl:4
 type IndexPage struct {
 	*BasePage
-	Tilemaps            []models.TilemapWithThumbnail
+	Tilemaps            []models.TilemapWithThumbnails
 	Spritesheets        []models.Spritesheet
 	TilemapThumbnailIDs map[int32]int32
 }

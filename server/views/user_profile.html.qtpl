@@ -4,7 +4,7 @@
 type UserProfilePage struct {
   *BasePage
   UserSpritesheets []models.Spritesheet
-  UserTilemaps []models.TilemapWithThumbnail
+  UserTilemaps []models.TilemapWithThumbnails
 }
 %}
 

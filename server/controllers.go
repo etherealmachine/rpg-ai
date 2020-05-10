@@ -61,9 +61,9 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	var tilemapsWithThumbnails []models.TilemapWithThumbnail
+	var tilemapsWithThumbnails []models.TilemapWithThumbnails
 	for _, tilemap := range tilemaps {
-		tilemapsWithThumbnails = append(tilemapsWithThumbnails, models.TilemapWithThumbnail{
+		tilemapsWithThumbnails = append(tilemapsWithThumbnails, models.TilemapWithThumbnails{
 			Tilemap:    tilemap,
 			Thumbnails: tilemapThumbnails[tilemap.ID],
 		})
@@ -77,13 +77,54 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {
 	currentUserID := currentUser(r).ID
-	spritesheets, err := db.ListSpritesheetsByOwnerID(r.Context(), currentUserID)
+	spritesheetRows, err := db.ListSpritesheetsByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
 	}
-	tilemaps, err := db.ListTilemapsByOwnerID(r.Context(), currentUserID)
+	var spritesheets []models.Spritesheet
+	for _, row := range spritesheetRows {
+		spritesheets = append(spritesheets, models.Spritesheet{
+			ID:          row.ID,
+			OwnerID:     currentUserID,
+			Name:        row.Name,
+			Description: row.Description,
+			Hash:        row.Hash,
+			CreatedAt:   row.CreatedAt,
+		})
+	}
+	tilemapRows, err := db.ListTilemapsByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
+	}
+	var tilemaps []models.TilemapWithThumbnails
+	for _, row := range tilemapRows {
+		tilemaps = append(tilemaps, models.TilemapWithThumbnails{
+			Tilemap: models.Tilemap{
+				ID:          row.ID,
+				OwnerID:     currentUserID,
+				Name:        row.Name,
+				Description: row.Description,
+				Hash:        row.Hash,
+				CreatedAt:   row.CreatedAt,
+			},
+		})
+	}
+	var tilemapIDs []int32
+	for _, tilemap := range tilemaps {
+		tilemapIDs = append(tilemapIDs, tilemap.ID)
+	}
+	rows, err := db.ListThumbnailsForTilemaps(r.Context(), tilemapIDs)
+	tilemapThumbnails := make(map[int32][]models.Thumbnail)
+	for _, row := range rows {
+		if row.TilemapID.Valid {
+			tilemapThumbnails[row.TilemapID.Int32] = append(tilemapThumbnails[row.TilemapID.Int32], models.Thumbnail{
+				TilemapID: row.TilemapID,
+				Hash:      row.Hash,
+			})
+		}
+	}
+	for i := range tilemaps {
+		tilemaps[i].Thumbnails = tilemapThumbnails[tilemaps[i].ID]
 	}
 	views.WritePageTemplate(w, &views.UserProfilePage{
 		BasePage:         basePage(r),
