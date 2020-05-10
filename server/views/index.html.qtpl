@@ -10,7 +10,22 @@ type IndexPage struct {
 %}
 
 {% func (p *IndexPage) Content() %}
-  <div class="container d-flex">
+  <div class="container-fluid d-flex mt-4">
+    <div class="mx-4" style="min-width: 200px">
+      <h4>Tags</h4>
+      <div class="d-flex justify-content-between">
+        <div class="d-flex flex-column">
+          <a href="/search?tag=fantasy">Fantasy</a>
+          <a href="/search?tag=hex">Hex</a>
+          <a href="/search?tag=outdoor">Outdoor</a>
+        </div>
+        <div class="d-flex flex-column">
+          <a href="/search?tag=dungeon">Dungeon</a>
+          <a href="/search?tag=character">Character</a>
+        </div>
+      </div>
+      <a href="/by_tag">Browse Tags →</a>
+    </div>
     <div>
       <h3>Newest Spritesheets</h3>
       <div class="d-flex flex-wrap">
