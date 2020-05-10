@@ -16,14 +16,6 @@ export interface LoginResponse {
     User: User
 }
 
-export interface User {
-    ID: number
-    Email: string
-    Admin: NullBool
-    CreatedAt: Date
-    LastLogin: NullTime
-}
-
 export interface NullBool {
     Bool: boolean
     Valid: boolean
@@ -32,6 +24,14 @@ export interface NullBool {
 export interface NullTime {
     Time: Date
     Valid: boolean
+}
+
+export interface User {
+    ID: number
+    Email: string
+    Admin: NullBool
+    CreatedAt: Date
+    LastLogin: NullTime
 }
 
 class LoginService extends JSONRPCService {

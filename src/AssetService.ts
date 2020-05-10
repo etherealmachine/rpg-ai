@@ -30,13 +30,6 @@ export interface ListSpritesheetsForTilemapResponse {
     References: ListSpritesheetsForTilemapRow[] | null
 }
 
-export interface ListSpritesheetsForTilemapRow {
-    TilemapID: number
-    SpritesheetID: number
-    SpritesheetName: string
-    SpritesheetHash: string
-}
-
 export interface NullString {
     String: string
     Valid: boolean
@@ -63,6 +56,26 @@ export interface Tilemap {
     CreatedAt: Date
 }
 
+export interface TilemapWithThumbnails {
+        
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Hash: string
+    CreatedAt: Date
+
+    Thumbnails: Thumbnail[] | null
+}
+
+export interface ListSpritesheetsForTilemapRow {
+    TilemapID: number
+    SpritesheetID: number
+    SpritesheetName: string
+    SpritesheetHash: string
+}
+
 export interface NullInt32 {
     Int32: number
     Valid: boolean
@@ -78,19 +91,6 @@ export interface Thumbnail {
     Width: number
     Height: number
     CreatedAt: Date
-}
-
-export interface TilemapWithThumbnails {
-        
-    ID: number
-    OwnerID: number
-    Name: string
-    Description: NullString
-    Definition: string
-    Hash: string
-    CreatedAt: Date
-
-    Thumbnails: Thumbnail[] | null
 }
 
 class AssetService extends JSONRPCService {
