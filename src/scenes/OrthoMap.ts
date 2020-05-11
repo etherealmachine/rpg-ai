@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Tilemap, Tileset, TilesetSource } from '../Tiled';
 import { Tilemap as TilemapModel } from '../AssetService';
 import { SetTilemapThumbnail } from '../AssetUploader';
+import { isPresent } from '../TypeHelpers';
 
 export default class OrthoMap extends Phaser.Scene {
   tilemapModel?: TilemapModel
@@ -58,6 +59,19 @@ export default class OrthoMap extends Phaser.Scene {
       switch (event.keyCode) {
         case Phaser.Input.Keyboard.KeyCodes.P:
           this.generateThumbnail();
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.W:
+          this.objects[5].incY(-(this.tiledMap?.tileheight || 0));
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.A:
+          this.objects[5].incX(-(this.tiledMap?.tilewidth || 0));
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.S:
+          this.objects[5].incY(this.tiledMap?.tileheight || 0);
+          break;
+        case Phaser.Input.Keyboard.KeyCodes.D:
+          this.objects[5].incX(this.tiledMap?.tilewidth || 0);
+          break;
       }
     });
     this.cameras.main.setBackgroundColor('#ddd');
@@ -93,7 +107,7 @@ export default class OrthoMap extends Phaser.Scene {
       const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
       s.setDisplayOrigin(0, tiledMap.tileheight);
       return s;
-    }).filter(s => s !== null) as Phaser.GameObjects.Sprite[]), {
+    }).filter(isPresent)), {
       name: layer.name,
     }));
     this.cameras.main.centerOn((tiledMap.tilewidth * tiledMap.width) / 2, (tiledMap.tileheight * tiledMap.height) / 2);

@@ -60,3 +60,21 @@ export interface TilemapLayer {
   visible: boolean
   opacity: number
 }
+
+export function references(objs: (Tilemap | Tileset | string)[]): Set<string> {
+  return new Set(objs.map(obj => {
+    if (typeof obj === 'object' && obj.type === 'map') {
+      return (obj as Tilemap).tilesets.map(tileset => {
+        if ((tileset as Tileset).image) {
+          return (tileset as Tileset).image;
+        } else if ((tileset as TilesetSource).source) {
+          return (tileset as TilesetSource).source;
+        }
+        return null;
+      });
+    } else if (typeof obj === 'object' && obj.type === 'tileset') {
+      return (obj as Tileset).image;
+    }
+    return obj;
+  }).flat().filter(ref => ref));
+}

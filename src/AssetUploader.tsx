@@ -1,9 +1,11 @@
 import React from 'react';
+import produce from 'immer';
 
-import { Tileset, Tilemap, TilesetSource } from './Tiled';
+import { Tileset, Tilemap, TilesetSource, references } from './Tiled';
 import JSONRPCService from './JSONRPCService';
 import SpritesheetSelector from './SpritesheetSelector';
 import AssetService, { Spritesheet } from './AssetService';
+import { isDefined } from './TypeHelpers';
 
 interface State {
   assets: Asset[]
@@ -17,24 +19,6 @@ interface Asset {
   content?: Tilemap | Tileset | string
   error?: string
   missingReferences: string[]
-}
-
-function references(assets: Asset[]): Set<string> {
-  return new Set(assets.map(asset => {
-    if (typeof asset.content === 'object' && asset.content.type === 'map') {
-      return (asset.content as Tilemap).tilesets.map(tileset => {
-        if ((tileset as Tileset).image) {
-          return (tileset as Tileset).image;
-        } else if ((tileset as TilesetSource).source) {
-          return (tileset as TilesetSource).source;
-        }
-        return null;
-      });
-    } else if (typeof asset.content === 'object' && asset.content.type === 'tileset') {
-      return (asset.content as Tileset).image;
-    }
-    return null;
-  }).flat().filter(ref => ref));
 }
 
 export default class AssetUploader extends React.Component<{}, State> {
@@ -53,10 +37,9 @@ export default class AssetUploader extends React.Component<{}, State> {
 
   componentDidMount() {
     AssetService.ListAssets({ OwnerID: (window as any).currentUserID }).then(resp => {
-      this.setState({
-        ...this.state,
-        Spritesheets: resp.Spritesheets || [],
-      })
+      this.setState(produce(this.state, state => {
+        state.Spritesheets = resp.Spritesheets || [];
+      }));
     });
   }
 
@@ -83,31 +66,31 @@ export default class AssetUploader extends React.Component<{}, State> {
         asset.content = buf as string;
       }
     }
-    this.setState({
-      ...this.state,
-    });
   }
 
   checkReferences(assets: Asset[], referenceMap: { [key: string]: number }): boolean {
-    const allRefs = references(this.state.assets);
-    const filenames = new Set(this.state.assets.map(asset => asset.file.name));
-    assets.forEach(asset => {
-      asset.missingReferences = [];
-      asset.error = undefined;
-      if (typeof asset.content === 'string') {
-        if (!allRefs.has(asset.file.name)) {
-          asset.error = `image ${asset.file.name} is not referenced by any spritesheet or tilemap`;
+    this.setState(produce(this.state, state => {
+      const allRefs = references(assets.map(asset => asset.content).filter(isDefined));
+      const filenames = new Set(assets.map(asset => asset.file.name));
+      state.assets = assets.map(asset => {
+        let missingReferences: string[] = [];
+        let error = undefined;
+        if (typeof asset.content === 'string') {
+          if (!allRefs.has(asset.file.name)) {
+            error = `image ${asset.file.name} is not referenced by any spritesheet or tilemap`;
+          }
+        } else if (typeof asset.content === 'object') {
+          const refs = references([asset.content]);
+          missingReferences = Array.from(refs.values()).filter(ref => !(filenames.has(ref) || referenceMap[ref]));
         }
-      } else if (typeof asset.content === 'object') {
-        const refs = references([asset]);
-        asset.missingReferences = Array.from(refs.values()).filter(ref => !(filenames.has(ref) || referenceMap[ref]));
-      }
-    });
-    this.setState({
-      ...this.state,
-      assets: assets,
-      referenceMap: referenceMap,
-    });
+        return {
+          ...asset,
+          error: error,
+          missingReferences: missingReferences
+        }
+      });
+      state.referenceMap = referenceMap;
+    }));
     return assets.every(asset => !asset.error);
   }
 
@@ -149,15 +132,17 @@ export default class AssetUploader extends React.Component<{}, State> {
   }
 
   onSpritesheetSelect = (filename: string) => (event: React.ChangeEvent<HTMLSelectElement>) => {
-    this.state.referenceMap[filename] = parseInt(event.target.value);
-    this.checkReferences(this.state.assets, this.state.referenceMap);
+    const newReferenceMap = produce(this.state.referenceMap, refs => {
+      refs[filename] = parseInt(event.target.value);
+    });
+    this.checkReferences(this.state.assets, newReferenceMap);
   }
 
   render() {
     const tilemaps = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'map'));
     const tilesets = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'tileset'));
     const images = this.state.assets.filter(asset => typeof asset.content === 'string');
-    const refs = references(this.state.assets);
+    const refs = references(this.state.assets.map(asset => asset.content).filter(isDefined));
     const host = window.location.hostname === 'localhost' ? 'http://localhost:8000' : '';
     return <div>
       <form action={`${host}/upload-assets?redirect=${window.location}`} method="POST" encType="multipart/form-data" ref={this.formRef}>
