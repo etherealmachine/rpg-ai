@@ -7,9 +7,8 @@ import AssetService, { Spritesheet } from './AssetService';
 
 interface State {
   assets: Asset[]
-  everyReferenceExists: boolean
-  everyImageIsReferenced: boolean
   Spritesheets: Spritesheet[]
+  referenceMap: { [key: string]: number }
 }
 
 interface Asset {
@@ -17,20 +16,10 @@ interface Asset {
   loaded: boolean
   content?: Tilemap | Tileset | string
   error?: string
+  missingReferences: string[]
 }
 
-function hasFile(assets: Asset[], filename: string): boolean {
-  return assets.some(asset => asset.file.name === filename);
-}
-
-function fileIndicator(assets: Asset[], filename: string) {
-  if (hasFile(assets, filename)) {
-    return <i style={{ color: "#28a745" }} className="fa fa-check-square" />;
-  }
-  return <i className="fa fa-exclamation-circle" style={{ color: "#dc3545" }} />;
-}
-
-function references(assets: Asset[]) {
+function references(assets: Asset[]): Set<string> {
   return new Set(assets.map(asset => {
     if (typeof asset.content === 'object' && asset.content.type === 'map') {
       return (asset.content as Tilemap).tilesets.map(tileset => {
@@ -57,9 +46,8 @@ export default class AssetUploader extends React.Component<{}, State> {
     super(props);
     this.state = {
       assets: [],
-      everyReferenceExists: true,
-      everyImageIsReferenced: true,
       Spritesheets: [],
+      referenceMap: {},
     };
   }
 
@@ -72,7 +60,7 @@ export default class AssetUploader extends React.Component<{}, State> {
     });
   }
 
-  onAssetLoad = (asset: Asset) => (event: ProgressEvent<FileReader>) => {
+  onAssetLoad = (asset: Asset, event: ProgressEvent<FileReader>) => {
     const buf = event.target?.result;
     if (buf) {
       if (asset.file.name.endsWith('.json')) {
@@ -100,23 +88,32 @@ export default class AssetUploader extends React.Component<{}, State> {
     });
   }
 
-  checkReferences() {
-    const images = this.state.assets.filter(asset => typeof asset.content === 'string');
+  checkReferences(assets: Asset[], referenceMap: { [key: string]: number }): boolean {
+    const allRefs = references(this.state.assets);
     const filenames = new Set(this.state.assets.map(asset => asset.file.name));
-    const refs = references(this.state.assets);
-    const everyReferenceExists = Array.from(refs.values()).every(ref => filenames.has(ref));
-    const everyImageIsReferenced = images.every(asset => refs.has(asset.file.name));
+    assets.forEach(asset => {
+      asset.missingReferences = [];
+      asset.error = undefined;
+      if (typeof asset.content === 'string') {
+        if (!allRefs.has(asset.file.name)) {
+          asset.error = `image ${asset.file.name} is not referenced by any spritesheet or tilemap`;
+        }
+      } else if (typeof asset.content === 'object') {
+        const refs = references([asset]);
+        asset.missingReferences = Array.from(refs.values()).filter(ref => !(filenames.has(ref) || referenceMap[ref]));
+      }
+    });
     this.setState({
       ...this.state,
-      everyReferenceExists: everyReferenceExists,
-      everyImageIsReferenced: everyImageIsReferenced,
+      assets: assets,
+      referenceMap: referenceMap,
     });
-    return everyReferenceExists && everyImageIsReferenced;
+    return assets.every(asset => !asset.error);
   }
 
   onUploadClicked = (event: React.MouseEvent) => {
     event.preventDefault();
-    if (this.checkReferences()) {
+    if (this.checkReferences(this.state.assets, this.state.referenceMap)) {
       const csrfInput = this.formRef.current?.querySelector('input[name="gorilla.csrf.Token"]');
       if (csrfInput && (csrfInput as HTMLInputElement).value === '') {
         JSONRPCService.csrfToken().then(token => {
@@ -129,10 +126,16 @@ export default class AssetUploader extends React.Component<{}, State> {
 
   onFilesChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = (this.fileInput.current as any).files as FileList;
-    const assets = [...files].map(file => { return { file: file, loaded: false }; });
-    assets.forEach(asset => {
+    const assets = [...files].map(file => { return { file: file, loaded: false, missingReferences: [] }; });
+    Promise.all(assets.map(asset => new Promise((resolve, reject) => {
       const fileReader = new FileReader();
-      fileReader.onload = this.onAssetLoad(asset as Asset);
+      fileReader.onload = (event: ProgressEvent<FileReader>) => {
+        this.onAssetLoad(asset, event);
+        resolve(asset);
+      };
+      fileReader.onerror = (err) => {
+        reject(err);
+      }
       if (asset.file.name.endsWith('.json')) {
         fileReader.readAsText(asset.file);
       } else if (asset.file.name.endsWith('.png') || asset.file.name.endsWith('.jpg') || asset.file.name.endsWith('.jpeg')) {
@@ -140,16 +143,14 @@ export default class AssetUploader extends React.Component<{}, State> {
       } else {
         (asset as Asset).error = `cannot handle filetype of ${asset.file.name}`;
       }
-    });
-    this.checkReferences();
-    this.setState({
-      ...this.state,
-      assets: assets,
+    }))).then(() => {
+      this.checkReferences(assets, {});
     });
   }
 
   onSpritesheetSelect = (filename: string) => (event: React.ChangeEvent<HTMLSelectElement>) => {
-    console.log(filename, event.target.value);
+    this.state.referenceMap[filename] = parseInt(event.target.value);
+    this.checkReferences(this.state.assets, this.state.referenceMap);
   }
 
   render() {
@@ -167,6 +168,7 @@ export default class AssetUploader extends React.Component<{}, State> {
           ref={this.fileInput}
           onChange={this.onFilesChanged}
           multiple />
+        <input id="referenceMap" name="referenceMap" type="hidden" value={JSON.stringify(this.state.referenceMap)} />
         <button
           type="submit"
           className="btn btn-primary"
@@ -176,12 +178,6 @@ export default class AssetUploader extends React.Component<{}, State> {
         <input type="hidden" name="gorilla.csrf.Token" value=""></input>
         </button>
       </form>
-      {!this.state.everyReferenceExists && <div className="alert alert-danger" role="alert">
-        Some assets are missing a reference.
-      </div>}
-      {!this.state.everyImageIsReferenced && <div className="alert alert-danger" role="alert">
-        Images exist but don't have a tileset. Either remove the image or upload a tileset definition.
-      </div>}
       <div className="d-flex">
         {tilemaps.length > 0 && <div className="d-flex flex-column align-items-center mx-4">
           <h5>Tilemaps</h5>
@@ -191,14 +187,13 @@ export default class AssetUploader extends React.Component<{}, State> {
                 <h5 className="card-title">{asset.file.name}</h5>
                 {(asset.content as Tilemap).tilesets.map(tileset => {
                   if ((tileset as Tileset).image) {
-                    const filename = (tileset as Tileset).image;
                     return <div key={tileset.firstgid} className="card-text">
-                      {fileIndicator(this.state.assets, filename)}
+                      <i style={{ color: "#28a745" }} className="fa fa-check-square" />
                       <span>Embedded</span>
                     </div>;
                   } else if ((tileset as TilesetSource).source) {
                     const filename = (tileset as TilesetSource).source;
-                    if (!hasFile(this.state.assets, filename)) {
+                    if (asset.missingReferences.includes(filename)) {
                       return <div key={tileset.firstgid} className="card-text form-inline d-flex justify-content-between my-3">
                         <label htmlFor={`${tileset.firstgid}-source-select`}>{filename}</label>
                         <SpritesheetSelector
@@ -209,7 +204,10 @@ export default class AssetUploader extends React.Component<{}, State> {
                       </div>;
                     }
                     return <div key={tileset.firstgid} className="card-text">
-                      {fileIndicator(this.state.assets, filename)}
+                      {asset.error ?
+                        <i className="fa fa-exclamation-circle" style={{ color: "#dc3545" }} /> :
+                        <i style={{ color: "#28a745" }} className="fa fa-check-square" />
+                      }
                       {filename}
                     </div>;
                   }
@@ -226,7 +224,10 @@ export default class AssetUploader extends React.Component<{}, State> {
               <div className="card-body">
                 <h5 className="card-title">{asset.file.name}</h5>
                 <div className="card-text">
-                  {fileIndicator(this.state.assets, (asset.content as Tileset).image || '')}
+                  {asset.error ?
+                    <i className="fa fa-exclamation-circle" style={{ color: "#dc3545" }} /> :
+                    <i style={{ color: "#28a745" }} className="fa fa-check-square" />
+                  }
                   {(asset.content as Tileset).image}
                 </div>
               </div>

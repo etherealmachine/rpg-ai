@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 )
 
 type Upload struct {
@@ -12,7 +13,7 @@ type Upload struct {
 	Sources  []string
 }
 
-func CreateAssets(ctx context.Context, db *Queries, ownerID int32, assets []*Upload) error {
+func CreateAssets(ctx context.Context, db *Queries, ownerID int32, assets []*Upload, referenceMap map[string]int32) error {
 	images := make(map[string]*Upload)
 	spritesheets := make(map[string]*Upload)
 	tilemaps := make(map[string]*Upload)
@@ -51,7 +52,14 @@ func CreateAssets(ctx context.Context, db *Queries, ownerID int32, assets []*Upl
 	for _, asset := range tilemaps {
 		var sourceIDs []int32
 		for _, source := range asset.Sources {
-			sourceIDs = append(sourceIDs, spritesheetIDs[source])
+			spritesheetID, ok := spritesheetIDs[source]
+			if !ok {
+				spritesheetID, ok = referenceMap[source]
+				if !ok {
+					panic(fmt.Sprintf("missing reference for source %s", source))
+				}
+			}
+			sourceIDs = append(sourceIDs, spritesheetID)
 		}
 		tilemap, err := db.CreateTilemap(ctx, CreateTilemapParams{
 			OwnerID:    ownerID,

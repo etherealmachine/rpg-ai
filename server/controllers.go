@@ -151,6 +151,8 @@ func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fhs := r.MultipartForm.File["files[]"]
+	referenceMap := make(map[string]int32)
+	json.Unmarshal([]byte(r.MultipartForm.Value["referenceMap"][0]), &referenceMap)
 	var assets []*models.Upload
 	for _, fh := range fhs {
 		contentType := fh.Header.Get("Content-Type")
@@ -175,7 +177,7 @@ func UploadAssetsController(w http.ResponseWriter, r *http.Request) {
 		assets = append(assets, asset)
 	}
 	tx := sqlxDB.MustBeginTx(r.Context(), nil)
-	if err := models.CreateAssets(r.Context(), db.WithTx(tx.Tx), currentUserID, assets); err != nil {
+	if err := models.CreateAssets(r.Context(), db.WithTx(tx.Tx), currentUserID, assets, referenceMap); err != nil {
 		tx.Rollback()
 		panic(err)
 	}
