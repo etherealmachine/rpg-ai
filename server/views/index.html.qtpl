@@ -37,15 +37,6 @@ type IndexPage struct {
         <a class="btn btn-success" href="/start-game">Start Game</a>
       </div>
       <div class="mt-4">
-        <h2>Game-Ready Tile Assets</h2>
-        <ol>
-          <li>Download Tilemaps and Spritesheets ready to drop into your game.</li>
-          <li>Preview assets in-browser with <a href="https://phaser.io">Phaser</a>.</li>
-          <li>Edit assets with <a href="https://www.mapeditor.org">Tiled</a>.</li>
-          <li>Upload your awesome assets.</li>
-        </ol>
-      </div>
-      <div class="mt-4">
         <h3>Newest Spritesheets</h3>
         <div class="d-flex flex-wrap">
           {% for _, spritesheet := range p.Spritesheets %}

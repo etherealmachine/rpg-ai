@@ -8,6 +8,20 @@ import (
 	"time"
 )
 
+type Game struct {
+	ID          int32
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	CreatedAt   time.Time
+}
+
+type GamePlayer struct {
+	ID       int32
+	GameID   int32
+	PlayerID int32
+}
+
 type Spritesheet struct {
 	ID          int32
 	OwnerID     int32

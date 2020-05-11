@@ -7,6 +7,7 @@ export default class OrthoMap extends Phaser.Scene {
   tilemapModel?: TilemapModel
   tiledMap?: Tilemap
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
+  objects: Phaser.GameObjects.Group[] = []
 
   init(args: any) {
     this.tilemapModel = args.tilemapModel;
@@ -77,7 +78,7 @@ export default class OrthoMap extends Phaser.Scene {
       map.createStaticLayer(layer.name, tilesets);
     });
     const gidIndices = tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
-    const objects = map.objects.map(layer => this.add.group(layer.objects.map(object => {
+    this.objects = map.objects.map(layer => this.add.group(layer.objects.map(object => {
       const { gid, x, y } = object;
       const i = (gidIndices.find(gidindex => (gid || 0) >= gidindex[1]) || [0, 0])[0];
       const tileset = tiledMap.tilesets[i] as TilesetSource;

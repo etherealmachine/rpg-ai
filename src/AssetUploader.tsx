@@ -2,11 +2,14 @@ import React from 'react';
 
 import { Tileset, Tilemap, TilesetSource } from './Tiled';
 import JSONRPCService from './JSONRPCService';
+import SpritesheetSelector from './SpritesheetSelector';
+import AssetService, { Spritesheet } from './AssetService';
 
 interface State {
   assets: Asset[]
   everyReferenceExists: boolean
   everyImageIsReferenced: boolean
+  Spritesheets: Spritesheet[]
 }
 
 interface Asset {
@@ -56,7 +59,17 @@ export default class AssetUploader extends React.Component<{}, State> {
       assets: [],
       everyReferenceExists: true,
       everyImageIsReferenced: true,
+      Spritesheets: [],
     };
+  }
+
+  componentDidMount() {
+    AssetService.ListAssets({ OwnerID: (window as any).currentUserID }).then(resp => {
+      this.setState({
+        ...this.state,
+        Spritesheets: resp.Spritesheets || [],
+      })
+    });
   }
 
   onAssetLoad = (asset: Asset) => (event: ProgressEvent<FileReader>) => {
@@ -135,6 +148,10 @@ export default class AssetUploader extends React.Component<{}, State> {
     });
   }
 
+  onSpritesheetSelect = (filename: string) => (event: React.ChangeEvent<HTMLSelectElement>) => {
+    console.log(filename, event.target.value);
+  }
+
   render() {
     const tilemaps = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'map'));
     const tilesets = this.state.assets.filter(asset => (typeof asset.content === 'object' && asset.content.type === 'tileset'));
@@ -177,9 +194,20 @@ export default class AssetUploader extends React.Component<{}, State> {
                     const filename = (tileset as Tileset).image;
                     return <div key={tileset.firstgid} className="card-text">
                       {fileIndicator(this.state.assets, filename)}
+                      <span>Embedded</span>
                     </div>;
                   } else if ((tileset as TilesetSource).source) {
                     const filename = (tileset as TilesetSource).source;
+                    if (!hasFile(this.state.assets, filename)) {
+                      return <div key={tileset.firstgid} className="card-text form-inline d-flex justify-content-between my-3">
+                        <label htmlFor={`${tileset.firstgid}-source-select`}>{filename}</label>
+                        <SpritesheetSelector
+                          id={`${tileset.firstgid}-source-select`}
+                          Spritesheets={this.state.Spritesheets}
+                          onSelection={this.onSpritesheetSelect(filename)}
+                        />
+                      </div>;
+                    }
                     return <div key={tileset.firstgid} className="card-text">
                       {fileIndicator(this.state.assets, filename)}
                       {filename}

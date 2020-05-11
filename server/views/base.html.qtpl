@@ -37,6 +37,13 @@ type BasePage struct {
 {% endfunc %}
 
 {% func (p *BasePage) BodyScripts() %}
+  <script>
+    {% if p.User != nil %}
+      window.currentUserID = {%d int(p.User.ID) %};
+    {% else %}
+      window.currentUserID = undefined;
+    {% endif %}
+  </script>
   {% for _, node := range p.Scripts %}
     <script{% for _, attr := range node.Attr %} {%s attr.Key %}={%s attr.Val %} {% endfor %}>
       {% if node.FirstChild != nil %}{%s= node.FirstChild.Data %}{% endif %}

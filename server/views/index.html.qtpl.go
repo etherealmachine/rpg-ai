@@ -59,64 +59,55 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
         <a class="btn btn-success" href="/start-game">Start Game</a>
       </div>
       <div class="mt-4">
-        <h2>Game-Ready Tile Assets</h2>
-        <ol>
-          <li>Download Tilemaps and Spritesheets ready to drop into your game.</li>
-          <li>Preview assets in-browser with <a href="https://phaser.io">Phaser</a>.</li>
-          <li>Edit assets with <a href="https://www.mapeditor.org">Tiled</a>.</li>
-          <li>Upload your awesome assets.</li>
-        </ol>
-      </div>
-      <div class="mt-4">
         <h3>Newest Spritesheets</h3>
         <div class="d-flex flex-wrap">
           `)
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:42
 	for _, spritesheet := range p.Spritesheets {
-//line views/index.html.qtpl:51
+//line views/index.html.qtpl:42
 		qw422016.N().S(`
             <div class="card m-3" style="width: 18rem">
               <img src="`)
-//line views/index.html.qtpl:53
+//line views/index.html.qtpl:44
 		qw422016.E().S(spritesheet.ThumbnailPath())
-//line views/index.html.qtpl:53
+//line views/index.html.qtpl:44
 		qw422016.N().S(`" class="card-img-top" alt="Image for `)
-//line views/index.html.qtpl:53
+//line views/index.html.qtpl:44
 		qw422016.E().S(spritesheet.Name)
-//line views/index.html.qtpl:53
+//line views/index.html.qtpl:44
 		qw422016.N().S(`">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">`)
-//line views/index.html.qtpl:55
+//line views/index.html.qtpl:46
 		qw422016.E().S(spritesheet.Name)
-//line views/index.html.qtpl:55
+//line views/index.html.qtpl:46
 		qw422016.N().S(`</h5>
                 `)
-//line views/index.html.qtpl:56
+//line views/index.html.qtpl:47
 		if spritesheet.Description.Valid {
-//line views/index.html.qtpl:56
+//line views/index.html.qtpl:47
 			qw422016.N().S(`
                   <p class="card-text">`)
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:48
 			qw422016.E().S(spritesheet.Description.String)
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:48
 			qw422016.N().S(`</p>
                 `)
-//line views/index.html.qtpl:58
+//line views/index.html.qtpl:49
 		}
-//line views/index.html.qtpl:58
+//line views/index.html.qtpl:49
 		qw422016.N().S(`
                 <a href="`)
-//line views/index.html.qtpl:59
+//line views/index.html.qtpl:50
 		qw422016.E().S(spritesheet.DownloadPath())
-//line views/index.html.qtpl:59
+//line views/index.html.qtpl:50
 		qw422016.N().S(`" class="btn btn-primary">Download</a>
               </div>
             </div>
           `)
-//line views/index.html.qtpl:62
+//line views/index.html.qtpl:53
 	}
-//line views/index.html.qtpl:62
+//line views/index.html.qtpl:53
 	qw422016.N().S(`
         </div>
       </div>
@@ -124,100 +115,100 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
         <h3>Newest Maps</h3>
         <div class="d-flex flex-wrap">
           `)
-//line views/index.html.qtpl:68
+//line views/index.html.qtpl:59
 	for _, tilemap := range p.Tilemaps {
-//line views/index.html.qtpl:68
+//line views/index.html.qtpl:59
 		qw422016.N().S(`
             <div class="card m-3" style="width: 25rem">
               `)
-//line views/index.html.qtpl:70
+//line views/index.html.qtpl:61
 		if len(tilemap.Thumbnails) > 0 {
-//line views/index.html.qtpl:70
+//line views/index.html.qtpl:61
 			qw422016.N().S(`
                 <img src="`)
-//line views/index.html.qtpl:71
+//line views/index.html.qtpl:62
 			qw422016.E().S(tilemap.Thumbnails[0].Path())
-//line views/index.html.qtpl:71
+//line views/index.html.qtpl:62
 			qw422016.N().S(`" class="card-img-top" alt="Image for `)
-//line views/index.html.qtpl:71
+//line views/index.html.qtpl:62
 			qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:71
+//line views/index.html.qtpl:62
 			qw422016.N().S(`">
               `)
-//line views/index.html.qtpl:72
+//line views/index.html.qtpl:63
 		}
-//line views/index.html.qtpl:72
+//line views/index.html.qtpl:63
 		qw422016.N().S(`
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">`)
-//line views/index.html.qtpl:74
+//line views/index.html.qtpl:65
 		qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:74
+//line views/index.html.qtpl:65
 		qw422016.N().S(`</h5>
                 `)
-//line views/index.html.qtpl:75
+//line views/index.html.qtpl:66
 		if tilemap.Description.Valid {
-//line views/index.html.qtpl:75
+//line views/index.html.qtpl:66
 			qw422016.N().S(`
                   <p class="card-text">`)
-//line views/index.html.qtpl:76
+//line views/index.html.qtpl:67
 			qw422016.E().S(tilemap.Description.String)
-//line views/index.html.qtpl:76
+//line views/index.html.qtpl:67
 			qw422016.N().S(`</p>
                 `)
-//line views/index.html.qtpl:77
+//line views/index.html.qtpl:68
 		}
-//line views/index.html.qtpl:77
+//line views/index.html.qtpl:68
 		qw422016.N().S(`
                 <div class="d-flex">
                   <a href="`)
-//line views/index.html.qtpl:79
+//line views/index.html.qtpl:70
 		qw422016.E().S(tilemap.MapPath())
-//line views/index.html.qtpl:79
+//line views/index.html.qtpl:70
 		qw422016.N().S(`" class="btn btn-primary">Preview</a>
                   <a href="`)
-//line views/index.html.qtpl:80
+//line views/index.html.qtpl:71
 		qw422016.E().S(tilemap.DownloadPath())
-//line views/index.html.qtpl:80
+//line views/index.html.qtpl:71
 		qw422016.N().S(`" class="btn btn-secondary">Download</a>
                 </div>
               </div>
             </div>
           `)
-//line views/index.html.qtpl:84
+//line views/index.html.qtpl:75
 	}
-//line views/index.html.qtpl:84
+//line views/index.html.qtpl:75
 	qw422016.N().S(`
         </div>
       </div>
     </div>
   </div>
 `)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 }
 
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 func (p *IndexPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	p.StreamContent(qw422016)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	qt422016.ReleaseWriter(qw422016)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 }
 
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 func (p *IndexPage) Content() string {
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	p.WriteContent(qb422016)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	qs422016 := string(qb422016.B)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 	return qs422016
-//line views/index.html.qtpl:89
+//line views/index.html.qtpl:80
 }
