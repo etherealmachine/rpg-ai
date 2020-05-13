@@ -37,26 +37,9 @@ export interface ListSpritesheetsForTilemapRow {
     SpritesheetHash: string
 }
 
-export interface Tilemap {
-    ID: number
-    OwnerID: number
-    Name: string
-    Description: NullString
-    Definition: string
-    Hash: string
-    CreatedAt: Date
-}
-
-export interface Thumbnail {
-    ID: number
-    TilemapID: NullInt32
-    SpritesheetID: NullInt32
-    Image: string
-    Hash: string
-    ContentType: string
-    Width: number
-    Height: number
-    CreatedAt: Date
+export interface NullInt32 {
+    Int32: number
+    Valid: boolean
 }
 
 export interface NullString {
@@ -75,9 +58,26 @@ export interface Spritesheet {
     CreatedAt: Date
 }
 
-export interface NullInt32 {
-    Int32: number
-    Valid: boolean
+export interface Thumbnail {
+    ID: number
+    TilemapID: NullInt32
+    SpritesheetID: NullInt32
+    Image: string
+    Hash: string
+    ContentType: string
+    Width: number
+    Height: number
+    CreatedAt: Date
+}
+
+export interface Tilemap {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Hash: string
+    CreatedAt: Date
 }
 
 export interface TilemapWithThumbnails {

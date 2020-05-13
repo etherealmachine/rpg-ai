@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -144,6 +145,9 @@ func generateJSONRPCService(service interface{}, dir string) error {
 			s.OtherStructs = append(s.OtherStructs, val)
 		}
 	}
+	sort.SliceStable(s.OtherStructs, func(i, j int) bool {
+		return s.OtherStructs[i].Name < s.OtherStructs[j].Name
+	})
 	f, err := os.Create(filepath.Join(dir, s.Name+".ts"))
 	if err != nil {
 		return err

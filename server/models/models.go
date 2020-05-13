@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type Game struct {
+type Campaign struct {
 	ID          int32
 	OwnerID     int32
 	Name        string
@@ -16,10 +16,29 @@ type Game struct {
 	CreatedAt   time.Time
 }
 
-type GamePlayer struct {
-	ID       int32
-	GameID   int32
-	PlayerID int32
+type CampaignCharacter struct {
+	ID          int32
+	CampaignID  int32
+	CharacterID int32
+}
+
+type Character struct {
+	ID         int32
+	OwnerID    int32
+	Name       string
+	Definition json.RawMessage
+	Sprite     []byte
+	CreatedAt  time.Time
+}
+
+type Encounter struct {
+	ID          int32
+	CampaignID  int32
+	Name        string
+	Description sql.NullString
+	TilemapID   sql.NullInt32
+	Events      []json.RawMessage
+	CreatedAt   time.Time
 }
 
 type Spritesheet struct {
