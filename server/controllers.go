@@ -217,7 +217,7 @@ func SetTilemapThumbnailController(w http.ResponseWriter, r *http.Request) {
 	if (contentType == "image/png" && format != "png") || (contentType == "image/jpeg" && format != "jpeg") {
 		panic(fmt.Sprintf("incorrect Content-Type %s", contentType))
 	}
-	affected, err := db.InsertThumbnailForOwnedTilemap(r.Context(), models.InsertThumbnailForOwnedTilemapParams{
+	affected, err := db.InsertTilemapThumbnail(r.Context(), models.InsertTilemapThumbnailParams{
 		OwnerID:     currentUserID,
 		TilemapID:   sql.NullInt32{Int32: int32(tilemapID), Valid: true},
 		Image:       imageBytes,
@@ -229,7 +229,7 @@ func SetTilemapThumbnailController(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	if affected == 0 {
-		if err := db.UpdateThumbnailForOwnedTilemap(r.Context(), models.UpdateThumbnailForOwnedTilemapParams{
+		if err := db.UpdateTilemapThumbnail(r.Context(), models.UpdateTilemapThumbnailParams{
 			OwnerID:     currentUserID,
 			TilemapID:   int32(tilemapID),
 			Image:       imageBytes,

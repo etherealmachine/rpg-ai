@@ -49,6 +49,9 @@ func main() {
 		if err := generateJSONRPCService(&AssetService{}, os.Args[2]); err != nil {
 			log.Fatal(err)
 		}
+		if err := generateJSONRPCService(&CampaignService{}, os.Args[2]); err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 
@@ -79,6 +82,7 @@ func main() {
 	api.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 	api.RegisterService(&LoginService{db: db}, "")
 	api.RegisterService(&AssetService{db: db}, "")
+	api.RegisterService(&CampaignService{db: db}, "")
 	r.Handle("/api", SetAuthenticatedSession(api))
 
 	r.Handle("/", http.HandlerFunc(IndexController)).Methods("GET")

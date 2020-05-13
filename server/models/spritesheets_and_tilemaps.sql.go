@@ -83,31 +83,31 @@ func (q *Queries) CreateTilemapReference(ctx context.Context, arg CreateTilemapR
 	return err
 }
 
-const deleteSpritesheetWithOwner = `-- name: DeleteSpritesheetWithOwner :exec
+const deleteSpritesheet = `-- name: DeleteSpritesheet :exec
 DELETE FROM spritesheets WHERE id = $1 AND owner_id = $2
 `
 
-type DeleteSpritesheetWithOwnerParams struct {
+type DeleteSpritesheetParams struct {
 	ID      int32
 	OwnerID int32
 }
 
-func (q *Queries) DeleteSpritesheetWithOwner(ctx context.Context, arg DeleteSpritesheetWithOwnerParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSpritesheetWithOwner, arg.ID, arg.OwnerID)
+func (q *Queries) DeleteSpritesheet(ctx context.Context, arg DeleteSpritesheetParams) error {
+	_, err := q.db.ExecContext(ctx, deleteSpritesheet, arg.ID, arg.OwnerID)
 	return err
 }
 
-const deleteTilemapWithOwner = `-- name: DeleteTilemapWithOwner :exec
+const deleteTilemap = `-- name: DeleteTilemap :exec
 DELETE FROM tilemaps WHERE id = $1 AND owner_id = $2
 `
 
-type DeleteTilemapWithOwnerParams struct {
+type DeleteTilemapParams struct {
 	ID      int32
 	OwnerID int32
 }
 
-func (q *Queries) DeleteTilemapWithOwner(ctx context.Context, arg DeleteTilemapWithOwnerParams) error {
-	_, err := q.db.ExecContext(ctx, deleteTilemapWithOwner, arg.ID, arg.OwnerID)
+func (q *Queries) DeleteTilemap(ctx context.Context, arg DeleteTilemapParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTilemap, arg.ID, arg.OwnerID)
 	return err
 }
 
@@ -181,7 +181,7 @@ func (q *Queries) GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, e
 	return i, err
 }
 
-const insertThumbnailForOwnedTilemap = `-- name: InsertThumbnailForOwnedTilemap :execrows
+const insertTilemapThumbnail = `-- name: InsertTilemapThumbnail :execrows
 WITH owned_tilemap AS (
   SELECT id FROM tilemaps WHERE owner_id = $6 AND id = $5
 )
@@ -190,7 +190,7 @@ SELECT owned_tilemap.id, $1, $2, $3, $4 FROM owned_tilemap
 WHERE NOT EXISTS (SELECT id FROM thumbnails WHERE thumbnails.tilemap_id = $5)
 `
 
-type InsertThumbnailForOwnedTilemapParams struct {
+type InsertTilemapThumbnailParams struct {
 	ContentType string
 	Image       []byte
 	Width       int32
@@ -199,8 +199,8 @@ type InsertThumbnailForOwnedTilemapParams struct {
 	OwnerID     int32
 }
 
-func (q *Queries) InsertThumbnailForOwnedTilemap(ctx context.Context, arg InsertThumbnailForOwnedTilemapParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, insertThumbnailForOwnedTilemap,
+func (q *Queries) InsertTilemapThumbnail(ctx context.Context, arg InsertTilemapThumbnailParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, insertTilemapThumbnail,
 		arg.ContentType,
 		arg.Image,
 		arg.Width,
@@ -470,7 +470,7 @@ func (q *Queries) ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]L
 	return items, nil
 }
 
-const updateThumbnailForOwnedTilemap = `-- name: UpdateThumbnailForOwnedTilemap :exec
+const updateTilemapThumbnail = `-- name: UpdateTilemapThumbnail :exec
 WITH owned_tilemap AS (
   SELECT id FROM tilemaps WHERE owner_id = $5 AND tilemaps.id = $6
 )
@@ -478,7 +478,7 @@ UPDATE thumbnails SET content_type = $1, image = $2, width = $3, height = $4, cr
 WHERE tilemap_id = (SELECT id FROM owned_tilemap)
 `
 
-type UpdateThumbnailForOwnedTilemapParams struct {
+type UpdateTilemapThumbnailParams struct {
 	ContentType string
 	Image       []byte
 	Width       int32
@@ -487,8 +487,8 @@ type UpdateThumbnailForOwnedTilemapParams struct {
 	TilemapID   int32
 }
 
-func (q *Queries) UpdateThumbnailForOwnedTilemap(ctx context.Context, arg UpdateThumbnailForOwnedTilemapParams) error {
-	_, err := q.db.ExecContext(ctx, updateThumbnailForOwnedTilemap,
+func (q *Queries) UpdateTilemapThumbnail(ctx context.Context, arg UpdateTilemapThumbnailParams) error {
+	_, err := q.db.ExecContext(ctx, updateTilemapThumbnail,
 		arg.ContentType,
 		arg.Image,
 		arg.Width,

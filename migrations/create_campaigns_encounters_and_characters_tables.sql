@@ -16,7 +16,6 @@ CREATE TABLE encounters
   name TEXT NOT NULL,
   description TEXT,
   tilemap_id INTEGER REFERENCES tilemaps(id) ON DELETE SET NULL,
-  events JSONB ARRAY,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -26,7 +25,7 @@ CREATE TABLE characters
 (
   id SERIAL PRIMARY KEY,
   owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL DEFAULT 'Foo the Unnamed',
+  name TEXT NOT NULL,
   definition JSONB,
   sprite BYTEA,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()

@@ -22,12 +22,47 @@ export interface ListAssetsResponse {
     Tilemaps: TilemapWithThumbnails[] | null
 }
 
+export interface ListCampaignsRequest {
+}
+
+export interface ListCampaignsResponse {
+    Campaigns: CampaignWithEncounters[] | null
+}
+
 export interface ListSpritesheetsForTilemapRequest {
     TilemapID: number
 }
 
 export interface ListSpritesheetsForTilemapResponse {
     References: ListSpritesheetsForTilemapRow[] | null
+}
+
+export interface Campaign {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    CreatedAt: Date
+}
+
+export interface CampaignWithEncounters {
+        
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    CreatedAt: Date
+
+    Encounters: Encounter[] | null
+}
+
+export interface Encounter {
+    ID: number
+    CampaignID: number
+    Name: string
+    Description: NullString
+    TilemapID: NullInt32
+    CreatedAt: Date
 }
 
 export interface ListSpritesheetsForTilemapRow {
@@ -102,6 +137,9 @@ class AssetService extends JSONRPCService {
     }
     async ListAssets(args: ListAssetsRequest): Promise<ListAssetsResponse> {
       return this.jsonrpc<ListAssetsResponse>("ListAssets", args);
+    }
+    async ListCampaigns(args: ListCampaignsRequest): Promise<ListCampaignsResponse> {
+      return this.jsonrpc<ListCampaignsResponse>("ListCampaigns", args);
     }
     async ListReferences(args: ListSpritesheetsForTilemapRequest): Promise<ListSpritesheetsForTilemapResponse> {
       return this.jsonrpc<ListSpritesheetsForTilemapResponse>("ListReferences", args);

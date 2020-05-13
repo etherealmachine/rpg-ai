@@ -69,7 +69,7 @@ func (s *AssetService) DeleteSpritesheet(r *http.Request, args *DeleteAssetReque
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return s.db.DeleteSpritesheetWithOwner(r.Context(), models.DeleteSpritesheetWithOwnerParams{ID: args.ID, OwnerID: u.ID})
+	return s.db.DeleteSpritesheet(r.Context(), models.DeleteSpritesheetParams{ID: args.ID, OwnerID: u.ID})
 }
 
 func (s *AssetService) DeleteTilemap(r *http.Request, args *DeleteAssetRequest, reply *DeleteAssetResponse) error {
@@ -77,7 +77,7 @@ func (s *AssetService) DeleteTilemap(r *http.Request, args *DeleteAssetRequest, 
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return s.db.DeleteTilemapWithOwner(r.Context(), models.DeleteTilemapWithOwnerParams{ID: args.ID, OwnerID: u.ID})
+	return s.db.DeleteTilemap(r.Context(), models.DeleteTilemapParams{ID: args.ID, OwnerID: u.ID})
 }
 
 type ListSpritesheetsForTilemapRequest struct {

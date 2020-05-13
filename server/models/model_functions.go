@@ -33,3 +33,8 @@ type TilemapWithThumbnails struct {
 func (t *Thumbnail) Path() string {
 	return fmt.Sprintf("/thumbnail/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
 }
+
+type CampaignWithEncounters struct {
+	Campaign
+	Encounters []Encounter
+}

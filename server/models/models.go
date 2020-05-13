@@ -37,7 +37,6 @@ type Encounter struct {
 	Name        string
 	Description sql.NullString
 	TilemapID   sql.NullInt32
-	Events      []json.RawMessage
 	CreatedAt   time.Time
 }
 
