@@ -1,44 +1,28 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# RPG.ai
+RPG.ai is a new type of online tabletop RPG. It includes tools for Dungeon Masters to build and
+manage procedurally generated worlds.
 
-## Available Scripts
+## Features
+[ ] Upload [Tiled](https://mapeditor.org) tilesets and tilemaps.
+[ ] Create unique characters, upload a token to represent your character in the campaign.
+[ ] Tilemaps can have embedded room descriptions, loot, and NPC's.
+[ ] Start a new encounter using a tilemap and drop in characters.
+[ ] Each encounter has a [Phaser-based](https://phaser.io/) UI (see the [Encounter UI](#encounter-ui)).
+[ ] Link your encounters in a Campaign, and invite other players to join.
+[ ] The campaign acts as a searchable compendium across its encounters, so you can, for example,
+search for an NPC by name and get a list of all the interactions with that NPC.
 
-In the project directory, you can run:
+## Encounter UI
+The encounter UI helps manage environment and NPC interactions as well as combat.
 
-### `yarn start`
+Some examples:
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
-
-### `yarn test`
-
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `yarn build`
-
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `yarn eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Opening a stuck door might have the DM call for a strength check. The player can click a button to
+make their roll. Based on the roll, the DM might rule:
+1. The check failed, the door is stuck fast. If the players find enough ways to modify the check
+they can get it to succeed.
+2. The check succeeds, but only barely. For example, if the players were trying to be quiet, they
+might have busted down the door loudly, alerting nearby enemies. Part of the automation is the DM
+can use a simple command to alert enemies in a radius and kickoff some simple enemy AI.
+3. The check is very successful and the DM can describe how easily the might barbarian kicks open
+the door.
