@@ -344,108 +344,109 @@ func (p *BasePage) StreamFooter(qw422016 *qt422016.Writer) {
     <div class="container">
       <nav class="navbar navbar-expand-lg navbar-light d-flex justify-content-between">
         <a class="nav-item" href="/about">About</a>
+        <a class="nav-item" href="/devlog">Development Log</a>
         <a class="nav-item" href="mailto:james.l.pettit@gmail.com">Contact</a>
         <small class="nav-item">&copy; Copyright 2020, James Pettit</small>
       </nav>
     </div>
   </footer>
 `)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 }
 
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 func (p *BasePage) WriteFooter(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 }
 
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 func (p *BasePage) Footer() string {
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	p.WriteFooter(qb422016)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 	return qs422016
-//line views/base.html.qtpl:100
+//line views/base.html.qtpl:101
 }
 
-//line views/base.html.qtpl:102
+//line views/base.html.qtpl:103
 func StreamPageTemplate(qw422016 *qt422016.Writer, p Page) {
-//line views/base.html.qtpl:102
+//line views/base.html.qtpl:103
 	qw422016.N().S(`
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   `)
-//line views/base.html.qtpl:107
+//line views/base.html.qtpl:108
 	p.StreamHeader(qw422016)
-//line views/base.html.qtpl:107
+//line views/base.html.qtpl:108
 	qw422016.N().S(`
 </head>
 
 <body>
   `)
-//line views/base.html.qtpl:111
+//line views/base.html.qtpl:112
 	p.StreamNavbar(qw422016)
-//line views/base.html.qtpl:111
+//line views/base.html.qtpl:112
 	qw422016.N().S(`
   `)
-//line views/base.html.qtpl:112
+//line views/base.html.qtpl:113
 	p.StreamContent(qw422016)
-//line views/base.html.qtpl:112
+//line views/base.html.qtpl:113
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:114
+//line views/base.html.qtpl:115
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:114
+//line views/base.html.qtpl:115
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:116
+//line views/base.html.qtpl:117
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:116
+//line views/base.html.qtpl:117
 	qw422016.N().S(`
 </body>
 
 </html>
 `)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 }
 
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 func WritePageTemplate(qq422016 qtio422016.Writer, p Page) {
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	StreamPageTemplate(qw422016, p)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 }
 
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 func PageTemplate(p Page) string {
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	WritePageTemplate(qb422016, p)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 	return qs422016
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:121
 }

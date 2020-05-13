@@ -9,12 +9,16 @@ import (
 	"image"
 	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 	"github.com/etherealmachine/rpg.ai/server/views"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/russross/blackfriday"
 
 	_ "image/jpeg"
 	_ "image/png"
@@ -130,6 +134,38 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 		BasePage:         basePage(r),
 		UserSpritesheets: spritesheets,
 		UserTilemaps:     tilemaps,
+	})
+}
+
+func DevlogController(w http.ResponseWriter, r *http.Request) {
+	path := "build/devlog"
+	if Dev {
+		path = "public/devlog"
+	}
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		panic(err)
+	}
+	var posts []*views.Post
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".md") {
+			bs, err := ioutil.ReadFile(filepath.Join(path, f.Name()))
+			if err != nil {
+				panic(err)
+			}
+			t, err := time.Parse("2006_01_02_15_04_05_-0700", strings.TrimSuffix(f.Name(), ".md"))
+			if err != nil {
+				panic(err)
+			}
+			posts = append(posts, &views.Post{
+				Content:   blackfriday.Run(bs),
+				CreatedAt: t,
+			})
+		}
+	}
+	views.WritePageTemplate(w, &views.DevlogPage{
+		BasePage: basePage(r),
+		Posts:    posts,
 	})
 }
 
