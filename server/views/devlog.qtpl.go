@@ -5,28 +5,35 @@
 package views
 
 //line views/devlog.qtpl:1
-import "time"
+import (
+	"fmt"
+	"github.com/gosimple/slug"
+	"github.com/nleeper/goment"
+	"time"
+)
 
-//line views/devlog.qtpl:2
-import "github.com/nleeper/goment"
-
-//line views/devlog.qtpl:4
+//line views/devlog.qtpl:9
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/devlog.qtpl:4
+//line views/devlog.qtpl:9
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/devlog.qtpl:5
+//line views/devlog.qtpl:10
 type Post struct {
+	Title     string
 	Content   []byte
 	CreatedAt time.Time
+}
+
+func (p *Post) Link() string {
+	return fmt.Sprintf("/devlog/%s", slug.Make(p.Title))
 }
 
 type DevlogPage struct {
@@ -34,74 +41,74 @@ type DevlogPage struct {
 	Posts []*Post
 }
 
-//line views/devlog.qtpl:16
+//line views/devlog.qtpl:26
 func (p *DevlogPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/devlog.qtpl:16
+//line views/devlog.qtpl:26
 	qw422016.N().S(`
   <div class="container d-flex mt-4 flex-column">
     `)
-//line views/devlog.qtpl:18
+//line views/devlog.qtpl:28
 	for _, post := range p.Posts {
-//line views/devlog.qtpl:18
+//line views/devlog.qtpl:28
 		qw422016.N().S(`
       <div class="card my-4">
         <div class="card-body">
           `)
-//line views/devlog.qtpl:21
+//line views/devlog.qtpl:31
 		if g, err := goment.New(post.CreatedAt); err == nil {
-//line views/devlog.qtpl:21
+//line views/devlog.qtpl:31
 			qw422016.N().S(`
-            `)
-//line views/devlog.qtpl:22
+            Posted `)
+//line views/devlog.qtpl:32
 			qw422016.E().S(g.FromNow())
-//line views/devlog.qtpl:22
+//line views/devlog.qtpl:32
 			qw422016.N().S(`
           `)
-//line views/devlog.qtpl:23
+//line views/devlog.qtpl:33
 		}
-//line views/devlog.qtpl:23
+//line views/devlog.qtpl:33
 		qw422016.N().S(`
           <div class="devlog-content">
             `)
-//line views/devlog.qtpl:25
+//line views/devlog.qtpl:35
 		qw422016.N().Z(post.Content)
-//line views/devlog.qtpl:25
+//line views/devlog.qtpl:35
 		qw422016.N().S(`
           </div>
         </div>
       </div>
     `)
-//line views/devlog.qtpl:29
+//line views/devlog.qtpl:39
 	}
-//line views/devlog.qtpl:29
+//line views/devlog.qtpl:39
 	qw422016.N().S(`
   </div>
 `)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 }
 
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 func (p *DevlogPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	p.StreamContent(qw422016)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	qt422016.ReleaseWriter(qw422016)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 }
 
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 func (p *DevlogPage) Content() string {
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	p.WriteContent(qb422016)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	qs422016 := string(qb422016.B)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 	return qs422016
-//line views/devlog.qtpl:31
+//line views/devlog.qtpl:41
 }

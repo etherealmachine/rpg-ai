@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"database/sql"
 	"encoding/base64"
@@ -9,6 +10,7 @@ import (
 	"image"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -76,6 +78,7 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 		BasePage:     basePage(r),
 		Tilemaps:     tilemapsWithThumbnails,
 		Spritesheets: spritesheets,
+		Posts:        getPosts(false),
 	})
 }
 
@@ -137,7 +140,7 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func DevlogController(w http.ResponseWriter, r *http.Request) {
+func getPosts(render bool) []*views.Post {
 	path := "build/devlog"
 	if Dev {
 		path = "public/devlog"
@@ -152,23 +155,43 @@ func DevlogController(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if strings.HasSuffix(f.Name(), ".md") {
-			bs, err := ioutil.ReadFile(filepath.Join(path, f.Name()))
-			if err != nil {
-				panic(err)
-			}
 			t, err := time.Parse("2006_01_02_15_04_05_-0700", strings.TrimSuffix(f.Name(), ".md"))
 			if err != nil {
 				panic(err)
 			}
-			posts = append(posts, &views.Post{
-				Content:   blackfriday.Run(bs),
+			f, err := os.Open(filepath.Join(path, f.Name()))
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+			reader := bufio.NewReader(f)
+			firstLine, _, err := reader.ReadLine()
+			if err != nil {
+				panic(err)
+			}
+			post := &views.Post{
+				Title:     strings.TrimSpace(strings.TrimPrefix(string(firstLine), "#")),
 				CreatedAt: t,
-			})
+			}
+			if render {
+				f.Seek(0, 0)
+				reader = bufio.NewReader(f)
+				bs, err := ioutil.ReadAll(reader)
+				if err != nil {
+					panic(err)
+				}
+				post.Content = blackfriday.Run(bs)
+			}
+			posts = append(posts, post)
 		}
 	}
+	return posts
+}
+
+func DevlogController(w http.ResponseWriter, r *http.Request) {
 	views.WritePageTemplate(w, &views.DevlogPage{
 		BasePage: basePage(r),
-		Posts:    posts,
+		Posts:    getPosts(true),
 	})
 }
 

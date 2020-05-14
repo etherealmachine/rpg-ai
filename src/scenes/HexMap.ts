@@ -5,8 +5,8 @@ import { Tilemap as TilemapModel } from '../AssetService';
 import { SetTilemapThumbnail } from '../AssetUploader';
 
 export default class HexMap extends Phaser.Scene {
-  tilemapModel?: TilemapModel
-  tiledMap?: Tilemap
+  tilemapModel!: TilemapModel
+  tiledMap!: Tilemap
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
   sprites: Phaser.GameObjects.Sprite[] = []
 
@@ -16,8 +16,6 @@ export default class HexMap extends Phaser.Scene {
   }
 
   generateThumbnail() {
-    const tiledMap = this.tiledMap;
-    if (!tiledMap) return;
     const minX = Math.min(...this.sprites.map(sprite => sprite.x));
     const maxX = Math.max(...this.sprites.map(sprite => sprite.x));
     const minY = Math.min(...this.sprites.map(sprite => sprite.y));
@@ -26,8 +24,8 @@ export default class HexMap extends Phaser.Scene {
     let width = maxX - minX;
     let height = maxY - minY;
     this.cameras.main.centerOn(width / 2, height / 2);
-    width = Math.ceil(width) + 2 * tiledMap.tilewidth;
-    height = Math.ceil(height) + 2 * tiledMap.tileheight;
+    width = Math.ceil(width) + 2 * this.tiledMap.tilewidth;
+    height = Math.ceil(height) + 2 * this.tiledMap.tileheight;
 
     this.game.renderer.snapshotArea(
       (this.game.canvas.width - width) / 2, (this.game.canvas.height - height) / 2,
@@ -67,18 +65,15 @@ export default class HexMap extends Phaser.Scene {
       }
     });
 
-    const tiledMap = this.tiledMap;
-    if (!tiledMap) return;
-
     const map: Map<string, { index: number, spritesheet: string }[]> = new Map();
 
-    for (let q = 0; q < tiledMap.width; q++) {
-      for (let r = 0; r < tiledMap.height; r++) {
+    for (let q = 0; q < this.tiledMap.width; q++) {
+      for (let r = 0; r < this.tiledMap.height; r++) {
         const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
-        map.set(hex.toString(), tiledMap.layers.map(layer => {
+        map.set(hex.toString(), this.tiledMap.layers.map(layer => {
           return {
-            index: layer.data[r * tiledMap.width + q] - 1,
-            spritesheet: (tiledMap.tilesets[0] as TilesetSource).source,
+            index: layer.data[r * this.tiledMap.width + q] - 1,
+            spritesheet: (this.tiledMap.tilesets[0] as TilesetSource).source,
           };
         }));
       }
@@ -86,8 +81,8 @@ export default class HexMap extends Phaser.Scene {
 
     this.sprites = [];
     const layout = new Layout(Layout.flat, new Phaser.Math.Vector2(16, 16.17), new Phaser.Math.Vector2(0, 0));
-    for (let r = 0; r < tiledMap.height; r++) {
-      for (let q = tiledMap.width - 1; q >= 0; q--) {
+    for (let r = 0; r < this.tiledMap.height; r++) {
+      for (let q = this.tiledMap.width - 1; q >= 0; q--) {
         if (q % 2 === 0) {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);
@@ -98,7 +93,7 @@ export default class HexMap extends Phaser.Scene {
           });
         }
       }
-      for (let q = tiledMap.width - 1; q >= 0; q--) {
+      for (let q = this.tiledMap.width - 1; q >= 0; q--) {
         if (q % 2 === 1) {
           const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
           const p = layout.hexToPixel(hex);

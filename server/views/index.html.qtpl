@@ -1,4 +1,5 @@
 {% import "github.com/etherealmachine/rpg.ai/server/models" %}
+{% import "github.com/nleeper/goment" %}
 
 {% code
 type IndexPage struct {
@@ -6,13 +7,25 @@ type IndexPage struct {
   Tilemaps []models.TilemapWithThumbnails
   Spritesheets []models.Spritesheet
   TilemapThumbnailIDs map[int32]int32
+  Posts []*Post
 }
 %}
 
 {% func (p *IndexPage) Content() %}
   <div class="container-fluid d-flex mt-4">
     <div class="mx-4" style="min-width: 200px">
-      <h4>Tags</h4>
+      <h4 class="mb-2">Devlog</h4>
+      <div class="d-flex flex-column">
+        {% for _, post := range p.Posts %}
+          <span>
+            <a href="{%s post.Link() %}">{%s post.Title %}</a>
+            {% if g, err := goment.New(post.CreatedAt); err == nil  %}
+              <span>{%s g.FromNow() %}</span>
+            {% endif %}
+          </span>
+        {% endfor %}
+      </div>
+      <h4 class="my-2">Tags</h4>
       <div class="d-flex justify-content-between">
         <div class="d-flex flex-column">
           <a href="/search?tag=fantasy">Fantasy</a>
@@ -34,24 +47,6 @@ type IndexPage struct {
           <li>Easily add monsters, traps, and rooms using our smart AI to generate content.</li>
           <li>Run encounters - the app rolls the dice and tracks the stats, you describe the results.</li>
         </ul>
-        <a class="btn btn-success" href="/start-game">Start Game</a>
-      </div>
-      <div class="mt-4">
-        <h3>Newest Spritesheets</h3>
-        <div class="d-flex flex-wrap">
-          {% for _, spritesheet := range p.Spritesheets %}
-            <div class="card m-3" style="width: 18rem">
-              <img src="{%s spritesheet.ThumbnailPath() %}" class="card-img-top" alt="Image for {%s spritesheet.Name %}">
-              <div class="card-body d-flex flex-column">
-                <h5 class="card-title">{%s spritesheet.Name %}</h5>
-                {% if spritesheet.Description.Valid %}
-                  <p class="card-text">{%s spritesheet.Description.String %}</p>
-                {% endif %}
-                <a href="{%s spritesheet.DownloadPath() %}" class="btn btn-primary">Download</a>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
       </div>
       <div class="mt-4">
         <h3>Newest Maps</h3>
@@ -70,6 +65,23 @@ type IndexPage struct {
                   <a href="{%s tilemap.MapPath() %}" class="btn btn-primary">Preview</a>
                   <a href="{%s tilemap.DownloadPath() %}" class="btn btn-secondary">Download</a>
                 </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mt-4">
+        <h3>Newest Spritesheets</h3>
+        <div class="d-flex flex-wrap">
+          {% for _, spritesheet := range p.Spritesheets %}
+            <div class="card m-3" style="width: 18rem">
+              <img src="{%s spritesheet.ThumbnailPath() %}" class="card-img-top" alt="Image for {%s spritesheet.Name %}">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{%s spritesheet.Name %}</h5>
+                {% if spritesheet.Description.Valid %}
+                  <p class="card-text">{%s spritesheet.Description.String %}</p>
+                {% endif %}
+                <a href="{%s spritesheet.DownloadPath() %}" class="btn btn-primary">Download</a>
               </div>
             </div>
           {% endfor %}

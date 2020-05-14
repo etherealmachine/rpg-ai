@@ -1,10 +1,20 @@
-{% import "time" %}
-{% import "github.com/nleeper/goment" %}
+{% import (
+  "fmt"
+  "time"
+  "github.com/nleeper/goment"
+  "github.com/gosimple/slug"
+)
+%}
 
 {% code
 type Post struct {
+  Title string
   Content []byte
   CreatedAt time.Time
+}
+
+func (p *Post) Link() string {
+  return fmt.Sprintf("/devlog/%s", slug.Make(p.Title))
 }
 
 type DevlogPage struct {
@@ -19,7 +29,7 @@ type DevlogPage struct {
       <div class="card my-4">
         <div class="card-body">
           {% if g, err := goment.New(post.CreatedAt); err == nil  %}
-            {%s g.FromNow() %}
+            Posted {%s g.FromNow() %}
           {% endif %}
           <div class="devlog-content">
             {%z= post.Content %}

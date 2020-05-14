@@ -87,7 +87,7 @@ func main() {
 
 	r.Handle("/", http.HandlerFunc(IndexController)).Methods("GET")
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(ProfileController))).Methods("GET")
-	r.Handle("/devlog", http.HandlerFunc(DevlogController)).Methods("GET")
+	r.PathPrefix("/devlog").Handler(http.HandlerFunc(DevlogController)).Methods("GET")
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(UploadAssetsController))).Methods("POST")
 	r.Handle("/set-tilemap-thumbnail", LoginRequired(http.HandlerFunc(SetTilemapThumbnailController))).Methods("POST")
 	r.Handle("/map/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(MapController)).Methods("GET")

@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.4.1
+	github.com/gosimple/slug v1.9.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/klauspost/compress v1.10.5 // indirect
 	github.com/klauspost/cpuid v1.2.3 // indirect
