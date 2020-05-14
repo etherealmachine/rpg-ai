@@ -5,8 +5,8 @@ import { SetTilemapThumbnail } from '../AssetUploader';
 import { isPresent } from '../TypeHelpers';
 
 export default class OrthoMap extends Phaser.Scene {
-  tilemapModel?: TilemapModel
-  tiledMap?: Tilemap
+  tilemapModel!: TilemapModel
+  tiledMap!: Tilemap
   controls?: Phaser.Cameras.Controls.SmoothedKeyControl
   objects: Phaser.GameObjects.Group[] = []
 
@@ -61,16 +61,16 @@ export default class OrthoMap extends Phaser.Scene {
           this.generateThumbnail();
           break;
         case Phaser.Input.Keyboard.KeyCodes.W:
-          this.objects[5].incY(-(this.tiledMap?.tileheight || 0));
+          this.objects[5].incY(-(this.tiledMap.tileheight || 0));
           break;
         case Phaser.Input.Keyboard.KeyCodes.A:
-          this.objects[5].incX(-(this.tiledMap?.tilewidth || 0));
+          this.objects[5].incX(-(this.tiledMap.tilewidth || 0));
           break;
         case Phaser.Input.Keyboard.KeyCodes.S:
-          this.objects[5].incY(this.tiledMap?.tileheight || 0);
+          this.objects[5].incY(this.tiledMap.tileheight || 0);
           break;
         case Phaser.Input.Keyboard.KeyCodes.D:
-          this.objects[5].incX(this.tiledMap?.tilewidth || 0);
+          this.objects[5].incX(this.tiledMap.tilewidth || 0);
           break;
       }
     });
@@ -93,20 +93,33 @@ export default class OrthoMap extends Phaser.Scene {
     });
     const gidIndices = tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
     this.objects = map.objects.map(layer => this.add.group((layer.objects.map(object => {
-      const { gid, x, y } = object;
-      if (gid === undefined || x === undefined || y === undefined) {
-        console.log(`skipping ${JSON.stringify(object)} on layer ${JSON.stringify(layer)}`);
+      const { gid, x, y, width, height, polygon, polyline, name, properties } = object;
+      if (x === undefined || y === undefined) {
+        console.log(object);
         return null;
       }
-      const i = gidIndices.find(gidindex => gid >= gidindex[1]);
-      if (i === undefined) {
-        console.error(`no gid index found for ${gid}`);
+      console.log(layer.name, name);
+      if (gid) {
+        const i = gidIndices.find(gidindex => gid >= gidindex[1]);
+        if (i === undefined) {
+          console.error(`no gid index found for ${gid}`);
+          return null;
+        }
+        const tileset = tiledMap.tilesets[i[0]] as TilesetSource;
+        const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
+        s.setDisplayOrigin(0, tiledMap.tileheight);
+        return s;
+      } else if (polygon || polyline) {
+        const points = polygon || polyline;
+        const obj = this.add.polygon(x, y, points, 0x000, 0.2);
+        obj.setDisplayOrigin(0, 0);
+        return null;
+      } else if (width && height) {
+        const obj = this.add.rectangle(x, y, width, height, 0x000, 0.2);
+        obj.setDisplayOrigin(0, 0);
         return null;
       }
-      const tileset = tiledMap.tilesets[i[0]] as TilesetSource;
-      const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
-      s.setDisplayOrigin(0, tiledMap.tileheight);
-      return s;
+      return null;
     }).filter(isPresent)), {
       name: layer.name,
     }));

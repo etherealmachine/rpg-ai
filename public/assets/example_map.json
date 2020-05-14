@@ -28,7 +28,7 @@
          "name":"Ground2",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":40,
          "x":0,
          "y":0
@@ -52,7 +52,7 @@
          "name":"Flora",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":40,
          "x":0,
          "y":0
@@ -64,7 +64,7 @@
          "name":"Decorations",
          "opacity":1,
          "type":"tilelayer",
-         "visible":false,
+         "visible":true,
          "width":40,
          "x":0,
          "y":0
@@ -75,32 +75,15 @@
          "name":"Room0",
          "objects":[
                 {
-                 "height":0,
-                 "id":27,
+                 "height":112,
+                 "id":30,
                  "name":"",
-                 "polygon":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":-96,
-                         "y":0
-                        }, 
-                        {
-                         "x":-96,
-                         "y":-112
-                        }, 
-                        {
-                         "x":0,
-                         "y":-112
-                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":0,
-                 "x":144,
-                 "y":368
+                 "width":96,
+                 "x":48,
+                 "y":256
                 }],
          "opacity":1,
          "properties":[
@@ -120,36 +103,15 @@
          "name":"Room1",
          "objects":[
                 {
-                 "height":0,
-                 "id":24,
+                 "height":48,
+                 "id":32,
                  "name":"",
-                 "polyline":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":0,
-                         "y":-48
-                        }, 
-                        {
-                         "x":64,
-                         "y":-48
-                        }, 
-                        {
-                         "x":64,
-                         "y":0
-                        }, 
-                        {
-                         "x":0,
-                         "y":0
-                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":0,
+                 "width":64,
                  "x":160,
-                 "y":336
+                 "y":288
                 }],
          "opacity":1,
          "properties":[
@@ -169,32 +131,15 @@
          "name":"Room2",
          "objects":[
                 {
-                 "height":0,
-                 "id":25,
+                 "height":80,
+                 "id":33,
                  "name":"",
-                 "polygon":[
-                        {
-                         "x":0,
-                         "y":0
-                        }, 
-                        {
-                         "x":0,
-                         "y":-80
-                        }, 
-                        {
-                         "x":96,
-                         "y":-80
-                        }, 
-                        {
-                         "x":96,
-                         "y":0
-                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":0,
+                 "width":96,
                  "x":192,
-                 "y":256
+                 "y":176
                 }],
          "opacity":1,
          "properties":[
@@ -215,7 +160,7 @@
          "objects":[
                 {
                  "height":0,
-                 "id":22,
+                 "id":35,
                  "name":"",
                  "polygon":[
                         {
@@ -223,47 +168,47 @@
                          "y":0
                         }, 
                         {
-                         "x":0,
-                         "y":-144
-                        }, 
-                        {
                          "x":128,
-                         "y":-144
-                        }, 
-                        {
-                         "x":128,
-                         "y":-128
-                        }, 
-                        {
-                         "x":160,
-                         "y":-128
-                        }, 
-                        {
-                         "x":160,
-                         "y":-112
-                        }, 
-                        {
-                         "x":192,
-                         "y":-112
-                        }, 
-                        {
-                         "x":192,
-                         "y":-96
-                        }, 
-                        {
-                         "x":224,
-                         "y":-96
-                        }, 
-                        {
-                         "x":224,
                          "y":0
+                        }, 
+                        {
+                         "x":128,
+                         "y":16
+                        }, 
+                        {
+                         "x":160,
+                         "y":16
+                        }, 
+                        {
+                         "x":160,
+                         "y":32
+                        }, 
+                        {
+                         "x":192,
+                         "y":32
+                        }, 
+                        {
+                         "x":192,
+                         "y":48
+                        }, 
+                        {
+                         "x":224,
+                         "y":48
+                        }, 
+                        {
+                         "x":224,
+                         "y":144
+                        }, 
+                        {
+                         "x":0,
+                         "y":144
                         }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":0,
                  "x":288,
-                 "y":432
+                 "y":288
                 }],
          "opacity":1,
          "properties":[
@@ -408,7 +353,7 @@
          "y":0
         }],
  "nextlayerid":26,
- "nextobjectid":30,
+ "nextobjectid":36,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.3.4",
