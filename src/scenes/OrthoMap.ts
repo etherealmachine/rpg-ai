@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
+
 import { Tilemap, Tileset, TilesetSource } from '../Tiled';
 import { Tilemap as TilemapModel } from '../AssetService';
 import { SetTilemapThumbnail } from '../AssetUploader';
-import { isPresent } from '../TypeHelpers';
 
 export default class OrthoMap extends Phaser.Scene {
   tilemapModel!: TilemapModel
@@ -92,37 +92,68 @@ export default class OrthoMap extends Phaser.Scene {
       map.createStaticLayer(layer.name, tilesets);
     });
     const gidIndices = tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
-    this.objects = map.objects.map(layer => this.add.group((layer.objects.map(object => {
-      const { gid, x, y, width, height, polygon, polyline, name, properties } = object;
-      if (x === undefined || y === undefined) {
-        console.log(object);
-        return null;
-      }
-      console.log(layer.name, name);
-      if (gid) {
-        const i = gidIndices.find(gidindex => gid >= gidindex[1]);
-        if (i === undefined) {
-          console.error(`no gid index found for ${gid}`);
-          return null;
+    for (let layer of map.objects) {
+      const group = this.add.group({ name: layer.name });
+      for (let object of layer.objects) {
+        const { gid, x, y, width, height, polygon, polyline } = object;
+        if (x === undefined || y === undefined) {
+          continue;
         }
-        const tileset = tiledMap.tilesets[i[0]] as TilesetSource;
-        const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
-        s.setDisplayOrigin(0, tiledMap.tileheight);
-        return s;
-      } else if (polygon || polyline) {
-        const points = polygon || polyline;
-        const obj = this.add.polygon(x, y, points, 0x000, 0.2);
-        obj.setDisplayOrigin(0, 0);
-        return null;
-      } else if (width && height) {
-        const obj = this.add.rectangle(x, y, width, height, 0x000, 0.2);
-        obj.setDisplayOrigin(0, 0);
-        return null;
+        if (gid) {
+          const i = gidIndices.find(gidindex => gid >= gidindex[1]);
+          if (i === undefined) {
+            console.error(`no gid index found for ${gid}`);
+            continue;
+          }
+          const tileset = tiledMap.tilesets[i[0]] as TilesetSource;
+          const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
+          s.setDisplayOrigin(0, tiledMap.tileheight);
+          s.setInteractive();
+          s.on('pointerover', () => {
+            let description = '';
+            if (object.properties) {
+              description = (object.properties as any)[0]["value"];
+            }
+            (window as any).emitter.emit("hoveron", {
+              type: "npc",
+              name: layer.name,
+              description: description,
+            });
+          });
+          s.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+          group.add(s);
+        } else if (polygon || polyline) {
+          const points = polygon || polyline;
+          const poly = this.add.polygon(x, y, points, 0x000, 0.2);
+          poly.setDisplayOrigin(0, 0);
+          group.add(poly);
+          poly.setInteractive();
+          poly.on('pointerover', () => {
+            (window as any).emitter.emit("hoveron", {
+              type: "room",
+              name: layer.name,
+              description: (layer.properties as any)[0]["value"],
+            });
+          });
+          poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+        } else if (width && height) {
+          const poly = this.add.rectangle(x, y, width, height, 0x000, 0.2);
+          poly.setDisplayOrigin(0, 0);
+          group.add(poly);
+          poly.setInteractive();
+          poly.on('pointerover', () => {
+            (window as any).emitter.emit("hoveron", {
+              type: "room",
+              name: layer.name,
+              description: (layer.properties as any)[0]["value"],
+            });
+          });
+          poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+        }
       }
-      return null;
-    }).filter(isPresent)), {
-      name: layer.name,
-    }));
+      this.objects.push(group);
+    }
+
     this.cameras.main.centerOn((tiledMap.tilewidth * tiledMap.width) / 2, (tiledMap.tileheight * tiledMap.height) / 2);
   }
 

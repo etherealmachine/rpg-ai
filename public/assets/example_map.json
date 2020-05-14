@@ -82,9 +82,11 @@
                  "type":"",
                  "visible":true,
                  "width":96,
-                 "x":48,
-                 "y":256
+                 "x":0,
+                 "y":224
                 }],
+         "offsetx":48,
+         "offsety":32,
          "opacity":1,
          "properties":[
                 {
@@ -209,29 +211,18 @@
                  "width":0,
                  "x":288,
                  "y":288
-                }],
-         "opacity":1,
-         "properties":[
-                {
-                 "name":"Description",
-                 "type":"string",
-                 "value":"A lone orc lives here, with a bedroll and some meager possessions. He moved in to occupy the cave after the goblin tribe that lived here was massacred by a group of adventurers."
-                }],
-         "type":"objectgroup",
-         "visible":true,
-         "x":0,
-         "y":0
-        }, 
-        {
-         "draworder":"topdown",
-         "id":22,
-         "name":"Loot",
-         "objects":[
+                }, 
                 {
                  "gid":551,
                  "height":16,
-                 "id":29,
+                 "id":36,
                  "name":"Chest",
+                 "properties":[
+                        {
+                         "name":"Description",
+                         "type":"string",
+                         "value":"The chest contains the totality of the orc's meager possessions."
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -240,6 +231,12 @@
                  "y":384
                 }],
          "opacity":1,
+         "properties":[
+                {
+                 "name":"Description",
+                 "type":"string",
+                 "value":"A lone orc lives here, with a bedroll and some meager possessions. He moved in to occupy the cave after the goblin tribe that lived here was massacred by a group of adventurers."
+                }],
          "type":"objectgroup",
          "visible":true,
          "x":0,
@@ -353,7 +350,7 @@
          "y":0
         }],
  "nextlayerid":26,
- "nextobjectid":36,
+ "nextobjectid":37,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.3.4",

@@ -11,7 +11,7 @@ interface Props {
   Map: Tilemap
 }
 
-const Game = styled.div`
+const PhaserContainer = styled.div`
   width: 100%;
   height: 100%;
 `;
@@ -38,6 +38,43 @@ function setupPhaserMap(el: HTMLElement, map: Tilemap) {
   el.setAttribute('style', `width: ${el.offsetWidth}px; height: ${el.offsetHeight}px`);
 }
 
-export default function Map(props: Props) {
-  return <Game ref={el => el && setupPhaserMap(el, props.Map)} />;
+interface State {
+  name?: string
+  description?: string
+}
+
+export default class Map extends React.Component<Props, State> {
+
+  constructor(props: Props) {
+    super(props);
+    this.state = {};
+  }
+
+  componentDidMount() {
+    (window as any).emitter.on('hoveron', (event: any) => {
+      this.setState({
+        name: event.name,
+        description: event.description,
+      });
+    });
+    (window as any).emitter.on('hoveroff', (event: any) => {
+      this.setState({
+        name: undefined,
+        description: undefined,
+      });
+    });
+  }
+
+  render() {
+    return <div style={{ height: "100%", width: "100%", position: "relative" }}>
+      {this.state.name && this.state.description &&
+        <div className="card" style={{ position: "absolute", right: 0 }}>
+          <div className="card-body">
+            <h5 className="card-title">{this.state.name}</h5>
+            <p>{this.state.description}</p>
+          </div>
+        </div>}
+      <PhaserContainer ref={el => el && setupPhaserMap(el, this.props.Map)} />
+    </div>;
+  }
 }

@@ -8608,6 +8608,11 @@ nan@^2.12.1:
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.14.1.tgz#d7be34dfa3105b91494c3147089315eff8874b01"
   integrity sha512-isWHgVjnFjh2x2yuJ/tj3JbwoHu3UC2dX5G/88Cm24yB6YopVgxvBObDY7n5xW6ExmFhJpSEQqFPvq9zaXc8Jw==
 
+nanoevents@^5.1.7:
+  version "5.1.7"
+  resolved "https://registry.yarnpkg.com/nanoevents/-/nanoevents-5.1.7.tgz#4819a026268725fb0cbf45a36bd1a4ea2737e63b"
+  integrity sha512-erZPLYnJMmzD5OeXX+ZrfaS+KwuclhvrHbx8okK89Pyb8omSubguKVFyJHlX7Q2k/F2mgv4QoH3cTDdua6j18g==
+
 nanomatch@^1.2.9:
   version "1.2.13"
   resolved "https://registry.yarnpkg.com/nanomatch/-/nanomatch-1.2.13.tgz#b87a8aa4fc0de8fe6be88895b38983ff265bd119"

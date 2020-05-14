@@ -7,6 +7,9 @@ import FacebookLoginButton from './FacebookLoginButton';
 import AssetTable from './AssetTable';
 import AssetUploader from './AssetUploader';
 
+import { createNanoEvents } from 'nanoevents';
+(window as any).emitter = createNanoEvents();
+
 if (window.location.host.startsWith('localhost') && window.location.hash !== "") {
   import('./' + window.location.hash.slice(1)).then(module => {
     ReactDOM.render(React.createElement(module.default), document.getElementById('demo'));
