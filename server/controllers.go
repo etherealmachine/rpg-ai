@@ -148,6 +148,9 @@ func DevlogController(w http.ResponseWriter, r *http.Request) {
 	}
 	var posts []*views.Post
 	for _, f := range files {
+		if strings.HasPrefix(f.Name(), "_") {
+			continue
+		}
 		if strings.HasSuffix(f.Name(), ".md") {
 			bs, err := ioutil.ReadFile(filepath.Join(path, f.Name()))
 			if err != nil {

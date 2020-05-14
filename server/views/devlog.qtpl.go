@@ -38,13 +38,13 @@ type DevlogPage struct {
 func (p *DevlogPage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/devlog.qtpl:16
 	qw422016.N().S(`
-  <div class="container d-flex mt-4">
+  <div class="container d-flex mt-4 flex-column">
     `)
 //line views/devlog.qtpl:18
 	for _, post := range p.Posts {
 //line views/devlog.qtpl:18
 		qw422016.N().S(`
-      <div class="card">
+      <div class="card my-4">
         <div class="card-body">
           `)
 //line views/devlog.qtpl:21

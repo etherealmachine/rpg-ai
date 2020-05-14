@@ -14,9 +14,9 @@ type DevlogPage struct {
 %}
 
 {% func (p *DevlogPage) Content() %}
-  <div class="container d-flex mt-4">
+  <div class="container d-flex mt-4 flex-column">
     {% for _, post := range p.Posts %}
-      <div class="card">
+      <div class="card my-4">
         <div class="card-body">
           {% if g, err := goment.New(post.CreatedAt); err == nil  %}
             {%s g.FromNow() %}
