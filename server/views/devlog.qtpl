@@ -44,7 +44,7 @@ type DevlogIndexPage struct {
   <div class="d-flex mt-4 mx-5">
     {%= p.Sidebar() %}
     <div>
-      <div class="card my-4">
+      <div class="card">
         <div class="card-body">
           Posted {%s Goment(p.Post.CreatedAt).FromNow() %}
           <div class="devlog-content">

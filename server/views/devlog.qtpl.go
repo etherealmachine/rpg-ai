@@ -104,7 +104,7 @@ func (p *DevlogPage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/devlog.qtpl:45
 	qw422016.N().S(`
     <div>
-      <div class="card my-4">
+      <div class="card">
         <div class="card-body">
           Posted `)
 //line views/devlog.qtpl:49
