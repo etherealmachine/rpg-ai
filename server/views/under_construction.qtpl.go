@@ -32,7 +32,7 @@ func (p *UnderConstructionPage) StreamContent(qw422016 *qt422016.Writer) {
 	p.StreamSidebar(qw422016)
 //line views/under_construction.qtpl:9
 	qw422016.N().S(`
-    <div>
+    <div class="container-fluid pt-2">
       <h1>Under Construction</h1>
       <p>Yes, I "surfed the web" in the early 90's. Why do you ask?</p>
       <img src="/images/under_construction.gif" />

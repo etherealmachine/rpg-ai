@@ -32,7 +32,7 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
 	p.StreamSidebar(qw422016)
 //line views/index.html.qtpl:9
 	qw422016.N().S(`
-    <div class="container">
+    <div class="container-fluid pt-2">
       <div>
         <h2>What is RPG.ai?</h2>
         <p>

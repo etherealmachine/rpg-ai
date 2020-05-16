@@ -141,221 +141,233 @@ func (p *BasePage) StreamHeader(qw422016 *qt422016.Writer) {
       .sidebar-button {
         display: none !important;
       }
+      .navbar-login-toggler {
+        display: none !important;
+      }
     }
   </style>
 `)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 }
 
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 func (p *BasePage) WriteHeader(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	p.StreamHeader(qw422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 }
 
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 func (p *BasePage) Header() string {
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	p.WriteHeader(qb422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 	return qs422016
-//line views/base.html.qtpl:54
+//line views/base.html.qtpl:57
 }
 
-//line views/base.html.qtpl:56
+//line views/base.html.qtpl:59
 func (p *BasePage) StreamBodyScripts(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:56
+//line views/base.html.qtpl:59
 	qw422016.N().S(`
   <script>
     `)
-//line views/base.html.qtpl:58
+//line views/base.html.qtpl:61
 	if p.User != nil {
-//line views/base.html.qtpl:58
+//line views/base.html.qtpl:61
 		qw422016.N().S(`
       window.currentUserID = `)
-//line views/base.html.qtpl:59
+//line views/base.html.qtpl:62
 		qw422016.N().D(int(p.User.ID))
-//line views/base.html.qtpl:59
+//line views/base.html.qtpl:62
 		qw422016.N().S(`;
     `)
-//line views/base.html.qtpl:60
+//line views/base.html.qtpl:63
 	} else {
-//line views/base.html.qtpl:60
+//line views/base.html.qtpl:63
 		qw422016.N().S(`
       window.currentUserID = undefined;
     `)
-//line views/base.html.qtpl:62
+//line views/base.html.qtpl:65
 	}
-//line views/base.html.qtpl:62
+//line views/base.html.qtpl:65
 	qw422016.N().S(`
   </script>
   `)
-//line views/base.html.qtpl:64
+//line views/base.html.qtpl:67
 	for _, node := range p.Scripts {
-//line views/base.html.qtpl:64
+//line views/base.html.qtpl:67
 		qw422016.N().S(`
     <script`)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 		for _, attr := range node.Attr {
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 			qw422016.N().S(` `)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 			qw422016.E().S(attr.Key)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 			qw422016.N().S(`=`)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 			qw422016.E().S(attr.Val)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 			qw422016.N().S(` `)
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 		}
-//line views/base.html.qtpl:65
+//line views/base.html.qtpl:68
 		qw422016.N().S(`>
       `)
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:69
 		if node.FirstChild != nil {
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:69
 			qw422016.N().S(node.FirstChild.Data)
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:69
 		}
-//line views/base.html.qtpl:66
+//line views/base.html.qtpl:69
 		qw422016.N().S(`
     </script>
   `)
-//line views/base.html.qtpl:68
+//line views/base.html.qtpl:71
 	}
-//line views/base.html.qtpl:68
+//line views/base.html.qtpl:71
 	qw422016.N().S(`
 `)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 }
 
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 func (p *BasePage) WriteBodyScripts(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 }
 
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 func (p *BasePage) BodyScripts() string {
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	p.WriteBodyScripts(qb422016)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 	return qs422016
-//line views/base.html.qtpl:69
+//line views/base.html.qtpl:72
 }
 
-//line views/base.html.qtpl:71
+//line views/base.html.qtpl:74
 func (p *BasePage) StreamNavbar(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:71
+//line views/base.html.qtpl:74
 	qw422016.N().S(`
-  <div class="container-fluid">
-    <nav class="navbar navbar-expand-lg navbar-light justify-content-between">
-      <button class="btn sidebar-button mr-1" type="button" data-toggle="collapse" data-target="#sidebar" aria-expanded="false" aria-controls="sidebar">
-        <i class="fa fa-bars"></i>
-      </button>
-      <a class="navbar-brand" href="/">RPG.ai</a>
-      <form class="search-bar form-inline flex-grow-1" action="/search" method="GET">
-        <div class="input-group flex-grow-1">
-          <input class="form-control" style="max-width: 400px" type="search" name="q" placeholder="Search tilesets and tilemaps" aria-label="Search">
-          <div class="input-group-append">
-            <button class="btn btn-secondary" type="submit">
-              <i class="fa fa-search"></i>
-            </button>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-between">
+    <button class="btn sidebar-button mr-1" type="button" data-toggle="collapse" data-target="#sidebar" aria-expanded="false" aria-controls="sidebar">
+      <i class="fa fa-bars"></i>
+    </button>
+    <a class="navbar-brand" href="/">RPG.ai</a>
+    <form class="search-bar form-inline flex-grow-1" action="/search" method="GET">
+      <div class="input-group flex-grow-1">
+        <input class="form-control" style="max-width: 400px" type="search" name="q" placeholder="Search tilesets and tilemaps" aria-label="Search">
+        <div class="input-group-append">
+          <button class="btn btn-secondary" type="submit">
+            <i class="fa fa-search"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+    <div class="d-flex flex-column justify-content-center" style="min-height: 59px">
+      `)
+//line views/base.html.qtpl:91
+	if p.User != nil {
+//line views/base.html.qtpl:91
+		qw422016.N().S(`
+        <div class="nav-item dropdown align-self-end">
+          <button class="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Settings
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+          <a href="/profile" class="dropdown-item">`)
+//line views/base.html.qtpl:97
+		qw422016.E().S(p.User.Email)
+//line views/base.html.qtpl:97
+		qw422016.N().S(`</a>
+          <a class="dropdown-item" href="/logout">Logout</a>
+        </div>
+      `)
+//line views/base.html.qtpl:100
+	} else {
+//line views/base.html.qtpl:100
+		qw422016.N().S(`
+        <button
+            class="btn btn-link navbar-login-toggler"
+            type="button"
+            data-toggle="collapse"
+            data-target="#navbarLoginButtons"
+            aria-controls="navbarLoginButtons"
+            aria-expanded="false"
+            aria-label="Toggle Login Buttons">
+          Login
+        </button>
+        <div id="navbarLoginButtons" class="collapse navbar-collapse">
+          <div class="d-flex flex-grow-1 justify-content-end">
+            <div class="nav-item GoogleLoginButton"></div>
+            <div class="nav-item FacebookLoginButton"></div>
           </div>
         </div>
-      </form>
-      <div class="d-flex align-items-center align-self-end">
-        `)
-//line views/base.html.qtpl:89
-	if p.User != nil {
-//line views/base.html.qtpl:89
-		qw422016.N().S(`
-          <div class="nav-item dropdown">
-            <button class="btn btn-link dropdown-toggle" id="navbarDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              Settings
-          </button>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-              <a href="/profile" class="dropdown-item">`)
-//line views/base.html.qtpl:95
-		qw422016.E().S(p.User.Email)
-//line views/base.html.qtpl:95
-		qw422016.N().S(`</a>
-              <a class="dropdown-item" href="/logout">Logout</a>
-            </div>
-          </div>
-        `)
-//line views/base.html.qtpl:99
-	} else {
-//line views/base.html.qtpl:99
-		qw422016.N().S(`
-          <div class="d-flex">
-            <div class="GoogleLoginButton"></div>
-            <div class="FacebookLoginButton"></div>
-          </div>
-        `)
-//line views/base.html.qtpl:104
+      `)
+//line views/base.html.qtpl:117
 	}
-//line views/base.html.qtpl:104
+//line views/base.html.qtpl:117
 	qw422016.N().S(`
-      </div>
-    </nav>
-  </div>
+    </div>
+  </nav>
 `)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 }
 
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 func (p *BasePage) WriteNavbar(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	p.StreamNavbar(qw422016)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 }
 
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 func (p *BasePage) Navbar() string {
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	p.WriteNavbar(qb422016)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 	return qs422016
-//line views/base.html.qtpl:108
+//line views/base.html.qtpl:120
 }
 
-//line views/base.html.qtpl:110
+//line views/base.html.qtpl:122
 func (p *BasePage) StreamFooter(qw422016 *qt422016.Writer) {
-//line views/base.html.qtpl:110
+//line views/base.html.qtpl:122
 	qw422016.N().S(`
   <footer class="mt-auto py-2 bg-light">
     <div class="container">
@@ -367,102 +379,102 @@ func (p *BasePage) StreamFooter(qw422016 *qt422016.Writer) {
     </div>
   </footer>
 `)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 }
 
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 func (p *BasePage) WriteFooter(qq422016 qtio422016.Writer) {
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 }
 
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 func (p *BasePage) Footer() string {
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	p.WriteFooter(qb422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 	return qs422016
-//line views/base.html.qtpl:120
+//line views/base.html.qtpl:132
 }
 
-//line views/base.html.qtpl:122
+//line views/base.html.qtpl:134
 func StreamPageTemplate(qw422016 *qt422016.Writer, p Page) {
-//line views/base.html.qtpl:122
+//line views/base.html.qtpl:134
 	qw422016.N().S(`
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   `)
-//line views/base.html.qtpl:127
+//line views/base.html.qtpl:139
 	p.StreamHeader(qw422016)
-//line views/base.html.qtpl:127
+//line views/base.html.qtpl:139
 	qw422016.N().S(`
 </head>
 
 <body>
   `)
-//line views/base.html.qtpl:131
+//line views/base.html.qtpl:143
 	p.StreamNavbar(qw422016)
-//line views/base.html.qtpl:131
+//line views/base.html.qtpl:143
 	qw422016.N().S(`
   `)
-//line views/base.html.qtpl:132
+//line views/base.html.qtpl:144
 	p.StreamContent(qw422016)
-//line views/base.html.qtpl:132
+//line views/base.html.qtpl:144
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:134
+//line views/base.html.qtpl:146
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:134
+//line views/base.html.qtpl:146
 	qw422016.N().S(`
 
   `)
-//line views/base.html.qtpl:136
+//line views/base.html.qtpl:148
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:136
+//line views/base.html.qtpl:148
 	qw422016.N().S(`
 </body>
 
 </html>
 `)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 }
 
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 func WritePageTemplate(qq422016 qtio422016.Writer, p Page) {
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	StreamPageTemplate(qw422016, p)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 }
 
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 func PageTemplate(p Page) string {
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	WritePageTemplate(qb422016, p)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 	return qs422016
-//line views/base.html.qtpl:140
+//line views/base.html.qtpl:152
 }

@@ -7,7 +7,7 @@ type UnderConstructionPage struct {
 {% func (p *UnderConstructionPage) Content() %}
   <div class="container-fluid d-flex position-relative">
     {%= p.Sidebar() %}
-    <div>
+    <div class="container-fluid pt-2">
       <h1>Under Construction</h1>
       <p>Yes, I "surfed the web" in the early 90's. Why do you ask?</p>
       <img src="/images/under_construction.gif" />

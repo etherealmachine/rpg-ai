@@ -43,7 +43,7 @@ type DevlogIndexPage struct {
 {% func (p *DevlogPage) Content() %}
   <div class="container-fluid d-flex position-relative">
     {%= p.Sidebar() %}
-    <div class="container">
+    <div class="container-fluid pt-2">
       Posted {%s Goment(p.Post.CreatedAt).FromNow() %}
       <div class="devlog-content">
         {%z= p.Post.Content %}
@@ -75,9 +75,9 @@ type DevlogIndexPage struct {
 {% endfunc %}
 
 {% func (p *DevlogIndexPage) Content() %}
-  <div class="d-flex mt-4 mx-5">
+  <div class="container-fluid d-flex position-relative">
     {%= p.Sidebar() %}
-    <div>
+    <div class="container-fluid pt-2">
       <h1>Development Log</h1>
       <p>
         Like it says on the tin, a chronological log of my thoughts and designs while developing

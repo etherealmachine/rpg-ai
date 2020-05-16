@@ -103,7 +103,7 @@ func (p *DevlogPage) StreamContent(qw422016 *qt422016.Writer) {
 	p.StreamSidebar(qw422016)
 //line views/devlog.qtpl:45
 	qw422016.N().S(`
-    <div class="container">
+    <div class="container-fluid pt-2">
       Posted `)
 //line views/devlog.qtpl:47
 	qw422016.E().S(Goment(p.Post.CreatedAt).FromNow())
@@ -206,13 +206,13 @@ func (p *DevlogPage) Content() string {
 func (p *DevlogIndexPage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/devlog.qtpl:77
 	qw422016.N().S(`
-  <div class="d-flex mt-4 mx-5">
+  <div class="container-fluid d-flex position-relative">
     `)
 //line views/devlog.qtpl:79
 	p.StreamSidebar(qw422016)
 //line views/devlog.qtpl:79
 	qw422016.N().S(`
-    <div>
+    <div class="container-fluid pt-2">
       <h1>Development Log</h1>
       <p>
         Like it says on the tin, a chronological log of my thoughts and designs while developing

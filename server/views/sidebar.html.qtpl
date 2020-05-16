@@ -29,13 +29,15 @@ type SidebarPage struct {
         border-bottom: none;
         display: block !important;
         position: static;
+        padding-right: 24px;
+        margin-right: 16px;
       }
     }
   </style>
 {% endfunc %}
 
 {% func (p *SidebarPage) Sidebar() %}
-  <div class="sidebar col-md-auto collapse" id="sidebar">
+  <div class="sidebar col-md-auto collapse pt-2" id="sidebar">
     <h4 class="mb-2">Devlog</h4>
     <div class="d-flex flex-column">
       {% for _, post := range p.Posts %}
