@@ -5,92 +5,33 @@
 package views
 
 //line views/index.html.qtpl:1
-import "github.com/etherealmachine/rpg.ai/server/models"
-
-//line views/index.html.qtpl:2
-import "github.com/nleeper/goment"
-
-//line views/index.html.qtpl:4
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/index.html.qtpl:4
+//line views/index.html.qtpl:1
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/index.html.qtpl:5
+//line views/index.html.qtpl:2
 type IndexPage struct {
-	*BasePage
-	Tilemaps            []models.TilemapWithThumbnails
-	Spritesheets        []models.Spritesheet
-	TilemapThumbnailIDs map[int32]int32
-	Posts               []*Post
+	*SidebarPage
 }
 
-//line views/index.html.qtpl:14
+//line views/index.html.qtpl:7
 func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/index.html.qtpl:14
+//line views/index.html.qtpl:7
 	qw422016.N().S(`
-  <div class="container-fluid d-flex mt-4">
-    <div class="mx-4" style="min-width: 200px">
-      <h4 class="mb-2">Devlog</h4>
-      <div class="d-flex flex-column">
-        `)
-//line views/index.html.qtpl:19
-	for _, post := range p.Posts {
-//line views/index.html.qtpl:19
-		qw422016.N().S(`
-          <span>
-            <a href="`)
-//line views/index.html.qtpl:21
-		qw422016.E().S(post.Link())
-//line views/index.html.qtpl:21
-		qw422016.N().S(`">`)
-//line views/index.html.qtpl:21
-		qw422016.E().S(post.Title)
-//line views/index.html.qtpl:21
-		qw422016.N().S(`</a>
-            `)
-//line views/index.html.qtpl:22
-		if g, err := goment.New(post.CreatedAt); err == nil {
-//line views/index.html.qtpl:22
-			qw422016.N().S(`
-              <span>`)
-//line views/index.html.qtpl:23
-			qw422016.E().S(g.FromNow())
-//line views/index.html.qtpl:23
-			qw422016.N().S(`</span>
-            `)
-//line views/index.html.qtpl:24
-		}
-//line views/index.html.qtpl:24
-		qw422016.N().S(`
-          </span>
-        `)
-//line views/index.html.qtpl:26
-	}
-//line views/index.html.qtpl:26
+  <div class="d-flex mt-4 mx-5">
+    `)
+//line views/index.html.qtpl:9
+	p.StreamSidebar(qw422016)
+//line views/index.html.qtpl:9
 	qw422016.N().S(`
-      </div>
-      <h4 class="my-2">Tags</h4>
-      <div class="d-flex justify-content-between">
-        <div class="d-flex flex-column">
-          <a href="/search?tag=fantasy">Fantasy</a>
-          <a href="/search?tag=hex">Hex</a>
-          <a href="/search?tag=outdoor">Outdoor</a>
-        </div>
-        <div class="d-flex flex-column">
-          <a href="/search?tag=dungeon">Dungeon</a>
-          <a href="/search?tag=character">Character</a>
-        </div>
-      </div>
-      <a href="/tags">Browse Tags →</a>
-    </div>
     <div>
       <div>
         <h2>Your Online Tabletop Adventure Starts Here!</h2>
@@ -101,156 +42,156 @@ func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
         </ul>
       </div>
       <div class="mt-4">
-        <h3>Newest Maps</h3>
+        <h3>Maps</h3>
         <div class="d-flex flex-wrap">
           `)
-//line views/index.html.qtpl:54
+//line views/index.html.qtpl:22
 	for _, tilemap := range p.Tilemaps {
-//line views/index.html.qtpl:54
+//line views/index.html.qtpl:22
 		qw422016.N().S(`
             <div class="card m-3" style="width: 25rem">
               `)
-//line views/index.html.qtpl:56
+//line views/index.html.qtpl:24
 		if len(tilemap.Thumbnails) > 0 {
-//line views/index.html.qtpl:56
+//line views/index.html.qtpl:24
 			qw422016.N().S(`
                 <img src="`)
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:25
 			qw422016.E().S(tilemap.Thumbnails[0].Path())
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:25
 			qw422016.N().S(`" class="card-img-top" alt="Image for `)
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:25
 			qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:57
+//line views/index.html.qtpl:25
 			qw422016.N().S(`">
               `)
-//line views/index.html.qtpl:58
+//line views/index.html.qtpl:26
 		}
-//line views/index.html.qtpl:58
+//line views/index.html.qtpl:26
 		qw422016.N().S(`
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">`)
-//line views/index.html.qtpl:60
+//line views/index.html.qtpl:28
 		qw422016.E().S(tilemap.Name)
-//line views/index.html.qtpl:60
+//line views/index.html.qtpl:28
 		qw422016.N().S(`</h5>
                 `)
-//line views/index.html.qtpl:61
+//line views/index.html.qtpl:29
 		if tilemap.Description.Valid {
-//line views/index.html.qtpl:61
+//line views/index.html.qtpl:29
 			qw422016.N().S(`
                   <p class="card-text">`)
-//line views/index.html.qtpl:62
+//line views/index.html.qtpl:30
 			qw422016.E().S(tilemap.Description.String)
-//line views/index.html.qtpl:62
+//line views/index.html.qtpl:30
 			qw422016.N().S(`</p>
                 `)
-//line views/index.html.qtpl:63
+//line views/index.html.qtpl:31
 		}
-//line views/index.html.qtpl:63
+//line views/index.html.qtpl:31
 		qw422016.N().S(`
                 <div class="d-flex">
                   <a href="`)
-//line views/index.html.qtpl:65
+//line views/index.html.qtpl:33
 		qw422016.E().S(tilemap.MapPath())
-//line views/index.html.qtpl:65
+//line views/index.html.qtpl:33
 		qw422016.N().S(`" class="btn btn-primary">Preview</a>
                   <a href="`)
-//line views/index.html.qtpl:66
+//line views/index.html.qtpl:34
 		qw422016.E().S(tilemap.DownloadPath())
-//line views/index.html.qtpl:66
+//line views/index.html.qtpl:34
 		qw422016.N().S(`" class="btn btn-secondary">Download</a>
                 </div>
               </div>
             </div>
           `)
-//line views/index.html.qtpl:70
+//line views/index.html.qtpl:38
 	}
-//line views/index.html.qtpl:70
+//line views/index.html.qtpl:38
 	qw422016.N().S(`
         </div>
       </div>
       <div class="mt-4">
-        <h3>Newest Spritesheets</h3>
+        <h3>Spritesheets</h3>
         <div class="d-flex flex-wrap">
           `)
-//line views/index.html.qtpl:76
+//line views/index.html.qtpl:44
 	for _, spritesheet := range p.Spritesheets {
-//line views/index.html.qtpl:76
+//line views/index.html.qtpl:44
 		qw422016.N().S(`
             <div class="card m-3" style="width: 18rem">
               <img src="`)
-//line views/index.html.qtpl:78
+//line views/index.html.qtpl:46
 		qw422016.E().S(spritesheet.ThumbnailPath())
-//line views/index.html.qtpl:78
+//line views/index.html.qtpl:46
 		qw422016.N().S(`" class="card-img-top" alt="Image for `)
-//line views/index.html.qtpl:78
+//line views/index.html.qtpl:46
 		qw422016.E().S(spritesheet.Name)
-//line views/index.html.qtpl:78
+//line views/index.html.qtpl:46
 		qw422016.N().S(`">
               <div class="card-body d-flex flex-column">
                 <h5 class="card-title">`)
-//line views/index.html.qtpl:80
+//line views/index.html.qtpl:48
 		qw422016.E().S(spritesheet.Name)
-//line views/index.html.qtpl:80
+//line views/index.html.qtpl:48
 		qw422016.N().S(`</h5>
                 `)
-//line views/index.html.qtpl:81
+//line views/index.html.qtpl:49
 		if spritesheet.Description.Valid {
-//line views/index.html.qtpl:81
+//line views/index.html.qtpl:49
 			qw422016.N().S(`
                   <p class="card-text">`)
-//line views/index.html.qtpl:82
+//line views/index.html.qtpl:50
 			qw422016.E().S(spritesheet.Description.String)
-//line views/index.html.qtpl:82
+//line views/index.html.qtpl:50
 			qw422016.N().S(`</p>
                 `)
-//line views/index.html.qtpl:83
+//line views/index.html.qtpl:51
 		}
-//line views/index.html.qtpl:83
+//line views/index.html.qtpl:51
 		qw422016.N().S(`
                 <a href="`)
-//line views/index.html.qtpl:84
+//line views/index.html.qtpl:52
 		qw422016.E().S(spritesheet.DownloadPath())
-//line views/index.html.qtpl:84
+//line views/index.html.qtpl:52
 		qw422016.N().S(`" class="btn btn-primary">Download</a>
               </div>
             </div>
           `)
-//line views/index.html.qtpl:87
+//line views/index.html.qtpl:55
 	}
-//line views/index.html.qtpl:87
+//line views/index.html.qtpl:55
 	qw422016.N().S(`
         </div>
       </div>
     </div>
   </div>
 `)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 }
 
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 func (p *IndexPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	p.StreamContent(qw422016)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	qt422016.ReleaseWriter(qw422016)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 }
 
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 func (p *IndexPage) Content() string {
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	p.WriteContent(qb422016)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	qs422016 := string(qb422016.B)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 	return qs422016
-//line views/index.html.qtpl:92
+//line views/index.html.qtpl:60
 }

@@ -69,6 +69,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	refreshPosts()
+
 	var err error
 	sqlxDB, err = sqlx.Connect("postgres", DatabaseURL)
 	if err != nil {
@@ -87,7 +89,10 @@ func main() {
 
 	r.Handle("/", http.HandlerFunc(IndexController)).Methods("GET")
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(ProfileController))).Methods("GET")
-	r.PathPrefix("/devlog").Handler(http.HandlerFunc(DevlogController)).Methods("GET")
+	r.Handle("/search", http.HandlerFunc(UnderConstructionController)).Methods("GET")
+	r.Handle("/tags", http.HandlerFunc(UnderConstructionController)).Methods("GET")
+	r.Handle("/devlog", http.HandlerFunc(DevlogController)).Methods("GET")
+	r.Handle("/devlog/{slug:[A-Za-z0-9-]+}", http.HandlerFunc(DevlogController)).Methods("GET")
 	r.Handle("/upload-assets", LoginRequired(http.HandlerFunc(UploadAssetsController))).Methods("POST")
 	r.Handle("/set-tilemap-thumbnail", LoginRequired(http.HandlerFunc(SetTilemapThumbnailController))).Methods("POST")
 	r.Handle("/map/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(MapController)).Methods("GET")
@@ -95,7 +100,7 @@ func main() {
 	r.Handle("/spritesheet/definition/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(SpritesheetDefinitionController)).Methods("GET")
 	r.Handle("/spritesheet/image/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(SpritesheetImageController)).Methods("GET")
 	r.Handle("/thumbnail/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(ThumbnailController)).Methods("GET")
-	r.Handle("/logout", http.HandlerFunc(LogoutController)).Methods("GET")
+	r.Handle("/logout", LoginRequired(http.HandlerFunc(LogoutController))).Methods("GET")
 	r.Handle("/csrf", http.HandlerFunc(CsrfTokenController)).Methods("GET")
 	if Dev {
 		u, _ := url.Parse("http://localhost:3000")

@@ -5,26 +5,39 @@
 package views
 
 //line views/util.qtpl:1
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
 
-//line views/util.qtpl:3
+	"github.com/nleeper/goment"
+)
+
+//line views/util.qtpl:9
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/util.qtpl:3
+//line views/util.qtpl:9
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/util.qtpl:4
+//line views/util.qtpl:10
 func JSON(v interface{}) string {
 	bs, err := json.Marshal(v)
 	if err != nil {
 		panic(err)
 	}
 	return string(bs)
+}
+
+func Goment(t time.Time) *goment.Goment {
+	g, err := goment.New(t)
+	if err != nil {
+		panic(err)
+	}
+	return g
 }

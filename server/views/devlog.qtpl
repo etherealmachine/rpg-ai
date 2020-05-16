@@ -1,7 +1,7 @@
 {% import (
   "fmt"
   "time"
-  "github.com/nleeper/goment"
+
   "github.com/gosimple/slug"
 )
 %}
@@ -13,29 +13,87 @@ type Post struct {
   CreatedAt time.Time
 }
 
-func (p *Post) Link() string {
+func (p *Post) Path() string {
   return fmt.Sprintf("/devlog/%s", slug.Make(p.Title))
 }
 
 type DevlogPage struct {
-  *BasePage
-  Posts []*Post
+  *SidebarPage
+  Post *Post
+  Next *Post
+  Prev *Post
+}
+
+type DevlogIndexPage struct {
+  *SidebarPage
 }
 %}
 
+{% func (p *DevlogPage) Header() %}
+  {%= p.SidebarPage.Header() %}
+  <style>
+    .devlog-content blockquote {
+      padding: 0 1em;
+      color: #6a737d;
+      border-left: .25em solid #dfe2e5;
+    }
+  </style>
+{% endfunc %}
+
 {% func (p *DevlogPage) Content() %}
-  <div class="container d-flex mt-4 flex-column">
-    {% for _, post := range p.Posts %}
+  <div class="d-flex mt-4 mx-5">
+    {%= p.Sidebar() %}
+    <div>
       <div class="card my-4">
         <div class="card-body">
-          {% if g, err := goment.New(post.CreatedAt); err == nil  %}
-            Posted {%s g.FromNow() %}
-          {% endif %}
+          Posted {%s Goment(p.Post.CreatedAt).FromNow() %}
           <div class="devlog-content">
-            {%z= post.Content %}
+            {%z= p.Post.Content %}
           </div>
         </div>
       </div>
-    {% endfor %}
+      <nav aria-label="Development log navigation">
+        <ul class="pagination d-flex">
+          {% if p.Prev != nil %}
+            <li class="page-item" style="margin-right: auto">
+              <a class="page-link" href="{%s p.Prev.Path() %}">
+                <i class="fa fa-arrow-left"></i>
+                &nbsp;
+                {%s p.Prev.Title %}
+              </a>
+            </li>
+          {% endif %}
+          {% if p.Next != nil %}
+            <li class="page-item" style="margin-left: auto">
+              <a class="page-link" href="{%s p.Next.Path() %}">
+                {%s p.Next.Title %}
+                &nbsp;
+                <i class="fa fa-arrow-right"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+{% endfunc %}
+
+{% func (p *DevlogIndexPage) Content() %}
+  <div class="d-flex mt-4 mx-5">
+    {%= p.Sidebar() %}
+    <div>
+      <h1>Development Log</h1>
+      <p>
+        Like it says on the tin, a chronological log of my thoughts and designs while developing
+        this site.
+      </p>
+      <hr style="width: 100%" />
+      {% for _, post := range p.Posts %}
+        <h4>
+          <a href="{%s post.Path() %}">{%s post.Title %}</a>
+          <span class="text-muted" style="font-size: 1rem">- Posted {%s Goment(post.CreatedAt).FromNow() %}</span>
+        </h4>
+      {% endfor %}
+    </div>
   </div>
 {% endfunc %}

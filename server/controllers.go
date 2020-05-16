@@ -12,14 +12,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/etherealmachine/rpg.ai/server/models"
 	"github.com/etherealmachine/rpg.ai/server/views"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/gosimple/slug"
 	"github.com/russross/blackfriday"
 
 	_ "image/jpeg"
@@ -36,15 +39,7 @@ func basePage(r *http.Request) *views.BasePage {
 	}
 }
 
-func currentUser(r *http.Request) *models.User {
-	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
-	if authenticatedUser != nil && authenticatedUser.InternalUser != nil {
-		return authenticatedUser.InternalUser
-	}
-	return nil
-}
-
-func IndexController(w http.ResponseWriter, r *http.Request) {
+func sidebarPage(r *http.Request) *views.SidebarPage {
 	tilemaps, err := db.ListRecentTilemaps(r.Context(), 10)
 	if err != nil {
 		panic(err)
@@ -74,12 +69,24 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 			Thumbnails: tilemapThumbnails[tilemap.ID],
 		})
 	}
-	views.WritePageTemplate(w, &views.IndexPage{
+	return &views.SidebarPage{
 		BasePage:     basePage(r),
 		Tilemaps:     tilemapsWithThumbnails,
 		Spritesheets: spritesheets,
-		Posts:        getPosts(false),
-	})
+		Posts:        sortedPosts,
+	}
+}
+
+func currentUser(r *http.Request) *models.User {
+	authenticatedUser := r.Context().Value(ContextAuthenticatedUserKey).(*AuthenticatedUser)
+	if authenticatedUser != nil && authenticatedUser.InternalUser != nil {
+		return authenticatedUser.InternalUser
+	}
+	return nil
+}
+
+func IndexController(w http.ResponseWriter, r *http.Request) {
+	views.WritePageTemplate(w, &views.IndexPage{sidebarPage(r)})
 }
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +147,17 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func getPosts(render bool) []*views.Post {
+var (
+	postsBySlug map[string]*views.Post
+	sortedPosts []*views.Post
+	postsLock   sync.Mutex
+)
+
+func refreshPosts() {
+	postsLock.Lock()
+	defer postsLock.Unlock()
+	postsBySlug = make(map[string]*views.Post)
+	sortedPosts = nil
 	path := "build/devlog"
 	if Dev {
 		path = "public/devlog"
@@ -149,7 +166,6 @@ func getPosts(render bool) []*views.Post {
 	if err != nil {
 		panic(err)
 	}
-	var posts []*views.Post
 	for _, f := range files {
 		if strings.HasPrefix(f.Name(), "_") {
 			continue
@@ -173,26 +189,48 @@ func getPosts(render bool) []*views.Post {
 				Title:     strings.TrimSpace(strings.TrimPrefix(string(firstLine), "#")),
 				CreatedAt: t,
 			}
-			if render {
-				f.Seek(0, 0)
-				reader = bufio.NewReader(f)
-				bs, err := ioutil.ReadAll(reader)
-				if err != nil {
-					panic(err)
-				}
-				post.Content = blackfriday.Run(bs)
+			f.Seek(0, 0)
+			reader = bufio.NewReader(f)
+			bs, err := ioutil.ReadAll(reader)
+			if err != nil {
+				panic(err)
 			}
-			posts = append(posts, post)
+			post.Content = blackfriday.Run(bs)
+			postsBySlug[slug.Make(post.Title)] = post
+			sortedPosts = append(sortedPosts, post)
 		}
 	}
-	return posts
+	sort.Slice(sortedPosts, func(i, j int) bool {
+		return sortedPosts[i].CreatedAt.Before(sortedPosts[j].CreatedAt)
+	})
 }
 
 func DevlogController(w http.ResponseWriter, r *http.Request) {
-	views.WritePageTemplate(w, &views.DevlogPage{
-		BasePage: basePage(r),
-		Posts:    getPosts(true),
-	})
+	if Dev {
+		refreshPosts()
+	}
+	slug := mux.Vars(r)["slug"]
+	if post := postsBySlug[slug]; post != nil {
+		var nextPost, prevPost *views.Post
+		for i := range sortedPosts {
+			if sortedPosts[i] == post {
+				if i-1 >= 0 {
+					prevPost = sortedPosts[i-1]
+				}
+				if i+1 < len(sortedPosts) {
+					nextPost = sortedPosts[i+1]
+				}
+			}
+		}
+		views.WritePageTemplate(w, &views.DevlogPage{
+			SidebarPage: sidebarPage(r),
+			Post:        post,
+			Next:        nextPost,
+			Prev:        prevPost,
+		})
+		return
+	}
+	views.WritePageTemplate(w, &views.DevlogIndexPage{sidebarPage(r)})
 }
 
 func MapController(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +243,10 @@ func MapController(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	views.WritePageTemplate(w, &views.MapPage{BasePage: basePage(r), Map: tilemap})
+}
+
+func UnderConstructionController(w http.ResponseWriter, r *http.Request) {
+	views.WritePageTemplate(w, &views.UnderConstructionPage{sidebarPage(r)})
 }
 
 func UploadAssetsController(w http.ResponseWriter, r *http.Request) {

@@ -1,44 +1,12 @@
-{% import "github.com/etherealmachine/rpg.ai/server/models" %}
-{% import "github.com/nleeper/goment" %}
-
 {% code
 type IndexPage struct {
-  *BasePage
-  Tilemaps []models.TilemapWithThumbnails
-  Spritesheets []models.Spritesheet
-  TilemapThumbnailIDs map[int32]int32
-  Posts []*Post
+  *SidebarPage
 }
 %}
 
 {% func (p *IndexPage) Content() %}
-  <div class="container-fluid d-flex mt-4">
-    <div class="mx-4" style="min-width: 200px">
-      <h4 class="mb-2">Devlog</h4>
-      <div class="d-flex flex-column">
-        {% for _, post := range p.Posts %}
-          <span>
-            <a href="{%s post.Link() %}">{%s post.Title %}</a>
-            {% if g, err := goment.New(post.CreatedAt); err == nil  %}
-              <span>{%s g.FromNow() %}</span>
-            {% endif %}
-          </span>
-        {% endfor %}
-      </div>
-      <h4 class="my-2">Tags</h4>
-      <div class="d-flex justify-content-between">
-        <div class="d-flex flex-column">
-          <a href="/search?tag=fantasy">Fantasy</a>
-          <a href="/search?tag=hex">Hex</a>
-          <a href="/search?tag=outdoor">Outdoor</a>
-        </div>
-        <div class="d-flex flex-column">
-          <a href="/search?tag=dungeon">Dungeon</a>
-          <a href="/search?tag=character">Character</a>
-        </div>
-      </div>
-      <a href="/tags">Browse Tags →</a>
-    </div>
+  <div class="d-flex mt-4 mx-5">
+    {%= p.Sidebar() %}
     <div>
       <div>
         <h2>Your Online Tabletop Adventure Starts Here!</h2>
@@ -49,7 +17,7 @@ type IndexPage struct {
         </ul>
       </div>
       <div class="mt-4">
-        <h3>Newest Maps</h3>
+        <h3>Maps</h3>
         <div class="d-flex flex-wrap">
           {% for _, tilemap := range p.Tilemaps %}
             <div class="card m-3" style="width: 25rem">
@@ -71,7 +39,7 @@ type IndexPage struct {
         </div>
       </div>
       <div class="mt-4">
-        <h3>Newest Spritesheets</h3>
+        <h3>Spritesheets</h3>
         <div class="d-flex flex-wrap">
           {% for _, spritesheet := range p.Spritesheets %}
             <div class="card m-3" style="width: 18rem">
