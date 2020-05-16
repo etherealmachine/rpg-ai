@@ -41,16 +41,12 @@ type DevlogIndexPage struct {
 {% endfunc %}
 
 {% func (p *DevlogPage) Content() %}
-  <div class="d-flex mt-4 mx-5">
+  <div class="container-fluid d-flex position-relative">
     {%= p.Sidebar() %}
-    <div>
-      <div class="card">
-        <div class="card-body">
-          Posted {%s Goment(p.Post.CreatedAt).FromNow() %}
-          <div class="devlog-content">
-            {%z= p.Post.Content %}
-          </div>
-        </div>
+    <div class="container">
+      Posted {%s Goment(p.Post.CreatedAt).FromNow() %}
+      <div class="devlog-content">
+        {%z= p.Post.Content %}
       </div>
       <nav aria-label="Development log navigation">
         <ul class="pagination d-flex">

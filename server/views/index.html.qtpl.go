@@ -26,13 +26,13 @@ type IndexPage struct {
 func (p *IndexPage) StreamContent(qw422016 *qt422016.Writer) {
 //line views/index.html.qtpl:7
 	qw422016.N().S(`
-  <div class="d-flex mt-4 mx-5">
+  <div class="container-fluid d-flex position-relative">
     `)
 //line views/index.html.qtpl:9
 	p.StreamSidebar(qw422016)
 //line views/index.html.qtpl:9
 	qw422016.N().S(`
-    <div>
+    <div class="container">
       <div>
         <h2>What is RPG.ai?</h2>
         <p>

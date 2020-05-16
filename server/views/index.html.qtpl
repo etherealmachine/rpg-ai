@@ -5,9 +5,9 @@ type IndexPage struct {
 %}
 
 {% func (p *IndexPage) Content() %}
-  <div class="d-flex mt-4 mx-5">
+  <div class="container-fluid d-flex position-relative">
     {%= p.Sidebar() %}
-    <div>
+    <div class="container">
       <div>
         <h2>What is RPG.ai?</h2>
         <p>

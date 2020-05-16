@@ -38,6 +38,19 @@ type BasePage struct {
   {% for _, node := range p.Links %}
     <link {% for _, attr := range node.Attr %}{%s attr.Key %}={%s attr.Val %} {% endfor %} />
   {% endfor %}
+  <style>
+    nav .search-bar {
+      display: none;
+    }
+    @media (min-width: 992px) {
+      nav .search-bar {
+        display: inline;
+      }
+      .sidebar-button {
+        display: none !important;
+      }
+    }
+  </style>
 {% endfunc %}
 
 {% func (p *BasePage) BodyScripts() %}
@@ -56,10 +69,13 @@ type BasePage struct {
 {% endfunc %}
 
 {% func (p *BasePage) Navbar() %}
-  <div class="container">
+  <div class="container-fluid">
     <nav class="navbar navbar-expand-lg navbar-light justify-content-between">
+      <button class="btn sidebar-button mr-1" type="button" data-toggle="collapse" data-target="#sidebar" aria-expanded="false" aria-controls="sidebar">
+        <i class="fa fa-bars"></i>
+      </button>
       <a class="navbar-brand" href="/">RPG.ai</a>
-      <form class="form-inline flex-grow-1" action="/search" method="GET">
+      <form class="search-bar form-inline flex-grow-1" action="/search" method="GET">
         <div class="input-group flex-grow-1">
           <input class="form-control" style="max-width: 400px" type="search" name="q" placeholder="Search tilesets and tilemaps" aria-label="Search">
           <div class="input-group-append">

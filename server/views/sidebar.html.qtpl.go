@@ -33,47 +33,105 @@ type SidebarPage struct {
 }
 
 //line views/sidebar.html.qtpl:14
-func (p *SidebarPage) StreamSidebar(qw422016 *qt422016.Writer) {
+func (p *SidebarPage) StreamHeader(qw422016 *qt422016.Writer) {
 //line views/sidebar.html.qtpl:14
 	qw422016.N().S(`
-  <div class="pr-3 mr-4" style="min-width: 300px; border-right: 1px solid rgba(0,0,0,.1);">
+  `)
+//line views/sidebar.html.qtpl:15
+	p.BasePage.StreamHeader(qw422016)
+//line views/sidebar.html.qtpl:15
+	qw422016.N().S(`
+  <style>
+    .sidebar {
+      border-bottom: 1px solid #ccc;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      background: #fff;
+      padding-bottom: 16px;
+    }
+    @media (min-width: 992px) {
+      .sidebar {
+        border-right: 1px solid #ccc;
+        border-bottom: none;
+        display: block !important;
+        position: static;
+      }
+    }
+  </style>
+`)
+//line views/sidebar.html.qtpl:35
+}
+
+//line views/sidebar.html.qtpl:35
+func (p *SidebarPage) WriteHeader(qq422016 qtio422016.Writer) {
+//line views/sidebar.html.qtpl:35
+	qw422016 := qt422016.AcquireWriter(qq422016)
+//line views/sidebar.html.qtpl:35
+	p.StreamHeader(qw422016)
+//line views/sidebar.html.qtpl:35
+	qt422016.ReleaseWriter(qw422016)
+//line views/sidebar.html.qtpl:35
+}
+
+//line views/sidebar.html.qtpl:35
+func (p *SidebarPage) Header() string {
+//line views/sidebar.html.qtpl:35
+	qb422016 := qt422016.AcquireByteBuffer()
+//line views/sidebar.html.qtpl:35
+	p.WriteHeader(qb422016)
+//line views/sidebar.html.qtpl:35
+	qs422016 := string(qb422016.B)
+//line views/sidebar.html.qtpl:35
+	qt422016.ReleaseByteBuffer(qb422016)
+//line views/sidebar.html.qtpl:35
+	return qs422016
+//line views/sidebar.html.qtpl:35
+}
+
+//line views/sidebar.html.qtpl:37
+func (p *SidebarPage) StreamSidebar(qw422016 *qt422016.Writer) {
+//line views/sidebar.html.qtpl:37
+	qw422016.N().S(`
+  <div class="sidebar col-md-auto collapse" id="sidebar">
     <h4 class="mb-2">Devlog</h4>
     <div class="d-flex flex-column">
       `)
-//line views/sidebar.html.qtpl:18
+//line views/sidebar.html.qtpl:41
 	for _, post := range p.Posts {
-//line views/sidebar.html.qtpl:18
+//line views/sidebar.html.qtpl:41
 		qw422016.N().S(`
         <span>
           <a href="`)
-//line views/sidebar.html.qtpl:20
+//line views/sidebar.html.qtpl:43
 		qw422016.E().S(post.Path())
-//line views/sidebar.html.qtpl:20
+//line views/sidebar.html.qtpl:43
 		qw422016.N().S(`">`)
-//line views/sidebar.html.qtpl:20
+//line views/sidebar.html.qtpl:43
 		qw422016.E().S(post.Title)
-//line views/sidebar.html.qtpl:20
+//line views/sidebar.html.qtpl:43
 		qw422016.N().S(`</a>
           `)
-//line views/sidebar.html.qtpl:21
+//line views/sidebar.html.qtpl:44
 		if g, err := goment.New(post.CreatedAt); err == nil {
-//line views/sidebar.html.qtpl:21
+//line views/sidebar.html.qtpl:44
 			qw422016.N().S(`
             <span>`)
-//line views/sidebar.html.qtpl:22
+//line views/sidebar.html.qtpl:45
 			qw422016.E().S(g.FromNow())
-//line views/sidebar.html.qtpl:22
+//line views/sidebar.html.qtpl:45
 			qw422016.N().S(`</span>
           `)
-//line views/sidebar.html.qtpl:23
+//line views/sidebar.html.qtpl:46
 		}
-//line views/sidebar.html.qtpl:23
+//line views/sidebar.html.qtpl:46
 		qw422016.N().S(`
         </span>
       `)
-//line views/sidebar.html.qtpl:25
+//line views/sidebar.html.qtpl:48
 	}
-//line views/sidebar.html.qtpl:25
+//line views/sidebar.html.qtpl:48
 	qw422016.N().S(`
     </div>
     <h4 class="my-2">Tags</h4>
@@ -92,88 +150,88 @@ func (p *SidebarPage) StreamSidebar(qw422016 *qt422016.Writer) {
     <h4 class="my-2">Newest Tilemaps</h4>
     <div class="d-flex flex-column">
       `)
-//line views/sidebar.html.qtpl:42
+//line views/sidebar.html.qtpl:65
 	for _, tilemap := range p.Tilemaps {
-//line views/sidebar.html.qtpl:42
+//line views/sidebar.html.qtpl:65
 		qw422016.N().S(`
         <span>
           <a href="`)
-//line views/sidebar.html.qtpl:44
+//line views/sidebar.html.qtpl:67
 		qw422016.E().S(tilemap.MapPath())
-//line views/sidebar.html.qtpl:44
+//line views/sidebar.html.qtpl:67
 		qw422016.N().S(`">`)
-//line views/sidebar.html.qtpl:44
+//line views/sidebar.html.qtpl:67
 		qw422016.E().S(tilemap.Name)
-//line views/sidebar.html.qtpl:44
+//line views/sidebar.html.qtpl:67
 		qw422016.N().S(`</a>
           <span class="text-muted" style="font-size: 0.7rem">- `)
-//line views/sidebar.html.qtpl:45
+//line views/sidebar.html.qtpl:68
 		qw422016.E().S(Goment(tilemap.CreatedAt).FromNow())
-//line views/sidebar.html.qtpl:45
+//line views/sidebar.html.qtpl:68
 		qw422016.N().S(`</span>
         </span>
       `)
-//line views/sidebar.html.qtpl:47
+//line views/sidebar.html.qtpl:70
 	}
-//line views/sidebar.html.qtpl:47
+//line views/sidebar.html.qtpl:70
 	qw422016.N().S(`
     </div>
     <h4 class="my-2">Newest Spritesheets</h4>
     <div class="d-flex flex-column">
       `)
-//line views/sidebar.html.qtpl:51
+//line views/sidebar.html.qtpl:74
 	for _, spritesheet := range p.Spritesheets {
-//line views/sidebar.html.qtpl:51
+//line views/sidebar.html.qtpl:74
 		qw422016.N().S(`
         <span>
           <a href="`)
-//line views/sidebar.html.qtpl:53
+//line views/sidebar.html.qtpl:76
 		qw422016.E().S(spritesheet.ImagePath())
-//line views/sidebar.html.qtpl:53
+//line views/sidebar.html.qtpl:76
 		qw422016.N().S(`">`)
-//line views/sidebar.html.qtpl:53
+//line views/sidebar.html.qtpl:76
 		qw422016.E().S(spritesheet.Name)
-//line views/sidebar.html.qtpl:53
+//line views/sidebar.html.qtpl:76
 		qw422016.N().S(`</a>
           <span class="text-muted" style="font-size: 0.7rem">- `)
-//line views/sidebar.html.qtpl:54
+//line views/sidebar.html.qtpl:77
 		qw422016.E().S(Goment(spritesheet.CreatedAt).FromNow())
-//line views/sidebar.html.qtpl:54
+//line views/sidebar.html.qtpl:77
 		qw422016.N().S(`</span>
         </span>
       `)
-//line views/sidebar.html.qtpl:56
+//line views/sidebar.html.qtpl:79
 	}
-//line views/sidebar.html.qtpl:56
+//line views/sidebar.html.qtpl:79
 	qw422016.N().S(`
     </div>
   </div>
 `)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 }
 
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 func (p *SidebarPage) WriteSidebar(qq422016 qtio422016.Writer) {
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	p.StreamSidebar(qw422016)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	qt422016.ReleaseWriter(qw422016)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 }
 
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 func (p *SidebarPage) Sidebar() string {
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	p.WriteSidebar(qb422016)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	qs422016 := string(qb422016.B)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 	return qs422016
-//line views/sidebar.html.qtpl:59
+//line views/sidebar.html.qtpl:82
 }

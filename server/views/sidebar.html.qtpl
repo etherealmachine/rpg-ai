@@ -11,8 +11,31 @@ type SidebarPage struct {
 }
 %}
 
+{% func (p *SidebarPage) Header() %}
+  {%= p.BasePage.Header() %}
+  <style>
+    .sidebar {
+      border-bottom: 1px solid #ccc;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      background: #fff;
+      padding-bottom: 16px;
+    }
+    @media (min-width: 992px) {
+      .sidebar {
+        border-right: 1px solid #ccc;
+        border-bottom: none;
+        display: block !important;
+        position: static;
+      }
+    }
+  </style>
+{% endfunc %}
+
 {% func (p *SidebarPage) Sidebar() %}
-  <div class="pr-3 mr-4" style="min-width: 300px; border-right: 1px solid rgba(0,0,0,.1);">
+  <div class="sidebar col-md-auto collapse" id="sidebar">
     <h4 class="mb-2">Devlog</h4>
     <div class="d-flex flex-column">
       {% for _, post := range p.Posts %}
