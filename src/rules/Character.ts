@@ -1,3 +1,20 @@
+export interface Character {
+  kind: 'character'
+  name: string
+  race: string
+  backstory: Backstory
+  limbs: Limb[]
+  organs: Organ[]
+  equipped: Item[]
+  items: Item[]
+  skills: Skill[]
+  abilities: Ability[]
+  stamina: Stamina
+  focus: Focus
+  faiths: Faith[]
+  relationships: Relationship[]
+}
+
 export interface Backstory {
   kind: 'backstory'
 }
@@ -21,7 +38,14 @@ export interface Item {
 export interface Skill {
   kind: 'skill'
   name: string
-  description: string
+  training: number
+  experience: number
+}
+
+export interface Ability {
+  kind: 'skill'
+  name: string
+  ability: number
 }
 
 export interface Stamina {
@@ -51,22 +75,6 @@ export interface Relationship {
   backstory: Backstory
 }
 
-export interface Character {
-  kind: 'character'
-  name: string
-  race: string
-  backstory: Backstory
-  limbs: Limb[]
-  organs: Organ[]
-  equipped: Item[]
-  items: Item[]
-  skills: Skill[]
-  stamina: Stamina
-  focus: Focus
-  faiths: Faith[]
-  relationships: Relationship[]
-}
-
 export const humanoid = {
   limbs: [
     { limb: 'limb', name: 'left arm' },
@@ -82,6 +90,7 @@ export const humanoid = {
     { organ: 'organ', name: 'stomach' },
     { organ: 'organ', name: 'lungs' },
     { organ: 'organ', name: 'spine' },
+    { organ: 'organ', name: 'blood' },
   ]
 }
 
@@ -89,6 +98,7 @@ export const spiked_club = {
   kind: 'item',
   name: 'Spiked Club',
   description: 'A wooden club with iron spikes pounded into it',
+  skills: ['Melee Combat'],
 }
 
 export function silver(count: number) {
@@ -107,30 +117,28 @@ export function copper(count: number) {
   }
 }
 
-export function melee(training: string) {
-  return {
-    kind: 'skill',
-    name: 'Melee',
-    description: training,
-  }
-}
-
-export function language(language: string, fluency: string) {
-  return {
-    kind: 'skill',
-    name: language,
-    description: `${fluency} ${language}`,
-  }
-}
-
 export const orc_warrior = {
   equipped: [spiked_club],
   items: [silver(3), copper(8)],
-  skills: [
-    melee('some training'),
-    language('Orcish', 'fluent'),
-    language('Common', 'broken'),
-  ],
+  skills: {
+    'Melee Combat': { 'Training': 'Some', 'Experience': 'Once' },
+    'Orcish': { 'Training': 'None', 'Experience': 'Frequent' },
+    'Common': { 'Training': 'None', 'Experience': 'A Little' },
+  },
+  abilities: {
+    'Intelligence': 'Low',
+    'Strength': 'High',
+    'Athletics': 'Average',
+    'Patience': 'Low',
+    'Determination': 'Low',
+    'Stubborness': 'Average',
+    'Empathy': 'Low',
+    'Eyesight': 'Average',
+    'Hearing': 'Average',
+    'Touch': 'Average',
+    'Smell': 'Average',
+    'Taste': 'Average',
+  },
   stamina: { kind: 'stamina', current: 10, maximum: 10 },
   focus: { kind: 'focus', current: 10, maximum: 10 },
   faiths: []

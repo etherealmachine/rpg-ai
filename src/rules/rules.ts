@@ -1,43 +1,166 @@
-export interface Rule {
+import { FuzzyVariable, FuzzyRule, FuzzySystem } from './FuzzyLogic';
 
+export class Rules {
+
+  system: FuzzySystem;
+
+  abilities = [
+    'Intelligence',
+    'Strength',
+    'Athletics',
+    'Patience',
+    'Determination',
+    'Stubborness',
+    'Empathy',
+    'Eyesight',
+    'Hearing',
+    'Touch',
+    'Smell',
+    'Taste',
+  ]
+
+  skills = {
+    'Climbing': ['Strength', 'Athletics', 'Intelligence'],
+    'Melee Combat': ['Atrength', 'Athletics', 'Determination'],
+    'Ranged Combat': ['Athletics', 'Eyesight', 'Patience'],
+    'Wrestling': ['Strength', 'Athletics', 'Empathy'],
+    'Running': ['Athletics'],
+    'Writing (Creative)': ['Intelligence', 'Empathy', 'Eyesight'],
+    'Writing': ['Intelligence', 'Eyesight'],
+    'Music': ['Intelligence', 'Empathy', 'Hearing'],
+    'Sailing': ['Athletics', 'Patience', 'Determination'],
+    'Lockpicking': ['Touch', 'Patience'],
+    'Tracking': ['Eyesight', 'Hearing', 'Patience'],
+    'Trapping': ['Patience', 'Intelligence', 'Determination'],
+  }
+
+  constructor() {
+
+    const innateAbility = new FuzzyVariable('Innate Ability', 0, 100, 100);
+    innateAbility.evenlyDistribute(['None', 'Low', 'Average', 'High', 'Exceptional']);
+
+    const training = new FuzzyVariable('Training', 0, 100, 100);
+    training.evenlyDistribute(['None', 'A Few Lessons', 'Some', 'Well-Trained', 'Mastery']);
+
+    const experience = new FuzzyVariable('Experience', 0, 100, 100);
+    experience.evenlyDistribute(['None', 'A Little', 'Familiar', 'Copius', 'Frequent']);
+
+    const chanceOfSuccess = new FuzzyVariable('Chance of Success', 0, 100, 100);
+    chanceOfSuccess.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
+
+    const chanceOfMishap = new FuzzyVariable('Chance of Mishap', 0, 100, 100);
+    chanceOfMishap.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
+
+    this.system = new FuzzySystem();
+    this.system.addInputVariable(innateAbility);
+    this.system.addInputVariable(training);
+    this.system.addInputVariable(experience);
+    this.system.addOutputVariable(chanceOfSuccess);
+    this.system.addOutputVariable(chanceOfMishap);
+
+    this.system.addRule(new FuzzyRule(
+      { 'Innate Ability': 'None' },
+      { 'Chance of Success': 'None' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Innate Ability': 'Low' },
+      { 'Chance of Success': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Innate Ability': 'Average' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Innate Ability': 'High' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Innate Ability': 'Exceptional' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+
+    this.system.addRule(new FuzzyRule(
+      { 'Training': 'None' },
+      { 'Chance of Success': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Training': 'A Few Lessons' },
+      { 'Chance of Success': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Training': 'Some' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Training': 'Well-Trained' },
+      { 'Chance of Success': 'High' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Training': 'Mastery' },
+      { 'Chance of Success': 'Guaranteed' },
+    ));
+
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'None' },
+      { 'Chance of Success': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'A Little' },
+      { 'Chance of Success': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Familiar' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Copius' },
+      { 'Chance of Success': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Frequent' },
+      { 'Chance of Success': 'High' },
+    ));
+
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'None', 'Training': 'None' },
+      { 'Chance of Mishap': 'High' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'A Little', 'Training': 'None' },
+      { 'Chance of Mishap': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Familiar', 'Training': 'None' },
+      { 'Chance of Mishap': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Copius', 'Training': 'None' },
+      { 'Chance of Mishap': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Frequent', 'Training': 'None' },
+      { 'Chance of Mishap': 'Some' },
+    ));
+
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'None', 'Training': 'A Few Lessons' },
+      { 'Chance of Mishap': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'A Little', 'Training': 'A Few Lessons' },
+      { 'Chance of Mishap': 'Moderate' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Familiar', 'Training': 'A Few Lessons' },
+      { 'Chance of Mishap': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Copius', 'Training': 'A Few Lessons' },
+      { 'Chance of Mishap': 'Some' },
+    ));
+    this.system.addRule(new FuzzyRule(
+      { 'Experience': 'Frequent', 'Training': 'A Few Lessons' },
+      { 'Chance of Mishap': 'None' },
+    ));
+  }
 }
-
-const sets = [
-  'language', ['none', 'broken', 'conversational', 'fluent'],
-  'innate_ability', ['low', 'some', 'average', 'high', 'exceptional'],
-  'training', ['none', 'a few lessons', 'some', 'well-trained', 'excellent'],
-  'experience', ['none', 'once', 'familiar', 'lots of', 'high'],
-  'chance of understanding', ['low', 'medium', 'high'],
-  'chance of mis-understanding', ['low', 'medium', 'high'],
-]
-
-const innate_abilities = [
-  'intelligence',
-  'strength',
-  'athletics',
-  'patience',
-  'determination',
-  'stubborness',
-  'empathy',
-  'eyesight',
-  'hearing',
-  'touch',
-  'smell',
-  'taste',
-]
-
-const skills = [
-  'climbing', ['strength', 'athletics', 'intelligence'],
-  'melee combat', ['strength', 'athletics', 'determination'],
-  'ranged combat', ['athletics', 'eyesight', 'patience'],
-  'wrestling', ['strength', 'athletics', 'empathy'],
-  'running', ['athletics'],
-  'writing (creative)', ['intelligence', 'empathy', 'eyesight'],
-  'writing', ['intelligence', 'eyesight'],
-  'music', ['intelligence', 'empathy', 'hearing'],
-]
-
-const rules = [
-  'if language is fluent then chance of understanding is high',
-  'if language is broken then chance of mis-understanding is medium',
-]

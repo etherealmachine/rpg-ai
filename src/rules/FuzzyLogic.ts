@@ -26,6 +26,10 @@ export class FuzzyRule {
 type FuzzyClause = { [key: string]: string }
 type FuzzyMembership = { [key: string]: number }
 
+function lerp(value: number, min: number, max: number) {
+  return Math.round(min + (value * (max - min)));
+}
+
 export class FuzzyVariable {
   name: string
   min: number
@@ -51,6 +55,20 @@ export class FuzzyVariable {
     const s = FuzzySet.trapezoidal(name, this.min, this.max, this.resolution, a, b, c, d);
     this.sets[s.name] = s;
     return s
+  }
+
+  evenlyDistribute(sets: string[]) {
+    if (sets.length === 3) {
+      this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max));
+      this.addTriangular(sets[1], lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max));
+      this.addTriangular(sets[2], lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max), lerp(0.100, this.min, this.max));
+    } else if (sets.length === 5) {
+      this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max));
+      this.addTriangular(sets[1], lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max));
+      this.addTrapezoidal(sets[2], lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.70, this.min, this.max));
+      this.addTriangular(sets[3], lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max));
+      this.addTriangular(sets[4], lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max), lerp(1.0, this.min, this.max));
+    }
   }
 
   fuzzify(value: number): FuzzyMembership {
@@ -139,10 +157,6 @@ class FuzzySet {
     const denominator = this.domain.reduce((sum, v) => sum + v, 0);
     return numerator / denominator;
   }
-
-  lerp(value: number): number {
-    return Math.round(this.min + (value * (this.max - this.min)));
-  }
 }
 
 export class FuzzySystem {
@@ -176,15 +190,21 @@ export class FuzzySystem {
 
     const cutsByVar = Object.keys(this.outputs)
       .map(varName => [varName, alphaCuts.map(cut => cut[varName])])
-      .reduce((obj, [key, value]) => ({ ...obj, [key as string]: value }), {});
+      .reduce((obj, [key, value]) => ({ ...obj, [key as string]: (value as FuzzySet[]).filter(s => s !== undefined) }), {});
     return (Object.entries(cutsByVar) as Array<[string, FuzzySet[]]>).reduce((obj, [varName, cutSets]) => {
+      if (cutSets.length === 0) {
+        return {
+          ...obj,
+          [varName]: NaN,
+        };
+      }
       let union = cutSets[0];
       for (let i = 1; i < cutSets.length; i++) {
         union = union.union(cutSets[i]);
       }
       return {
         ...obj,
-        [varName]: union.lerp(union.defuzzify()),
+        [varName]: lerp(union.defuzzify(), union.min, union.max),
       };
     }, {});
   }
