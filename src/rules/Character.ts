@@ -2,21 +2,17 @@ export interface Character {
   kind: 'character'
   name: string
   race: string
-  backstory: Backstory
+  backstory: string
   limbs: Limb[]
   organs: Organ[]
   equipped: Item[]
   items: Item[]
-  skills: Skill[]
-  abilities: Ability[]
+  abilities: { [key: string]: string }
+  skills: { [key: string]: { [key: string]: string } }
   stamina: Stamina
   focus: Focus
   faiths: Faith[]
-  relationships: Relationship[]
-}
-
-export interface Backstory {
-  kind: 'backstory'
+  connections: Connection[]
 }
 
 export interface Limb {
@@ -43,7 +39,7 @@ export interface Skill {
 }
 
 export interface Ability {
-  kind: 'skill'
+  kind: 'ability'
   name: string
   ability: number
 }
@@ -67,30 +63,28 @@ export interface Faith {
   maximum: number
 }
 
-export interface Relationship {
-  kind: 'relationship'
-  from: Character
-  to: Character
-  type: string
-  backstory: Backstory
+export interface Connection {
+  kind: 'connection'
+  character: string
+  relationship: string
 }
 
 export const humanoid = {
   limbs: [
-    { limb: 'limb', name: 'left arm' },
-    { limb: 'limb', name: 'right arm' },
-    { limb: 'limb', name: 'left leg' },
-    { limb: 'limb', name: 'right leg' },
+    { kind: 'limb', name: 'left arm' },
+    { kind: 'limb', name: 'right arm' },
+    { kind: 'limb', name: 'left leg' },
+    { kind: 'limb', name: 'right leg' },
   ],
   organs: [
-    { organ: 'organ', name: 'brain' },
-    { organ: 'organ', name: 'heart' },
-    { organ: 'organ', name: 'kidney' },
-    { organ: 'organ', name: 'liver' },
-    { organ: 'organ', name: 'stomach' },
-    { organ: 'organ', name: 'lungs' },
-    { organ: 'organ', name: 'spine' },
-    { organ: 'organ', name: 'blood' },
+    { kind: 'organ', name: 'brain' },
+    { kind: 'organ', name: 'heart' },
+    { kind: 'organ', name: 'kidney' },
+    { kind: 'organ', name: 'liver' },
+    { kind: 'organ', name: 'stomach' },
+    { kind: 'organ', name: 'lungs' },
+    { kind: 'organ', name: 'spine' },
+    { kind: 'organ', name: 'blood' },
   ]
 }
 
@@ -141,7 +135,12 @@ export const orc_warrior = {
   },
   stamina: { kind: 'stamina', current: 10, maximum: 10 },
   focus: { kind: 'focus', current: 10, maximum: 10 },
-  faiths: []
+  faiths: [{
+    'kind': 'faith',
+    god: 'Gork',
+    current: 10,
+    maximum: 10,
+  }]
 }
 
 export const orc1 = {
@@ -151,6 +150,11 @@ export const orc1 = {
   backstory: "Lak'teal lives in an abandoned cave at the foothills of the mountains.",
   ...humanoid,
   ...orc_warrior,
+  connections: [{
+    kind: 'connection',
+    character: "Rak'teal kan Stormkard",
+    relationship: 'brother',
+  }],
 }
 
 export const orc2 = {
@@ -160,4 +164,9 @@ export const orc2 = {
   backstory: "Rak'teal lives in an abandoned cave at the foothills of the mountains with his brother, Lak'teal",
   ...humanoid,
   ...orc_warrior,
+  connections: [{
+    kind: 'connection',
+    character: "Lak'teal kan Stormkard",
+    relationship: 'brother',
+  }],
 }

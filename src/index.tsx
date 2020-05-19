@@ -11,8 +11,10 @@ import { createNanoEvents } from 'nanoevents';
 (window as any).emitter = createNanoEvents();
 
 if (window.location.host.startsWith('localhost') && window.location.hash !== "") {
+  const demo = document.createElement('div');
+  document.body.prepend(demo);
   import('./' + window.location.hash.slice(1)).then(module => {
-    ReactDOM.render(React.createElement(module.default), document.getElementById('demo'));
+    ReactDOM.render(React.createElement(module.default), demo);
   }).catch(err => {
     console.error(err);
   })
