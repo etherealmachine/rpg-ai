@@ -66,14 +66,17 @@ export class FuzzyVariable implements DiscreteRange {
   evenlyDistribute(sets: string[]) {
     if (sets.length === 1) {
       this.addTrapezoidal(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.75, this.min, this.max), lerp(1.0, this.min, this.max));
+    } else if (sets.length === 2) {
+      this.addTrapezoidal(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.5, this.min, this.max), lerp(0.75, this.min, this.max));
+      this.addTrapezoidal(sets[1], lerp(0.25, this.min, this.max), lerp(0.5, this.min, this.max), lerp(0.75, this.min, this.max), lerp(1.0, this.min, this.max));
     } else if (sets.length === 3) {
-      this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max));
+      this.addTrapezoidal(sets[0], this.min, this.min, lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max));
       this.addTriangular(sets[1], lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max));
-      this.addTriangular(sets[2], lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max), lerp(0.100, this.min, this.max));
+      this.addTrapezoidal(sets[2], lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max), this.max, this.max);
     } else if (sets.length === 5) {
       this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max));
       this.addTriangular(sets[1], lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max));
-      this.addTrapezoidal(sets[2], lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.70, this.min, this.max));
+      this.addTrapezoidal(sets[2], lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max));
       this.addTriangular(sets[3], lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max));
       this.addTriangular(sets[4], lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max), lerp(1.0, this.min, this.max));
     }
