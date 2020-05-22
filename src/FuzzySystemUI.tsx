@@ -88,9 +88,15 @@ function FuzzyVariableUI(props: { variable: FuzzyVariable }) {
       <h5 className="card-title">
         {variable.name}
       </h5>
-      <div style={{ width: "500px", height: "300px" }}>
+      <div style={{ width: "500px" }}>
         <canvas ref={chartRef}></canvas>
       </div>
+      <input
+        style={{ width: "500px" }}
+        type="range"
+        min={variable.min}
+        max={variable.max}
+        step={(variable.max - variable.min) / variable.resolution} />
     </div>
   </div>;
 }
