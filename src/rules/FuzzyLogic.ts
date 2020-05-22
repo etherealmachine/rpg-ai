@@ -30,7 +30,13 @@ function lerp(value: number, min: number, max: number) {
   return Math.round(min + (value * (max - min)));
 }
 
-export class FuzzyVariable {
+interface DiscreteRange {
+  min: number
+  max: number
+  resolution: number
+}
+
+export class FuzzyVariable implements DiscreteRange {
   name: string
   min: number
   max: number
@@ -46,19 +52,21 @@ export class FuzzyVariable {
   }
 
   addTriangular(name: string, low: number, mid: number, high: number) {
-    const s = FuzzySet.triangular(name, this.min, this.max, this.resolution, low, mid, high)
+    const s = FuzzySet.triangular(name, this, low, mid, high)
     this.sets[s.name] = s;
     return s
   }
 
   addTrapezoidal(name: string, a: number, b: number, c: number, d: number) {
-    const s = FuzzySet.trapezoidal(name, this.min, this.max, this.resolution, a, b, c, d);
+    const s = FuzzySet.trapezoidal(name, this, a, b, c, d);
     this.sets[s.name] = s;
     return s
   }
 
   evenlyDistribute(sets: string[]) {
-    if (sets.length === 3) {
+    if (sets.length === 1) {
+      this.addTrapezoidal(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.75, this.min, this.max), lerp(1.0, this.min, this.max));
+    } else if (sets.length === 3) {
       this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max));
       this.addTriangular(sets[1], lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max));
       this.addTriangular(sets[2], lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max), lerp(0.100, this.min, this.max));
@@ -82,16 +90,14 @@ export class FuzzyVariable {
 
 }
 
-class FuzzySet {
+export class FuzzySet {
   name: string
-  min: number
-  max: number
-  resolution: number
+  range: DiscreteRange
   domain: number[]
   membership: number[] = []
 
-  static triangular(name: string, min: number, max: number, resolution: number, a: number, b: number, c: number): FuzzySet {
-    const s = new FuzzySet(name, min, max, resolution);
+  static triangular(name: string, range: DiscreteRange, a: number, b: number, c: number): FuzzySet {
+    const s = new FuzzySet(name, range);
     a = s.closestDomainValue(a);
     b = s.closestDomainValue(b);
     c = s.closestDomainValue(c);
@@ -105,8 +111,8 @@ class FuzzySet {
     return s;
   }
 
-  static trapezoidal(name: string, min: number, max: number, resolution: number, a: number, b: number, c: number, d: number): FuzzySet {
-    const s = new FuzzySet(name, min, max, resolution);
+  static trapezoidal(name: string, range: DiscreteRange, a: number, b: number, c: number, d: number): FuzzySet {
+    const s = new FuzzySet(name, range);
     a = s.closestDomainValue(a);
     b = s.closestDomainValue(b);
     c = s.closestDomainValue(c);
@@ -115,25 +121,23 @@ class FuzzySet {
     return s;
   }
 
-  constructor(name: string, min: number, max: number, resolution: number) {
+  constructor(name: string, range: DiscreteRange) {
     this.name = name;
-    this.min = min;
-    this.max = max;
-    this.resolution = resolution;
+    this.range = range;
     this.domain = [];
-    for (let i = 0; i < resolution; i++) {
-      this.domain.push(min + (max - min) * (i / resolution));
+    for (let i = 0; i < range.resolution; i++) {
+      this.domain.push(range.min + (range.max - range.min) * (i / range.resolution));
     }
   }
 
   alphaCut(membership: number): FuzzySet {
-    const a = new FuzzySet(`alpha(${this.name}, ${membership})`, this.min, this.max, this.resolution);
+    const a = new FuzzySet(`alpha(${this.name}, ${membership})`, this.range);
     a.membership = this.membership.map(m => Math.min(m, membership));
     return a;
   }
 
   union(other: FuzzySet): FuzzySet {
-    const u = new FuzzySet(`union(${this.name}, ${other.name})`, this.min, this.max, this.resolution);
+    const u = new FuzzySet(`union(${this.name}, ${other.name})`, this.range);
     u.membership = this.membership.map((v, i) => Math.max(v, other.membership[i]));
     return u
   }
@@ -204,7 +208,7 @@ export class FuzzySystem {
       }
       return {
         ...obj,
-        [varName]: lerp(union.defuzzify(), union.min, union.max),
+        [varName]: lerp(union.defuzzify(), union.range.min, union.range.max),
       };
     }, {});
   }
