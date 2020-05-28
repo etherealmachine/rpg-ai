@@ -7,6 +7,16 @@ export class FuzzyRule {
     this.consequence = consequence;
   }
 
+  toString(): string {
+    const antecedent = Object.entries(this.antecedent).map(([variableName, setName]) => `${variableName} is ${setName}`).join(' and ');
+    const consequence = Object.entries(this.consequence).map(([variableName, setName]) => `${variableName} is ${setName}`).join(' and ');
+    return `If ${antecedent} then ${consequence}`;
+  }
+
+  strength(memberships: { [key: string]: { [key: string]: number } }): number {
+    return Math.min(...Object.entries(this.antecedent).map(([varName, setName]) => memberships[varName][setName]).filter(x => x !== undefined));
+  }
+
   evaluate(sets: { [key: string]: { [key: string]: FuzzySet } }, memberships: { [key: string]: { [key: string]: number } }): { [key: string]: FuzzySet } {
     const strength = Math.min(...Object.entries(this.antecedent).map(([varName, setName]) => memberships[varName][setName]).filter(x => x !== undefined));
     return Object.entries(this.consequence).map(([varName, setName]) => {
@@ -140,9 +150,9 @@ export class FuzzySet {
     }
   }
 
-  alphaCut(membership: number): FuzzySet {
-    const a = new FuzzySet(`alpha(${this.name}, ${membership})`, this.range);
-    a.membership = this.membership.map(m => Math.min(m, membership));
+  alphaCut(alpha: number): FuzzySet {
+    const a = new FuzzySet(`alpha(${this.name}, ${alpha})`, this.range);
+    a.membership = this.membership.map(m => Math.min(m, alpha));
     return a;
   }
 
@@ -191,19 +201,22 @@ export class FuzzySystem {
     this.rules.push(r);
   }
 
-  evaluate(crispInputs: { [key: string]: number }): { [key: string]: number } {
-    const memberships = Object.entries(crispInputs).map(([varName, val]) => {
-      return [varName, this.inputs[varName].fuzzify(val)]
-    }).reduce((obj, [key, value]) => ({ ...obj, [key as string]: value }), {});
-
-    const sets = Object.entries(this.outputs).map(([varName, fuzzyVar]) => {
+  sets() {
+    return Object.entries(this.outputs).map(([varName, fuzzyVar]) => {
       return [varName, fuzzyVar.sets];
     }).reduce((obj, [key, value]) => ({ ...obj, [key as string]: value }), {});
+  }
 
-    const alphaCuts = this.rules.map(rule => rule.evaluate(sets, memberships));
+  memberships(crispInputs: { [key: string]: number }) {
+    return Object.entries(crispInputs).map(([varName, val]) => {
+      return [varName, this.inputs[varName].fuzzify(val)]
+    }).reduce((obj, [key, value]) => ({ ...obj, [key as string]: value }), {});
+  }
 
+  evaluate(crispInputs: { [key: string]: number }): { [key: string]: number } {
+    const alphaCuts = this.rules.map(rule => rule.evaluate(this.sets(), this.memberships(crispInputs)));
     const cutsByVar = Object.keys(this.outputs)
-      .map(varName => [varName, alphaCuts.map(cut => cut[varName])])
+      .map(varName => [varName, alphaCuts.map(alphaCut => alphaCut[varName])])
       .reduce((obj, [key, value]) => ({ ...obj, [key as string]: (value as FuzzySet[]).filter(s => s !== undefined) }), {});
     return (Object.entries(cutsByVar) as Array<[string, FuzzySet[]]>).reduce((obj, [varName, cutSets]) => {
       if (cutSets.length === 0) {

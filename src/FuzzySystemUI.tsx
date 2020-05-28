@@ -80,11 +80,9 @@ function chart(v: FuzzyVariable, crisp: number): ChartConfiguration {
   };
 }
 
-function FuzzyRuleUI(props: { rule: FuzzyRule }) {
-  const { rule } = props;
-  const antecedent = Object.entries(rule.antecedent).map(([variableName, setName]) => `${variableName} is ${setName}`).join(' and ');
-  const consequence = Object.entries(rule.consequence).map(([variableName, setName]) => `${variableName} is ${setName}`).join(' and ');
-  return <span>{`If ${antecedent} then ${consequence}`}</span>;
+function FuzzyRuleUI(props: { rule: FuzzyRule, strength: number }) {
+  const { rule, strength } = props;
+  return <span>{rule.toString()} {strength}</span>;
 }
 
 function FuzzyVariableUI(props: { variable: FuzzyVariable, crispValue: number, updateCrispValue?: (value: number) => void }) {
@@ -156,6 +154,8 @@ export default class FuzzySystemUI extends React.Component<any, State> {
   }
 
   render() {
+    const { system, inputValue } = this.state;
+    const strengths = system.rules.map(r => r.strength(system.memberships(inputValue)));
     return <div>
       <h3>Input Variables</h3>
       <div className="d-flex">
@@ -174,7 +174,7 @@ export default class FuzzySystemUI extends React.Component<any, State> {
       </div>
       <h3>Rules</h3>
       <div className="d-flex flex-column">
-        {Object.values(this.state.system.rules).map((r, i) => <FuzzyRuleUI key={`rule-${i}`} rule={r as any} />)}
+        {Object.values(this.state.system.rules).map((r, i) => <FuzzyRuleUI key={`rule-${i}`} rule={r as any} strength={strengths[i]} />)}
       </div>
     </div>;
   }
