@@ -74,11 +74,11 @@ export class FuzzyVariable implements DiscreteRange {
       this.addTriangular(sets[1], lerp(0.25, this.min, this.max), lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max));
       this.addTrapezoidal(sets[2], lerp(0.50, this.min, this.max), lerp(0.75, this.min, this.max), this.max, this.max);
     } else if (sets.length === 5) {
-      this.addTriangular(sets[0], lerp(0.0, this.min, this.max), lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max));
-      this.addTriangular(sets[1], lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max));
+      this.addTrapezoidal(sets[0], lerp(0.0, this.min, this.max), lerp(0.0, this.min, this.max), lerp(0.15, this.min, this.max), lerp(0.30, this.min, this.max));
+      this.addTriangular(sets[1], lerp(0.0, this.min, this.max), lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max));
       this.addTrapezoidal(sets[2], lerp(0.30, this.min, this.max), lerp(0.45, this.min, this.max), lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max));
-      this.addTriangular(sets[3], lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max));
-      this.addTriangular(sets[4], lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max), lerp(1.0, this.min, this.max));
+      this.addTriangular(sets[3], lerp(0.55, this.min, this.max), lerp(0.70, this.min, this.max), lerp(1.0, this.min, this.max));
+      this.addTrapezoidal(sets[4], lerp(0.70, this.min, this.max), lerp(0.85, this.min, this.max), lerp(1.0, this.min, this.max), lerp(1.0, this.min, this.max));
     }
   }
 
@@ -120,7 +120,14 @@ export class FuzzySet {
     b = s.closestDomainValue(b);
     c = s.closestDomainValue(c);
     d = s.closestDomainValue(d);
-    s.membership = s.domain.map(v => Math.min(Math.max(Math.min((v - a) / (b - a), (d - v) / (d - c)), 0), 1));
+    if (b === a) {
+      s.membership = s.domain.map(v => Math.min(Math.max((d - v) / (d - c), 0), 1));
+    } else if (d === c) {
+      s.membership = s.domain.map(v => Math.min(Math.max((v - a) / (b - a), 0), 1));
+    } else {
+      s.membership = s.domain.map(v => Math.min(Math.max(Math.min((v - a) / (b - a), (d - v) / (d - c)), 0), 1));
+    }
+
     return s;
   }
 

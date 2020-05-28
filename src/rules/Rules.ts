@@ -41,19 +41,19 @@ export class Rules {
 
   constructor() {
 
-    const innateAbility = new FuzzyVariable('Innate Ability', 0, 100, 100);
+    const innateAbility = new FuzzyVariable('Innate Ability', 0, 99, 100);
     innateAbility.evenlyDistribute(['None', 'Low', 'Average', 'High', 'Exceptional']);
 
-    const training = new FuzzyVariable('Training', 0, 100, 100);
+    const training = new FuzzyVariable('Training', 0, 99, 100);
     training.evenlyDistribute(['None', 'A Few Lessons', 'Some', 'Well-Trained', 'Mastery']);
 
-    const experience = new FuzzyVariable('Experience', 0, 100, 100);
+    const experience = new FuzzyVariable('Experience', 0, 99, 100);
     experience.evenlyDistribute(['None', 'A Little', 'Familiar', 'Copius', 'Frequent']);
 
-    const chanceOfSuccess = new FuzzyVariable('Chance of Success', 0, 100, 100);
+    const chanceOfSuccess = new FuzzyVariable('Chance of Success', 0, 99, 100);
     chanceOfSuccess.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
 
-    const chanceOfMishap = new FuzzyVariable('Chance of Mishap', 0, 100, 100);
+    const chanceOfMishap = new FuzzyVariable('Chance of Mishap', 0, 99, 100);
     chanceOfMishap.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
 
     this.system = new FuzzySystem();
