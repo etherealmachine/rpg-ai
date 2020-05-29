@@ -35,11 +35,11 @@ it('computes a crisp output', () => {
   expect(system.evaluate({
     'Temperature': 18,
     'Humidity': 60
-  })['Speed']).toBeCloseTo(23);
+  })['Speed']).toBeCloseTo(37.507);
 
   expect(system.evaluate({
     'Temperature': 25,
     'Humidity': 70
-  })['Speed']).toBeCloseTo(47);
+  })['Speed']).toBeCloseTo(53.405);
 
 });

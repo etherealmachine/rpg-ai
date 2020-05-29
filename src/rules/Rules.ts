@@ -42,130 +42,57 @@ export class Rules {
   constructor() {
 
     const innateAbility = new FuzzyVariable('Innate Ability', 0, 99, 100);
-    innateAbility.evenlyDistribute(['None', 'Low', 'Average', 'High', 'Exceptional']);
+    innateAbility.evenlyDistribute(['Low', 'Average', 'High']);
 
     const training = new FuzzyVariable('Training', 0, 99, 100);
-    training.evenlyDistribute(['None', 'A Few Lessons', 'Some', 'Well-Trained', 'Mastery']);
+    training.evenlyDistribute(['None', 'Some', 'A Lot']);
 
     const experience = new FuzzyVariable('Experience', 0, 99, 100);
-    experience.evenlyDistribute(['None', 'A Little', 'Familiar', 'Copius', 'Frequent']);
+    experience.evenlyDistribute(['None', 'Some', 'A Lot']);
 
     const chanceOfSuccess = new FuzzyVariable('Chance of Success', 0, 99, 100);
-    chanceOfSuccess.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
-
-    const chanceOfMishap = new FuzzyVariable('Chance of Mishap', 0, 99, 100);
-    chanceOfMishap.evenlyDistribute(['None', 'Some', 'Moderate', 'High', 'Guaranteed']);
+    chanceOfSuccess.evenlyDistribute(['None', 'Low', 'Medium', 'Good', 'High']);
 
     this.system = new FuzzySystem();
     this.system.addInputVariable(innateAbility);
     this.system.addInputVariable(training);
     this.system.addInputVariable(experience);
     this.system.addOutputVariable(chanceOfSuccess);
-    this.system.addOutputVariable(chanceOfMishap);
 
-    this.system.addRule(new FuzzyRule(
-      { 'Innate Ability': 'None' },
-      { 'Chance of Success': 'None' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Innate Ability': 'Low' },
-      { 'Chance of Success': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Innate Ability': 'Average' },
-      { 'Chance of Success': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Innate Ability': 'High' },
-      { 'Chance of Success': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Innate Ability': 'Exceptional' },
-      { 'Chance of Success': 'Moderate' },
-    ));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'None', 'Experience': 'None' }, { 'Chance of Success': 'None' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'None', 'Experience': 'Some' }, { 'Chance of Success': 'Low' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'None', 'Experience': 'A Lot' }, { 'Chance of Success': 'Low' }));
 
-    this.system.addRule(new FuzzyRule(
-      { 'Training': 'None' },
-      { 'Chance of Success': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Training': 'A Few Lessons' },
-      { 'Chance of Success': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Training': 'Some' },
-      { 'Chance of Success': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Training': 'Well-Trained' },
-      { 'Chance of Success': 'High' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Training': 'Mastery' },
-      { 'Chance of Success': 'Guaranteed' },
-    ));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'Some', 'Experience': 'None' }, { 'Chance of Success': 'Low' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'Some', 'Experience': 'Some' }, { 'Chance of Success': 'Low' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'Some', 'Experience': 'A Lot' }, { 'Chance of Success': 'Medium' }));
 
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'None' },
-      { 'Chance of Success': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'A Little' },
-      { 'Chance of Success': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Familiar' },
-      { 'Chance of Success': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Copius' },
-      { 'Chance of Success': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Frequent' },
-      { 'Chance of Success': 'High' },
-    ));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'A Lot', 'Experience': 'None' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'A Lot', 'Experience': 'Some' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Low', 'Training': 'A Lot', 'Experience': 'A Lot' }, { 'Chance of Success': 'Good' }));
 
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'None', 'Training': 'None' },
-      { 'Chance of Mishap': 'High' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'A Little', 'Training': 'None' },
-      { 'Chance of Mishap': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Familiar', 'Training': 'None' },
-      { 'Chance of Mishap': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Copius', 'Training': 'None' },
-      { 'Chance of Mishap': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Frequent', 'Training': 'None' },
-      { 'Chance of Mishap': 'Some' },
-    ));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'None', 'Experience': 'None' }, { 'Chance of Success': 'Low' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'None', 'Experience': 'Some' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'None', 'Experience': 'A Lot' }, { 'Chance of Success': 'Medium' }));
 
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'None', 'Training': 'A Few Lessons' },
-      { 'Chance of Mishap': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'A Little', 'Training': 'A Few Lessons' },
-      { 'Chance of Mishap': 'Moderate' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Familiar', 'Training': 'A Few Lessons' },
-      { 'Chance of Mishap': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Copius', 'Training': 'A Few Lessons' },
-      { 'Chance of Mishap': 'Some' },
-    ));
-    this.system.addRule(new FuzzyRule(
-      { 'Experience': 'Frequent', 'Training': 'A Few Lessons' },
-      { 'Chance of Mishap': 'None' },
-    ));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'Some', 'Experience': 'None' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'Some', 'Experience': 'Some' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'Some', 'Experience': 'A Lot' }, { 'Chance of Success': 'Good' }));
+
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'A Lot', 'Experience': 'None' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'A Lot', 'Experience': 'Some' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'Average', 'Training': 'A Lot', 'Experience': 'A Lot' }, { 'Chance of Success': 'High' }));
+
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'None', 'Experience': 'None' }, { 'Chance of Success': 'Medium' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'None', 'Experience': 'Some' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'None', 'Experience': 'A Lot' }, { 'Chance of Success': 'Good' }));
+
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'Some', 'Experience': 'None' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'Some', 'Experience': 'Some' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'Some', 'Experience': 'A Lot' }, { 'Chance of Success': 'High' }));
+
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'A Lot', 'Experience': 'None' }, { 'Chance of Success': 'Good' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'A Lot', 'Experience': 'Some' }, { 'Chance of Success': 'High' }));
+    this.system.addRule(new FuzzyRule({ 'Innate Ability': 'High', 'Training': 'A Lot', 'Experience': 'A Lot' }, { 'Chance of Success': 'High' }));
   }
 }

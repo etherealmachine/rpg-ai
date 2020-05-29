@@ -18,7 +18,7 @@ export class FuzzyRule {
   }
 
   evaluate(sets: { [key: string]: { [key: string]: FuzzySet } }, memberships: { [key: string]: { [key: string]: number } }): { [key: string]: FuzzySet } {
-    const strength = Math.min(...Object.entries(this.antecedent).map(([varName, setName]) => memberships[varName][setName]).filter(x => x !== undefined));
+    const strength = this.strength(memberships);
     return Object.entries(this.consequence).map(([varName, setName]) => {
       return [
         varName,
@@ -178,7 +178,7 @@ export class FuzzySet {
 
   defuzzify(): number {
     const numerator = this.membership.map((m, i) => m * this.domain[i]).reduce((sum, v) => sum + v, 0);
-    const denominator = this.domain.reduce((sum, v) => sum + v, 0);
+    const denominator = this.membership.reduce((sum, v) => sum + v, 0);
     return numerator / denominator;
   }
 }
@@ -231,7 +231,7 @@ export class FuzzySystem {
       }
       return {
         ...obj,
-        [varName]: lerp(union.defuzzify(), union.range.min, union.range.max),
+        [varName]: union.defuzzify(),
       };
     }, {});
   }
