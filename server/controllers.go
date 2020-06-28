@@ -426,6 +426,30 @@ func LogoutController(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
+func LoginController(w http.ResponseWriter, r *http.Request) {
+	session, err := SessionCookieStore.Get(r, "authenticated_user")
+	if err != nil {
+		panic(err)
+	}
+	if !Dev {
+		return
+	}
+	devUser, err := db.GetUserByEmail(r.Context(), "james.l.pettit@gmail.com")
+	if err != nil {
+		panic(err)
+	}
+	bs, err := json.Marshal(devUser)
+	if err != nil {
+		panic(err)
+	} else {
+		session.Values["internal_user"] = string(bs)
+	}
+	if err := session.Save(r, w); err != nil {
+		panic(err)
+	}
+	http.Redirect(w, r, "/profile", http.StatusTemporaryRedirect)
+}
+
 func CsrfTokenController(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(csrf.Token(r)))
 }
