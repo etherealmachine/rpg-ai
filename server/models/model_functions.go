@@ -38,3 +38,7 @@ type CampaignWithEncounters struct {
 	Campaign
 	Encounters []Encounter
 }
+
+func (c *Campaign) Path() string {
+	return fmt.Sprintf("/campaign/%d", c.ID)
+}

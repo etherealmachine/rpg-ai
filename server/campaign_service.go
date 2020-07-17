@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 
@@ -11,17 +12,34 @@ type CampaignService struct {
 	db *models.Queries
 }
 
-type ListCampaignsRequest struct {
+type CreateCampaignRequest struct {
+	Name        string
+	Description string
 }
 
-type ListCampaignsResponse struct {
-	Campaigns []models.CampaignWithEncounters
+type CreateCampaignResponse struct {
 }
 
-func (s *AssetService) ListCampaigns(r *http.Request, args *ListCampaignsRequest, reply *ListCampaignsResponse) error {
+func (s *CampaignService) CreateCampaign(r *http.Request, args *CreateCampaignRequest, reply *CreateCampaignResponse) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return nil
+	_, err := s.db.CreateCampaign(r.Context(), models.CreateCampaignParams{OwnerID: u.ID, Name: args.Name, Description: sql.NullString{String: args.Description}})
+	return err
+}
+
+type DeleteCampaignRequest struct {
+	ID int32
+}
+
+type DeleteCampaignResponse struct {
+}
+
+func (s *CampaignService) DeleteCampaign(r *http.Request, args *DeleteCampaignRequest, reply *DeleteCampaignResponse) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	return s.db.DeleteCampaign(r.Context(), models.DeleteCampaignParams{OwnerID: u.ID, ID: args.ID})
 }

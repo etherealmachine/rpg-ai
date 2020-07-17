@@ -10,16 +10,17 @@ import (
 )
 
 const createCampaign = `-- name: CreateCampaign :one
-INSERT INTO campaigns (owner_id, name) VALUES ($1, $2) RETURNING id, owner_id, name, description, created_at
+INSERT INTO campaigns (owner_id, name, description) VALUES ($1, $2, $3) RETURNING id, owner_id, name, description, created_at
 `
 
 type CreateCampaignParams struct {
-	OwnerID int32
-	Name    string
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
 }
 
 func (q *Queries) CreateCampaign(ctx context.Context, arg CreateCampaignParams) (Campaign, error) {
-	row := q.db.QueryRowContext(ctx, createCampaign, arg.OwnerID, arg.Name)
+	row := q.db.QueryRowContext(ctx, createCampaign, arg.OwnerID, arg.Name, arg.Description)
 	var i Campaign
 	err := row.Scan(
 		&i.ID,

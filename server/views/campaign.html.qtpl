@@ -1,0 +1,13 @@
+{% import "github.com/etherealmachine/rpg.ai/server/models" %}
+
+{% code
+type CampaignPage struct {
+  *BasePage
+  Campaign *models.Campaign
+}
+%}
+
+{% func (p *CampaignPage) Content() %}
+  <div class="container">
+  </div>
+{% endfunc %}

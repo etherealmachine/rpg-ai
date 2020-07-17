@@ -4,7 +4,7 @@ CREATE TABLE campaigns
   owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_campaigns_on_owner_id on campaigns(owner_id);
@@ -16,7 +16,7 @@ CREATE TABLE encounters
   name TEXT NOT NULL,
   description TEXT,
   tilemap_id INTEGER REFERENCES tilemaps(id) ON DELETE SET NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_encounters_on_campaign_id on encounters(campaign_id);
@@ -28,7 +28,7 @@ CREATE TABLE characters
   name TEXT NOT NULL,
   definition JSONB,
   sprite BYTEA,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_characters_on_owner_id on characters(owner_id);

@@ -7,115 +7,197 @@ package views
 //line views/user_profile.html.qtpl:1
 import "github.com/etherealmachine/rpg.ai/server/models"
 
-//line views/user_profile.html.qtpl:3
+//line views/user_profile.html.qtpl:2
+import "github.com/nleeper/goment"
+
+//line views/user_profile.html.qtpl:4
 import (
 	qtio422016 "io"
 
 	qt422016 "github.com/valyala/quicktemplate"
 )
 
-//line views/user_profile.html.qtpl:3
+//line views/user_profile.html.qtpl:4
 var (
 	_ = qtio422016.Copy
 	_ = qt422016.AcquireByteBuffer
 )
 
-//line views/user_profile.html.qtpl:4
+//line views/user_profile.html.qtpl:5
 type UserProfilePage struct {
 	*BasePage
+	Campaigns        []models.Campaign
 	UserSpritesheets []models.Spritesheet
 	UserTilemaps     []models.TilemapWithThumbnails
 }
 
-//line views/user_profile.html.qtpl:11
+//line views/user_profile.html.qtpl:13
 func StreamUploadAssetComponent(qw422016 *qt422016.Writer) {
-//line views/user_profile.html.qtpl:11
+//line views/user_profile.html.qtpl:13
 	qw422016.N().S(`
 <form action="/upload" enctype="multipart/form-data">
   <input type="file" id="fileupload" name="filename[]" multiple>
   <input type="submit" value="Upload">
 </form>
 `)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 }
 
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 func WriteUploadAssetComponent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	StreamUploadAssetComponent(qw422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 }
 
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 func UploadAssetComponent() string {
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	WriteUploadAssetComponent(qb422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 	return qs422016
-//line views/user_profile.html.qtpl:16
+//line views/user_profile.html.qtpl:18
 }
 
-//line views/user_profile.html.qtpl:18
+//line views/user_profile.html.qtpl:20
 func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/user_profile.html.qtpl:18
+//line views/user_profile.html.qtpl:20
 	qw422016.N().S(`
   <div class="container">
-    <p class="my-4">`)
-//line views/user_profile.html.qtpl:20
-	qw422016.E().S(p.User.Email)
-//line views/user_profile.html.qtpl:20
-	qw422016.N().S(`, a member since `)
-//line views/user_profile.html.qtpl:20
-	qw422016.E().V(p.User.CreatedAt)
-//line views/user_profile.html.qtpl:20
-	qw422016.N().S(`</p>
+    `)
+//line views/user_profile.html.qtpl:22
+	if g, err := goment.New(p.User.CreatedAt); err == nil {
+//line views/user_profile.html.qtpl:22
+		qw422016.N().S(`
+      <p class="my-4">`)
+//line views/user_profile.html.qtpl:23
+		qw422016.E().S(p.User.Email)
+//line views/user_profile.html.qtpl:23
+		qw422016.N().S(`, a member since `)
+//line views/user_profile.html.qtpl:23
+		qw422016.E().S(g.FromNow())
+//line views/user_profile.html.qtpl:23
+		qw422016.N().S(`</p>
+    `)
+//line views/user_profile.html.qtpl:24
+	}
+//line views/user_profile.html.qtpl:24
+	qw422016.N().S(`
+    <h4>Campaigns</h4>
+    `)
+//line views/user_profile.html.qtpl:26
+	for _, campaign := range p.Campaigns {
+//line views/user_profile.html.qtpl:26
+		qw422016.N().S(`
+      <div>
+        <a href="`)
+//line views/user_profile.html.qtpl:28
+		qw422016.E().S(campaign.Path())
+//line views/user_profile.html.qtpl:28
+		qw422016.N().S(`">`)
+//line views/user_profile.html.qtpl:28
+		qw422016.E().S(campaign.Name)
+//line views/user_profile.html.qtpl:28
+		qw422016.N().S(`</a>
+        `)
+//line views/user_profile.html.qtpl:29
+		if g, err := goment.New(campaign.CreatedAt); err == nil {
+//line views/user_profile.html.qtpl:29
+			qw422016.N().S(`
+          <span>`)
+//line views/user_profile.html.qtpl:30
+			qw422016.E().S(g.FromNow())
+//line views/user_profile.html.qtpl:30
+			qw422016.N().S(`</span>
+        `)
+//line views/user_profile.html.qtpl:31
+		}
+//line views/user_profile.html.qtpl:31
+		qw422016.N().S(`
+        <form action="/campaign/delete" method="POST">
+          <input type="hidden" name="id" value="`)
+//line views/user_profile.html.qtpl:33
+		qw422016.E().V(campaign.ID)
+//line views/user_profile.html.qtpl:33
+		qw422016.N().S(`" />
+          <input type="hidden" name="redirect" value="/profile" />
+          <input type="hidden" name="gorilla.csrf.Token" value="`)
+//line views/user_profile.html.qtpl:35
+		qw422016.E().S(p.CsrfToken)
+//line views/user_profile.html.qtpl:35
+		qw422016.N().S(`" />
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    `)
+//line views/user_profile.html.qtpl:39
+	}
+//line views/user_profile.html.qtpl:39
+	qw422016.N().S(`
+    <form action="/campaign/create" method="POST">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input class="form-control" name="name" placeholder="Name" />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea class="form-control" name="description"></textarea>
+      </div>
+      <input type="hidden" name="redirect" value="/profile" />
+      <input type="hidden" name="gorilla.csrf.Token" value="`)
+//line views/user_profile.html.qtpl:50
+	qw422016.E().S(p.CsrfToken)
+//line views/user_profile.html.qtpl:50
+	qw422016.N().S(`" />
+      <button type="submit" class="btn btn-primary">Create</button>
+    </form>
     <h4>Assets</h4>
     <div class="AssetTable" data-props="`)
-//line views/user_profile.html.qtpl:22
+//line views/user_profile.html.qtpl:54
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Spritesheets": p.UserSpritesheets,
 		"Tilemaps":     p.UserTilemaps,
 	}))
-//line views/user_profile.html.qtpl:26
+//line views/user_profile.html.qtpl:58
 	qw422016.N().S(`"></div>
     <div class="AssetUploader"></div>
   </div>
 `)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 }
 
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 }
 
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 	return qs422016
-//line views/user_profile.html.qtpl:29
+//line views/user_profile.html.qtpl:61
 }

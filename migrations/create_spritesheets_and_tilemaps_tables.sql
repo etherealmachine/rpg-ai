@@ -7,7 +7,7 @@ CREATE TABLE spritesheets
   definition JSONB NOT NULL,
   image BYTEA NOT NULL,
   hash BYTEA NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_spritesheets_on_owner_id on spritesheets(owner_id);
@@ -21,7 +21,7 @@ CREATE TABLE tilemaps
   description TEXT,
   definition JSONB NOT NULL,
   hash BYTEA NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_tilemaps_on_owner_id on tilemaps(owner_id);

@@ -8,7 +8,7 @@ CREATE TABLE thumbnails
   content_type TEXT NOT NULL,
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   CHECK(
     (
       (tilemap_id is not null)::integer +

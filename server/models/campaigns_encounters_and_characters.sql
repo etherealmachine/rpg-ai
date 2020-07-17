@@ -1,5 +1,5 @@
 -- name: CreateCampaign :one
-INSERT INTO campaigns (owner_id, name) VALUES ($1, $2) RETURNING *;
+INSERT INTO campaigns (owner_id, name, description) VALUES ($1, $2, $3) RETURNING *;
 
 -- name: DeleteCampaign :exec
 DELETE FROM campaigns WHERE id = $1 AND owner_id = $2;

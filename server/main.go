@@ -87,6 +87,8 @@ func main() {
 	api.RegisterService(&CampaignService{db: db}, "")
 	r.Handle("/api", SetAuthenticatedSession(api))
 
+	CRUD(r.PathPrefix("/campaign").Subrouter(), &CampaignService{db: db})
+
 	r.Handle("/", http.HandlerFunc(IndexController)).Methods("GET")
 	r.Handle("/profile", LoginRequired(http.HandlerFunc(ProfileController))).Methods("GET")
 	r.Handle("/search", http.HandlerFunc(UnderConstructionController)).Methods("GET")

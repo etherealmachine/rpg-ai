@@ -21,6 +21,7 @@ type BasePage struct {
   Scripts []*html.Node
   Links []*html.Node
   Styles []*html.Node
+  CsrfToken string
   User *models.User
 }
 %}

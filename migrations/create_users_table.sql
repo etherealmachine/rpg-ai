@@ -3,7 +3,7 @@ CREATE TABLE users
   id SERIAL PRIMARY KEY,
   email VARCHAR(100) NOT NULL,
   admin BOOLEAN,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
   last_login TIMESTAMP,
   UNIQUE(email)
 );
