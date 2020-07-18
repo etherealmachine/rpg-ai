@@ -92,7 +92,8 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {
 	currentUserID := currentUser(r).ID
-	campaigns, err := db.ListCampaignsByOwnerID(r.Context(), currentUserID)
+	campaigns := models.ListCampaignsWithEncountersByOwnerID(r.Context(), db, currentUserID)
+	characters, err := db.ListCharactersByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
 	}
@@ -148,6 +149,7 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 	views.WritePageTemplate(w, &views.UserProfilePage{
 		BasePage:         basePage(r),
 		Campaigns:        campaigns,
+		Characters:       characters,
 		UserSpritesheets: spritesheets,
 		UserTilemaps:     tilemaps,
 	})

@@ -33,16 +33,17 @@ func (q *Queries) CreateCampaign(ctx context.Context, arg CreateCampaignParams) 
 }
 
 const createCharacter = `-- name: CreateCharacter :one
-INSERT INTO characters (owner_id, name) VALUES ($1, $2) RETURNING id, owner_id, name, definition, sprite, created_at
+INSERT INTO characters (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING id, owner_id, name, definition, sprite, created_at
 `
 
 type CreateCharacterParams struct {
-	OwnerID int32
-	Name    string
+	OwnerID    int32
+	Name       string
+	Definition json.RawMessage
 }
 
 func (q *Queries) CreateCharacter(ctx context.Context, arg CreateCharacterParams) (Character, error) {
-	row := q.db.QueryRowContext(ctx, createCharacter, arg.OwnerID, arg.Name)
+	row := q.db.QueryRowContext(ctx, createCharacter, arg.OwnerID, arg.Name, arg.Definition)
 	var i Character
 	err := row.Scan(
 		&i.ID,
@@ -56,16 +57,21 @@ func (q *Queries) CreateCharacter(ctx context.Context, arg CreateCharacterParams
 }
 
 const createEncounter = `-- name: CreateEncounter :one
-INSERT INTO encounters (campaign_id, name) VALUES ($1, $2) RETURNING id, campaign_id, name, description, tilemap_id, created_at
+INSERT INTO encounters (campaign_id, name)
+SELECT $1 AS campaign_id, $2 AS name
+FROM campaigns
+WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3)
+RETURNING id, campaign_id, name, description, tilemap_id, created_at
 `
 
 type CreateEncounterParams struct {
 	CampaignID int32
 	Name       string
+	OwnerID    int32
 }
 
 func (q *Queries) CreateEncounter(ctx context.Context, arg CreateEncounterParams) (Encounter, error) {
-	row := q.db.QueryRowContext(ctx, createEncounter, arg.CampaignID, arg.Name)
+	row := q.db.QueryRowContext(ctx, createEncounter, arg.CampaignID, arg.Name, arg.OwnerID)
 	var i Encounter
 	err := row.Scan(
 		&i.ID,
@@ -120,6 +126,28 @@ type DeleteEncounterParams struct {
 func (q *Queries) DeleteEncounter(ctx context.Context, arg DeleteEncounterParams) error {
 	_, err := q.db.ExecContext(ctx, deleteEncounter, arg.ID, arg.OwnerID)
 	return err
+}
+
+const getOwnedCampaignByID = `-- name: GetOwnedCampaignByID :one
+SELECT id, owner_id, name, description, created_at FROM campaigns WHERE id = $1 AND owner_id = $2
+`
+
+type GetOwnedCampaignByIDParams struct {
+	ID      int32
+	OwnerID int32
+}
+
+func (q *Queries) GetOwnedCampaignByID(ctx context.Context, arg GetOwnedCampaignByIDParams) (Campaign, error) {
+	row := q.db.QueryRowContext(ctx, getOwnedCampaignByID, arg.ID, arg.OwnerID)
+	var i Campaign
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const listCampaignsByOwnerID = `-- name: ListCampaignsByOwnerID :many
@@ -189,24 +217,61 @@ func (q *Queries) ListCharactersByOwnerID(ctx context.Context, ownerID int32) ([
 	return items, nil
 }
 
-const listEncountersForCampaign = `-- name: ListEncountersForCampaign :many
-SELECT id, owner_id, name, description, created_at FROM campaigns WHERE id = $1
+const listCharactersForEncounter = `-- name: ListCharactersForEncounter :many
+SELECT characters.id, characters.owner_id, characters.name, characters.definition, characters.sprite, characters.created_at FROM encounter_characters
+JOIN characters ON characters.id = character_id
+WHERE encounter_id = $1
 `
 
-func (q *Queries) ListEncountersForCampaign(ctx context.Context, id int32) ([]Campaign, error) {
-	rows, err := q.db.QueryContext(ctx, listEncountersForCampaign, id)
+func (q *Queries) ListCharactersForEncounter(ctx context.Context, encounterID int32) ([]Character, error) {
+	rows, err := q.db.QueryContext(ctx, listCharactersForEncounter, encounterID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Campaign
+	var items []Character
 	for rows.Next() {
-		var i Campaign
+		var i Character
 		if err := rows.Scan(
 			&i.ID,
 			&i.OwnerID,
 			&i.Name,
+			&i.Definition,
+			&i.Sprite,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEncountersForCampaign = `-- name: ListEncountersForCampaign :many
+SELECT id, campaign_id, name, description, tilemap_id, created_at FROM encounters WHERE campaign_id = $1
+`
+
+func (q *Queries) ListEncountersForCampaign(ctx context.Context, campaignID int32) ([]Encounter, error) {
+	rows, err := q.db.QueryContext(ctx, listEncountersForCampaign, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Encounter
+	for rows.Next() {
+		var i Encounter
+		if err := rows.Scan(
+			&i.ID,
+			&i.CampaignID,
+			&i.Name,
 			&i.Description,
+			&i.TilemapID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

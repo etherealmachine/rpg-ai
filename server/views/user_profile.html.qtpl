@@ -4,7 +4,8 @@
 {% code
 type UserProfilePage struct {
   *BasePage
-  Campaigns []models.Campaign
+  Campaigns []models.CampaignWithEncounters
+  Characters []models.Character
   UserSpritesheets []models.Spritesheet
   UserTilemaps []models.TilemapWithThumbnails
 }
@@ -19,24 +20,55 @@ type UserProfilePage struct {
 
 {% func (p *UserProfilePage) Content() %}
   <div class="container">
+
     {% if g, err := goment.New(p.User.CreatedAt); err == nil  %}
       <p class="my-4">{%s p.User.Email %}, a member since {%s g.FromNow() %}</p>
     {% endif %}
+
     <h4>Campaigns</h4>
     {% for _, campaign := range p.Campaigns %}
-      <div>
-        <a href="{%s campaign.Path() %}">{%s campaign.Name %}</a>
-        {% if g, err := goment.New(campaign.CreatedAt); err == nil  %}
-          <span>{%s g.FromNow() %}</span>
-        {% endif %}
-        <form action="/campaign/delete" method="POST">
-          <input type="hidden" name="id" value="{%v campaign.ID %}" />
-          <input type="hidden" name="redirect" value="/profile" />
-          <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
-          <button type="submit" class="btn btn-danger">Delete</button>
-        </form>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title d-flex flex-row justify-content-between">
+            <span>{%s campaign.Name %}</span>
+            {% if g, err := goment.New(campaign.CreatedAt); err == nil  %}
+              <span class="text-muted">{%s g.FromNow() %}</span>
+            {% endif %}
+          </h5>
+          <p class="card-text">{%s campaign.Description.String %}</p>
+          <h5>Encounters</h5>
+          {% for _, encounter := range campaign.Encounters %}
+            <h6>{%s encounter.Name %}</h6>
+            <p>{%s encounter.Description.String %}</p>
+            {% for _, character := range encounter.Characters %}
+              <p>{%s character.Name %}</p>
+            {% endfor %}
+          {% endfor %}
+          <form action="/encounter/create" method="POST">
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input class="form-control" name="name" placeholder="Name" />
+            </div>
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea class="form-control" name="description"></textarea>
+            </div>
+            <input type="hidden" name="campaignid" value="{%v campaign.ID %}" />
+            <input type="hidden" name="redirect" value="/profile" />
+            <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+            <button type="submit" class="btn btn-primary">Add Encounter</button>
+          </form>
+          <form action="/campaign/delete" method="POST">
+            <input type="hidden" name="id" value="{%v campaign.ID %}" />
+            <input type="hidden" name="redirect" value="/profile" />
+            <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
       </div>
     {% endfor %}
+
+    <h5>New Campaign</h5>
     <form action="/campaign/create" method="POST">
       <div class="form-group">
         <label for="name">Name</label>
@@ -50,6 +82,33 @@ type UserProfilePage struct {
       <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
       <button type="submit" class="btn btn-primary">Create</button>
     </form>
+
+    <h4>Characters</h4>
+    {% for _, character := range p.Characters %}
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title d-flex flex-row justify-content-between">
+            <span>{%s character.Name %}</span>
+            {% if g, err := goment.New(character.CreatedAt); err == nil  %}
+              <span class="text-muted">{%s g.FromNow() %}</span>
+            {% endif %}
+          </h5>
+        </div>
+      </div>
+    {% endfor %}
+
+    <h5>New Character</h5>
+    <form action="/character/create" method="POST">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input class="form-control" name="name" placeholder="Name" />
+      </div>
+      <input type="hidden" name="definition" value="{}" />
+      <input type="hidden" name="redirect" value="/profile" />
+      <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+      <button type="submit" class="btn btn-primary">Create</button>
+    </form>
+
     <h4>Assets</h4>
     <div class="AssetTable" data-props="{%q JSON(map[string]interface{}{
       "Spritesheets": p.UserSpritesheets,
@@ -57,5 +116,6 @@ type UserProfilePage struct {
       })
     %}"></div>
     <div class="AssetUploader"></div>
+
   </div>
 {% endfunc %}

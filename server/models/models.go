@@ -16,12 +16,6 @@ type Campaign struct {
 	CreatedAt   time.Time
 }
 
-type CampaignCharacter struct {
-	ID          int32
-	CampaignID  int32
-	CharacterID int32
-}
-
 type Character struct {
 	ID         int32
 	OwnerID    int32
@@ -38,6 +32,12 @@ type Encounter struct {
 	Description sql.NullString
 	TilemapID   sql.NullInt32
 	CreatedAt   time.Time
+}
+
+type EncounterCharacter struct {
+	ID          int32
+	EncounterID int32
+	CharacterID int32
 }
 
 type Spritesheet struct {

@@ -26,16 +26,16 @@ CREATE TABLE characters
   id SERIAL PRIMARY KEY,
   owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  definition JSONB,
+  definition JSONB NOT NULL,
   sprite BYTEA,
   created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
 CREATE INDEX index_characters_on_owner_id on characters(owner_id);
 
-CREATE TABLE campaign_characters
+CREATE TABLE encounter_characters
 (
   id SERIAL PRIMARY KEY,
-  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  encounter_id INTEGER NOT NULL REFERENCES encounters(id) ON DELETE CASCADE,
   character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE
 );

@@ -56,8 +56,10 @@ func crudMethod(service interface{}, serviceType reflect.Type, method reflect.Me
 		inputs := []reflect.Value{reflect.ValueOf(service), reflect.ValueOf(r), args, reply}
 		err := method.Func.Call(inputs)[0]
 		if !err.IsNil() {
-			redirect := r.FormValue("redirect") + "?error=" + url.PathEscape(err.String())
+			errString := err.MethodByName("Error").Call(nil)[0].Interface().(string)
+			redirect := r.FormValue("redirect") + fmt.Sprintf("?error=%s", url.PathEscape(errString))
 			http.Redirect(w, r, redirect, http.StatusFound)
+			return
 		}
 		http.Redirect(w, r, r.FormValue("redirect"), http.StatusFound)
 	}

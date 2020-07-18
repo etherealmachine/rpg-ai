@@ -18,6 +18,7 @@ type Querier interface {
 	DeleteEncounter(ctx context.Context, arg DeleteEncounterParams) error
 	DeleteSpritesheet(ctx context.Context, arg DeleteSpritesheetParams) error
 	DeleteTilemap(ctx context.Context, arg DeleteTilemapParams) error
+	GetOwnedCampaignByID(ctx context.Context, arg GetOwnedCampaignByIDParams) (Campaign, error)
 	GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error)
 	GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error)
 	GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, error)
@@ -25,7 +26,8 @@ type Querier interface {
 	InsertTilemapThumbnail(ctx context.Context, arg InsertTilemapThumbnailParams) (int64, error)
 	ListCampaignsByOwnerID(ctx context.Context, ownerID int32) ([]Campaign, error)
 	ListCharactersByOwnerID(ctx context.Context, ownerID int32) ([]Character, error)
-	ListEncountersForCampaign(ctx context.Context, id int32) ([]Campaign, error)
+	ListCharactersForEncounter(ctx context.Context, encounterID int32) ([]Character, error)
+	ListEncountersForCampaign(ctx context.Context, campaignID int32) ([]Encounter, error)
 	ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error)
 	ListRecentTilemaps(ctx context.Context, limit int32) ([]Tilemap, error)
 	ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) ([]ListSpritesheetsByOwnerIDRow, error)

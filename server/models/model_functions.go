@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 )
@@ -36,9 +37,40 @@ func (t *Thumbnail) Path() string {
 
 type CampaignWithEncounters struct {
 	Campaign
-	Encounters []Encounter
+	Encounters []EncounterWithCharacters
 }
 
-func (c *Campaign) Path() string {
-	return fmt.Sprintf("/campaign/%d", c.ID)
+type EncounterWithCharacters struct {
+	Encounter
+	Characters []Character
+}
+
+func ListCampaignsWithEncountersByOwnerID(ctx context.Context, db *Queries, ownerID int32) []CampaignWithEncounters {
+	campaigns, err := db.ListCampaignsByOwnerID(ctx, ownerID)
+	if err != nil {
+		panic(err)
+	}
+	campaignsWithEncounters := make([]CampaignWithEncounters, len(campaigns))
+	for i, campaign := range campaigns {
+		encounters, err := db.ListEncountersForCampaign(ctx, campaign.ID)
+		if err != nil {
+			panic(err)
+		}
+		encountersWithCharacters := make([]EncounterWithCharacters, len(encounters))
+		for j, encounter := range encounters {
+			characters, err := db.ListCharactersForEncounter(ctx, encounter.ID)
+			if err != nil {
+				panic(err)
+			}
+			encountersWithCharacters[j] = EncounterWithCharacters{
+				Encounter:  encounter,
+				Characters: characters,
+			}
+		}
+		campaignsWithEncounters[i] = CampaignWithEncounters{
+			Campaign:   campaign,
+			Encounters: encountersWithCharacters,
+		}
+	}
+	return campaignsWithEncounters
 }
