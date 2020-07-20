@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
-	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,40 +26,70 @@ func CRUD(r *mux.Router, service interface{}) {
 
 func crudMethod(service interface{}, serviceType reflect.Type, method reflect.Method) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		args := reflect.New(method.Type.In(2).Elem())
+		argsType := method.Type.In(2).Elem()
+		args := reflect.New(argsType)
 		if err := r.ParseForm(); err != nil {
-			redirect := r.FormValue("redirect") + "?error=" + url.PathEscape(err.Error())
-			http.Redirect(w, r, redirect, http.StatusFound)
+			log.Printf("Error in crud request: %s", err.Error())
+			http.Redirect(w, r, r.Referer(), http.StatusFound)
 			return
 		}
-		for name, values := range r.Form {
-			field := args.Elem().FieldByNameFunc(func(fieldName string) bool {
-				return strings.ToLower(fieldName) == name
-			})
-			if field.IsValid() {
-				switch field.Kind() {
-				case reflect.Int32:
-					i, err := strconv.ParseInt(values[0], 10, 32)
+		for i := 0; i < argsType.NumField(); i++ {
+			fieldType := argsType.Field(i)
+			if fieldType.Name == "OwnerID" {
+				continue
+			}
+			value := r.FormValue(fieldType.Name)
+			if value == "" && !strings.HasPrefix(fieldType.Type.Name(), "Null") {
+				log.Printf(
+					"Error in crud request: could not fill field %s (type %s.%s) with empty string",
+					fieldType.Name, fieldType.Type.PkgPath(), fieldType.Type.Name())
+				http.Redirect(w, r, r.Referer(), http.StatusFound)
+				return
+			}
+			field := args.Elem().Field(i)
+			switch {
+			case fieldType.Type.Kind() == reflect.Int32:
+				i, err := strconv.ParseInt(value, 10, 32)
+				if err != nil {
+					log.Println(err)
+					http.Redirect(w, r, r.Referer(), http.StatusFound)
+					return
+				}
+				field.Set(reflect.ValueOf(int32(i)))
+			case fieldType.Type.Kind() == reflect.String:
+				field.Set(reflect.ValueOf(value))
+			case fieldType.Type.Name() == "NullInt32":
+				if value != "" {
+					i, err := strconv.ParseInt(value, 10, 32)
 					if err != nil {
-						redirect := r.FormValue("redirect") + "?error=" + url.PathEscape(fmt.Sprintf("Field %s: failed to parse %q as int32", name, values[0]))
-						http.Redirect(w, r, redirect, http.StatusFound)
+						log.Println(err)
+						http.Redirect(w, r, r.Referer(), http.StatusFound)
 						return
 					}
-					field.Set(reflect.ValueOf(int32(i)))
-				case reflect.String:
-					field.Set(reflect.ValueOf(values[0]))
+					field.FieldByName("Int32").Set(reflect.ValueOf(int32(i)))
+					field.FieldByName("Valid").Set(reflect.ValueOf(true))
 				}
+			case fieldType.Type.Name() == "NullString":
+				if value != "" {
+					field.FieldByName("String").Set(reflect.ValueOf(value))
+					field.FieldByName("Valid").Set(reflect.ValueOf(true))
+				}
+			default:
+				log.Printf(
+					"Error in crud request: could not fill field %s (type %s.%s) from form value %q",
+					fieldType.Name, fieldType.Type.PkgPath(), fieldType.Type.Name(), value)
+				http.Redirect(w, r, r.Referer(), http.StatusFound)
+				return
 			}
 		}
 		reply := reflect.New(method.Type.In(3).Elem())
 		inputs := []reflect.Value{reflect.ValueOf(service), reflect.ValueOf(r), args, reply}
 		err := method.Func.Call(inputs)[0]
 		if !err.IsNil() {
-			errString := err.MethodByName("Error").Call(nil)[0].Interface().(string)
-			redirect := r.FormValue("redirect") + fmt.Sprintf("?error=%s", url.PathEscape(errString))
-			http.Redirect(w, r, redirect, http.StatusFound)
+			log.Printf("Error in crud request: %s", err.MethodByName("Error").Call(nil)[0].Interface().(string))
+			http.Redirect(w, r, r.Referer(), http.StatusFound)
 			return
 		}
-		http.Redirect(w, r, r.FormValue("redirect"), http.StatusFound)
+		http.Redirect(w, r, r.Referer(), http.StatusFound)
 	}
 }

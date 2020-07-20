@@ -26,10 +26,10 @@ var (
 //line views/user_profile.html.qtpl:5
 type UserProfilePage struct {
 	*BasePage
-	Campaigns        []models.CampaignWithEncounters
+	Campaigns        []models.FilledCampaign
 	Characters       []models.Character
 	UserSpritesheets []models.Spritesheet
-	UserTilemaps     []models.TilemapWithThumbnails
+	UserTilemaps     []models.FilledTilemap
 }
 
 //line views/user_profile.html.qtpl:14
@@ -137,191 +137,151 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 		for _, encounter := range campaign.Encounters {
 //line views/user_profile.html.qtpl:40
 			qw422016.N().S(`
-            <h6>`)
-//line views/user_profile.html.qtpl:41
-			qw422016.E().S(encounter.Name)
-//line views/user_profile.html.qtpl:41
-			qw422016.N().S(`</h6>
-            <p>`)
-//line views/user_profile.html.qtpl:42
-			qw422016.E().S(encounter.Description.String)
-//line views/user_profile.html.qtpl:42
-			qw422016.N().S(`</p>
             `)
-//line views/user_profile.html.qtpl:43
-			for _, character := range encounter.Characters {
-//line views/user_profile.html.qtpl:43
-				qw422016.N().S(`
-              <p>`)
-//line views/user_profile.html.qtpl:44
-				qw422016.E().S(character.Name)
-//line views/user_profile.html.qtpl:44
-				qw422016.N().S(`</p>
-            `)
-//line views/user_profile.html.qtpl:45
-			}
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:41
+			StreamEncounterEditor(qw422016, p.BasePage, campaign, encounter)
+//line views/user_profile.html.qtpl:41
 			qw422016.N().S(`
           `)
-//line views/user_profile.html.qtpl:46
+//line views/user_profile.html.qtpl:42
 		}
-//line views/user_profile.html.qtpl:46
+//line views/user_profile.html.qtpl:42
 		qw422016.N().S(`
-          <form action="/encounter/create" method="POST">
-            <div class="form-group">
-              <label for="name">Name</label>
-              <input class="form-control" name="name" placeholder="Name" />
-            </div>
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea class="form-control" name="description"></textarea>
-            </div>
-            <input type="hidden" name="campaignid" value="`)
-//line views/user_profile.html.qtpl:56
-		qw422016.E().V(campaign.ID)
-//line views/user_profile.html.qtpl:56
-		qw422016.N().S(`" />
-            <input type="hidden" name="redirect" value="/profile" />
-            <input type="hidden" name="gorilla.csrf.Token" value="`)
-//line views/user_profile.html.qtpl:58
-		qw422016.E().S(p.CsrfToken)
-//line views/user_profile.html.qtpl:58
-		qw422016.N().S(`" />
-            <button type="submit" class="btn btn-primary">Add Encounter</button>
-          </form>
+          `)
+//line views/user_profile.html.qtpl:43
+		StreamEncounterCreator(qw422016, p.BasePage, campaign, p.UserTilemaps)
+//line views/user_profile.html.qtpl:43
+		qw422016.N().S(`
           <form action="/campaign/delete" method="POST">
-            <input type="hidden" name="id" value="`)
-//line views/user_profile.html.qtpl:62
+            <input type="hidden" name="ID" value="`)
+//line views/user_profile.html.qtpl:45
 		qw422016.E().V(campaign.ID)
-//line views/user_profile.html.qtpl:62
+//line views/user_profile.html.qtpl:45
 		qw422016.N().S(`" />
-            <input type="hidden" name="redirect" value="/profile" />
             <input type="hidden" name="gorilla.csrf.Token" value="`)
-//line views/user_profile.html.qtpl:64
+//line views/user_profile.html.qtpl:46
 		qw422016.E().S(p.CsrfToken)
-//line views/user_profile.html.qtpl:64
+//line views/user_profile.html.qtpl:46
 		qw422016.N().S(`" />
             <button type="submit" class="btn btn-danger">Delete</button>
           </form>
         </div>
       </div>
     `)
-//line views/user_profile.html.qtpl:69
+//line views/user_profile.html.qtpl:51
 	}
-//line views/user_profile.html.qtpl:69
+//line views/user_profile.html.qtpl:51
 	qw422016.N().S(`
 
     <h5>New Campaign</h5>
     <form action="/campaign/create" method="POST">
       <div class="form-group">
         <label for="name">Name</label>
-        <input class="form-control" name="name" placeholder="Name" />
+        <input class="form-control" name="Name" placeholder="Name" />
       </div>
       <div class="form-group">
         <label for="description">Description</label>
-        <textarea class="form-control" name="description"></textarea>
+        <textarea class="form-control" name="Description"></textarea>
       </div>
-      <input type="hidden" name="redirect" value="/profile" />
       <input type="hidden" name="gorilla.csrf.Token" value="`)
-//line views/user_profile.html.qtpl:82
+//line views/user_profile.html.qtpl:63
 	qw422016.E().S(p.CsrfToken)
-//line views/user_profile.html.qtpl:82
+//line views/user_profile.html.qtpl:63
 	qw422016.N().S(`" />
       <button type="submit" class="btn btn-primary">Create</button>
     </form>
 
     <h4>Characters</h4>
     `)
-//line views/user_profile.html.qtpl:87
+//line views/user_profile.html.qtpl:68
 	for _, character := range p.Characters {
-//line views/user_profile.html.qtpl:87
+//line views/user_profile.html.qtpl:68
 		qw422016.N().S(`
       <div class="card">
         <div class="card-body">
           <h5 class="card-title d-flex flex-row justify-content-between">
             <span>`)
-//line views/user_profile.html.qtpl:91
+//line views/user_profile.html.qtpl:72
 		qw422016.E().S(character.Name)
-//line views/user_profile.html.qtpl:91
+//line views/user_profile.html.qtpl:72
 		qw422016.N().S(`</span>
             `)
-//line views/user_profile.html.qtpl:92
+//line views/user_profile.html.qtpl:73
 		if g, err := goment.New(character.CreatedAt); err == nil {
-//line views/user_profile.html.qtpl:92
+//line views/user_profile.html.qtpl:73
 			qw422016.N().S(`
               <span class="text-muted">`)
-//line views/user_profile.html.qtpl:93
+//line views/user_profile.html.qtpl:74
 			qw422016.E().S(g.FromNow())
-//line views/user_profile.html.qtpl:93
+//line views/user_profile.html.qtpl:74
 			qw422016.N().S(`</span>
             `)
-//line views/user_profile.html.qtpl:94
+//line views/user_profile.html.qtpl:75
 		}
-//line views/user_profile.html.qtpl:94
+//line views/user_profile.html.qtpl:75
 		qw422016.N().S(`
           </h5>
         </div>
       </div>
     `)
-//line views/user_profile.html.qtpl:98
+//line views/user_profile.html.qtpl:79
 	}
-//line views/user_profile.html.qtpl:98
+//line views/user_profile.html.qtpl:79
 	qw422016.N().S(`
 
     <h5>New Character</h5>
     <form action="/character/create" method="POST">
       <div class="form-group">
         <label for="name">Name</label>
-        <input class="form-control" name="name" placeholder="Name" />
+        <input class="form-control" name="Name" placeholder="Name" />
       </div>
-      <input type="hidden" name="definition" value="{}" />
-      <input type="hidden" name="redirect" value="/profile" />
+      <input type="hidden" name="Definition" value="{}" />
       <input type="hidden" name="gorilla.csrf.Token" value="`)
-//line views/user_profile.html.qtpl:108
+//line views/user_profile.html.qtpl:88
 	qw422016.E().S(p.CsrfToken)
-//line views/user_profile.html.qtpl:108
+//line views/user_profile.html.qtpl:88
 	qw422016.N().S(`" />
       <button type="submit" class="btn btn-primary">Create</button>
     </form>
 
     <h4>Assets</h4>
     <div class="AssetTable" data-props="`)
-//line views/user_profile.html.qtpl:113
+//line views/user_profile.html.qtpl:93
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Spritesheets": p.UserSpritesheets,
 		"Tilemaps":     p.UserTilemaps,
 	}))
-//line views/user_profile.html.qtpl:117
+//line views/user_profile.html.qtpl:97
 	qw422016.N().S(`"></div>
     <div class="AssetUploader"></div>
 
   </div>
 `)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 }
 
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 }
 
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 	return qs422016
-//line views/user_profile.html.qtpl:121
+//line views/user_profile.html.qtpl:101
 }

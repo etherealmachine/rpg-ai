@@ -11,34 +11,21 @@ type CharacterService struct {
 	db *models.Queries
 }
 
-type CreateCharacterRequest struct {
-	Name       string
-	Definition string
-}
-
-type CreateCharacterResponse struct {
-}
-
-func (s *CharacterService) CreateCharacter(r *http.Request, args *CreateCharacterRequest, reply *CreateCharacterResponse) error {
+func (s *CharacterService) CreateCharacter(r *http.Request, arg *models.CreateCharacterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	_, err := s.db.CreateCharacter(r.Context(), models.CreateCharacterParams{OwnerID: u.ID, Name: args.Name, Definition: []byte(args.Definition)})
+	arg.OwnerID = u.ID
+	_, err := s.db.CreateCharacter(r.Context(), *arg)
 	return err
 }
 
-type DeleteCharacterRequest struct {
-	ID int32
-}
-
-type DeleteCharacterResponse struct {
-}
-
-func (s *CharacterService) DeleteCharacter(r *http.Request, args *DeleteCharacterRequest, reply *DeleteCharacterResponse) error {
+func (s *CharacterService) DeleteCharacter(r *http.Request, arg *models.DeleteCharacterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return s.db.DeleteCharacter(r.Context(), models.DeleteCharacterParams{OwnerID: u.ID, ID: args.ID})
+	arg.OwnerID = u.ID
+	return s.db.DeleteCharacter(r.Context(), *arg)
 }

@@ -26,7 +26,7 @@ var (
 //line views/sidebar.html.qtpl:5
 type SidebarPage struct {
 	*BasePage
-	Tilemaps            []models.TilemapWithThumbnails
+	Tilemaps            []models.FilledTilemap
 	Spritesheets        []models.Spritesheet
 	TilemapThumbnailIDs map[int32]int32
 	Posts               []*Post

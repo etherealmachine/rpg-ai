@@ -10,17 +10,30 @@ SELECT * FROM campaigns WHERE owner_id = $1;
 -- name: GetOwnedCampaignByID :one
 SELECT * FROM campaigns WHERE id = $1 AND owner_id = $2;
 
--- name: UpdateCampaignName :exec
-UPDATE campaigns SET name = $3 WHERE id = $1 AND owner_id = $2;
+-- name: UpdateCampaign :exec
+UPDATE campaigns SET
+  name = COALESCE($3, name),
+  description = COALESCE($4, description)
+WHERE id = $1 AND owner_id = $2;
 
--- name: UpdateCampaignDescription :exec
-UPDATE campaigns SET description = $3 WHERE id = $1 AND owner_id = $2;
+-- name: AddCharacterToCampaign :exec
+INSERT INTO campaign_characters (campaign_id, character_id)
+SELECT $1, $2
+FROM campaigns
+WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3);
+
+-- name: RemoveCharacterFromCampaign :exec
+DELETE FROM campaign_characters
+WHERE campaign_characters.id = $1 AND
+EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2);
 
 -- name: CreateEncounter :one
-INSERT INTO encounters (campaign_id, name)
-SELECT $1 AS campaign_id, $2 AS name
+INSERT INTO encounters (campaign_id, name, tilemap_id)
+SELECT $1, $2, $3
 FROM campaigns
-WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3)
+WHERE
+  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $4)
+  AND EXISTS (SELECT id FROM tilemaps WHERE id = $3 AND tilemaps.owner_id = $4)
 RETURNING *;
 
 -- name: DeleteEncounter :exec
@@ -31,16 +44,12 @@ EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND
 -- name: ListEncountersForCampaign :many
 SELECT * FROM encounters WHERE campaign_id = $1;
 
--- name: UpdateEncounterName :exec
-UPDATE encounters SET name = $3 WHERE encounters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
-
--- name: UpdateEncounterDescription :exec
-UPDATE encounters SET description = $3 WHERE encounters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
-
--- name: UpdateEncounterTilemap :exec
-UPDATE encounters SET tilemap_id = $3 WHERE encounters.id = $1 AND
+-- name: UpdateEncounter :exec
+UPDATE encounters SET
+  name = $3,
+  description = COALESCE($4, description),
+  tilemap_id = COALESCE($5, tilemap_id)
+WHERE encounters.id = $1 AND
 EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
 
 -- name: CreateCharacter :one
@@ -56,12 +65,3 @@ SELECT * FROM characters WHERE owner_id = $1;
 SELECT characters.* FROM encounter_characters
 JOIN characters ON characters.id = character_id
 WHERE encounter_id = $1;
-
--- name: UpdateCharacterName :exec
-UPDATE characters SET name = $3 WHERE id = $1 AND owner_id = $2;
-
--- name: UpdateCharacterDefinition :exec
-UPDATE characters SET definition = $3 WHERE id = $1 AND owner_id = $2;
-
--- name: UpdateCharacterSprite :exec
-UPDATE characters SET sprite = $3 WHERE id = $1 AND owner_id = $2;

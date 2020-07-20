@@ -1,26 +1,33 @@
 import JSONRPCService from './JSONRPCService';
 
-export interface CreateCampaignRequest {
+export interface CreateCampaignParams {
+    OwnerID: number
     Name: string
-    Description: string
+    Description: NullString
 }
 
-export interface CreateCampaignResponse {
+export interface Empty {
 }
 
-export interface DeleteCampaignRequest {
+export interface DeleteCampaignParams {
     ID: number
+    OwnerID: number
 }
 
-export interface DeleteCampaignResponse {
+export interface Empty {
+}
+
+export interface NullString {
+    String: string
+    Valid: boolean
 }
 
 class CampaignService extends JSONRPCService {
-    async CreateCampaign(args: CreateCampaignRequest): Promise<CreateCampaignResponse> {
-      return this.jsonrpc<CreateCampaignResponse>("CreateCampaign", args);
+    async CreateCampaign(args: CreateCampaignParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("CreateCampaign", args);
     }
-    async DeleteCampaign(args: DeleteCampaignRequest): Promise<DeleteCampaignResponse> {
-      return this.jsonrpc<DeleteCampaignResponse>("DeleteCampaign", args);
+    async DeleteCampaign(args: DeleteCampaignParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("DeleteCampaign", args);
     }
 }
 

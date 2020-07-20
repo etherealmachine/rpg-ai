@@ -19,6 +19,9 @@ DELETE FROM tilemaps WHERE id = $1 AND owner_id = $2;
 -- name: GetSpritesheetByHash :one
 SELECT * FROM spritesheets WHERE hash = $1;
 
+-- name: GetTilemapByID :one
+SELECT * FROM tilemaps WHERE id = $1;
+
 -- name: GetTilemapByHash :one
 SELECT * FROM tilemaps WHERE hash = $1;
 

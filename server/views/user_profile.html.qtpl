@@ -4,10 +4,10 @@
 {% code
 type UserProfilePage struct {
   *BasePage
-  Campaigns []models.CampaignWithEncounters
+  Campaigns []models.FilledCampaign
   Characters []models.Character
   UserSpritesheets []models.Spritesheet
-  UserTilemaps []models.TilemapWithThumbnails
+  UserTilemaps []models.FilledTilemap
 }
 %}
 
@@ -38,29 +38,11 @@ type UserProfilePage struct {
           <p class="card-text">{%s campaign.Description.String %}</p>
           <h5>Encounters</h5>
           {% for _, encounter := range campaign.Encounters %}
-            <h6>{%s encounter.Name %}</h6>
-            <p>{%s encounter.Description.String %}</p>
-            {% for _, character := range encounter.Characters %}
-              <p>{%s character.Name %}</p>
-            {% endfor %}
+            {%= EncounterEditor(p.BasePage, campaign, encounter) %}
           {% endfor %}
-          <form action="/encounter/create" method="POST">
-            <div class="form-group">
-              <label for="name">Name</label>
-              <input class="form-control" name="name" placeholder="Name" />
-            </div>
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea class="form-control" name="description"></textarea>
-            </div>
-            <input type="hidden" name="campaignid" value="{%v campaign.ID %}" />
-            <input type="hidden" name="redirect" value="/profile" />
-            <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
-            <button type="submit" class="btn btn-primary">Add Encounter</button>
-          </form>
+          {%= EncounterCreator(p.BasePage, campaign, p.UserTilemaps) %}
           <form action="/campaign/delete" method="POST">
-            <input type="hidden" name="id" value="{%v campaign.ID %}" />
-            <input type="hidden" name="redirect" value="/profile" />
+            <input type="hidden" name="ID" value="{%v campaign.ID %}" />
             <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
             <button type="submit" class="btn btn-danger">Delete</button>
           </form>
@@ -72,13 +54,12 @@ type UserProfilePage struct {
     <form action="/campaign/create" method="POST">
       <div class="form-group">
         <label for="name">Name</label>
-        <input class="form-control" name="name" placeholder="Name" />
+        <input class="form-control" name="Name" placeholder="Name" />
       </div>
       <div class="form-group">
         <label for="description">Description</label>
-        <textarea class="form-control" name="description"></textarea>
+        <textarea class="form-control" name="Description"></textarea>
       </div>
-      <input type="hidden" name="redirect" value="/profile" />
       <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
       <button type="submit" class="btn btn-primary">Create</button>
     </form>
@@ -101,10 +82,9 @@ type UserProfilePage struct {
     <form action="/character/create" method="POST">
       <div class="form-group">
         <label for="name">Name</label>
-        <input class="form-control" name="name" placeholder="Name" />
+        <input class="form-control" name="Name" placeholder="Name" />
       </div>
-      <input type="hidden" name="definition" value="{}" />
-      <input type="hidden" name="redirect" value="/profile" />
+      <input type="hidden" name="Definition" value="{}" />
       <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
       <button type="submit" class="btn btn-primary">Create</button>
     </form>

@@ -63,9 +63,9 @@ func sidebarPage(r *http.Request) *views.SidebarPage {
 			})
 		}
 	}
-	var tilemapsWithThumbnails []models.TilemapWithThumbnails
+	var tilemapsWithThumbnails []models.FilledTilemap
 	for _, tilemap := range tilemaps {
-		tilemapsWithThumbnails = append(tilemapsWithThumbnails, models.TilemapWithThumbnails{
+		tilemapsWithThumbnails = append(tilemapsWithThumbnails, models.FilledTilemap{
 			Tilemap:    tilemap,
 			Thumbnails: tilemapThumbnails[tilemap.ID],
 		})
@@ -92,7 +92,7 @@ func IndexController(w http.ResponseWriter, r *http.Request) {
 
 func ProfileController(w http.ResponseWriter, r *http.Request) {
 	currentUserID := currentUser(r).ID
-	campaigns := models.ListCampaignsWithEncountersByOwnerID(r.Context(), db, currentUserID)
+	campaigns := models.ListFilledCampaignsByOwnerID(r.Context(), db, currentUserID)
 	characters, err := db.ListCharactersByOwnerID(r.Context(), currentUserID)
 	if err != nil {
 		panic(err)
@@ -116,9 +116,9 @@ func ProfileController(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	var tilemaps []models.TilemapWithThumbnails
+	var tilemaps []models.FilledTilemap
 	for _, row := range tilemapRows {
-		tilemaps = append(tilemaps, models.TilemapWithThumbnails{
+		tilemaps = append(tilemaps, models.FilledTilemap{
 			Tilemap: models.Tilemap{
 				ID:          row.ID,
 				OwnerID:     currentUserID,

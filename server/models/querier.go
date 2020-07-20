@@ -7,6 +7,7 @@ import (
 )
 
 type Querier interface {
+	AddCharacterToCampaign(ctx context.Context, arg AddCharacterToCampaignParams) error
 	CreateCampaign(ctx context.Context, arg CreateCampaignParams) (Campaign, error)
 	CreateCharacter(ctx context.Context, arg CreateCharacterParams) (Character, error)
 	CreateEncounter(ctx context.Context, arg CreateEncounterParams) (Encounter, error)
@@ -22,6 +23,7 @@ type Querier interface {
 	GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error)
 	GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error)
 	GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, error)
+	GetTilemapByID(ctx context.Context, id int32) (Tilemap, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	InsertTilemapThumbnail(ctx context.Context, arg InsertTilemapThumbnailParams) (int64, error)
 	ListCampaignsByOwnerID(ctx context.Context, ownerID int32) ([]Campaign, error)
@@ -35,14 +37,9 @@ type Querier interface {
 	ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForSpritesheetsRow, error)
 	ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForTilemapsRow, error)
 	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
-	UpdateCampaignDescription(ctx context.Context, arg UpdateCampaignDescriptionParams) error
-	UpdateCampaignName(ctx context.Context, arg UpdateCampaignNameParams) error
-	UpdateCharacterDefinition(ctx context.Context, arg UpdateCharacterDefinitionParams) error
-	UpdateCharacterName(ctx context.Context, arg UpdateCharacterNameParams) error
-	UpdateCharacterSprite(ctx context.Context, arg UpdateCharacterSpriteParams) error
-	UpdateEncounterDescription(ctx context.Context, arg UpdateEncounterDescriptionParams) error
-	UpdateEncounterName(ctx context.Context, arg UpdateEncounterNameParams) error
-	UpdateEncounterTilemap(ctx context.Context, arg UpdateEncounterTilemapParams) error
+	RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCharacterFromCampaignParams) error
+	UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) error
+	UpdateEncounter(ctx context.Context, arg UpdateEncounterParams) error
 	UpdateTilemapThumbnail(ctx context.Context, arg UpdateTilemapThumbnailParams) error
 }
 

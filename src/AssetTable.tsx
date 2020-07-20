@@ -1,11 +1,11 @@
 import React from 'react';
 import produce from 'immer';
 
-import AssetService, { Spritesheet, TilemapWithThumbnails } from './AssetService';
+import AssetService, { Spritesheet, FilledTilemap } from './AssetService';
 import { references } from './Tiled';
 
 interface State {
-  Tilemaps: TilemapWithThumbnails[]
+  Tilemaps: FilledTilemap[]
   Spritesheets: Spritesheet[]
   editing: { [key: string]: boolean }
 }
@@ -45,13 +45,13 @@ export default class AssetTable extends React.Component<State, State> {
     });
   }
 
-  onEditTilemapClicked = (tilemap: TilemapWithThumbnails) => (event: React.MouseEvent<HTMLButtonElement>) => {
+  onEditTilemapClicked = (tilemap: FilledTilemap) => (event: React.MouseEvent<HTMLButtonElement>) => {
     this.setState(produce(this.state, state => {
       state.editing[tilemap.Hash] = !state.editing[tilemap.Hash];
     }));
   }
 
-  onDeleteTilemapClicked = (tilemap: TilemapWithThumbnails) => (event: React.MouseEvent<HTMLButtonElement>) => {
+  onDeleteTilemapClicked = (tilemap: FilledTilemap) => (event: React.MouseEvent<HTMLButtonElement>) => {
     AssetService.DeleteTilemap({ ID: tilemap.ID }).then(() => {
       AssetService.ListAssets({}).then(resp => {
         const state = {
@@ -64,7 +64,7 @@ export default class AssetTable extends React.Component<State, State> {
     });
   }
 
-  tilemapThumbnail(asset: TilemapWithThumbnails) {
+  tilemapThumbnail(asset: FilledTilemap) {
     if (!asset.Thumbnails) return;
     if (asset.Thumbnails?.length > 0) {
       return <img width="150px" src={`/thumbnail/${asset.Thumbnails[0].Hash}`} alt={`Thumbnail for Tilemap ${asset.Name}`} />;

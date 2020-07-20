@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 )
@@ -26,7 +27,7 @@ func (t *Tilemap) MapPath() string {
 	return fmt.Sprintf("/map/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
 }
 
-type TilemapWithThumbnails struct {
+type FilledTilemap struct {
 	Tilemap
 	Thumbnails []Thumbnail
 }
@@ -35,42 +36,52 @@ func (t *Thumbnail) Path() string {
 	return fmt.Sprintf("/thumbnail/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
 }
 
-type CampaignWithEncounters struct {
+type FilledCampaign struct {
 	Campaign
-	Encounters []EncounterWithCharacters
+	Encounters []FilledEncounter
 }
 
-type EncounterWithCharacters struct {
+type FilledEncounter struct {
 	Encounter
+	Tilemap    *Tilemap
 	Characters []Character
 }
 
-func ListCampaignsWithEncountersByOwnerID(ctx context.Context, db *Queries, ownerID int32) []CampaignWithEncounters {
+func ListFilledCampaignsByOwnerID(ctx context.Context, db *Queries, ownerID int32) []FilledCampaign {
 	campaigns, err := db.ListCampaignsByOwnerID(ctx, ownerID)
 	if err != nil {
 		panic(err)
 	}
-	campaignsWithEncounters := make([]CampaignWithEncounters, len(campaigns))
+	filledCampaigns := make([]FilledCampaign, len(campaigns))
 	for i, campaign := range campaigns {
 		encounters, err := db.ListEncountersForCampaign(ctx, campaign.ID)
 		if err != nil {
 			panic(err)
 		}
-		encountersWithCharacters := make([]EncounterWithCharacters, len(encounters))
+		filledEncounters := make([]FilledEncounter, len(encounters))
 		for j, encounter := range encounters {
 			characters, err := db.ListCharactersForEncounter(ctx, encounter.ID)
 			if err != nil {
 				panic(err)
 			}
-			encountersWithCharacters[j] = EncounterWithCharacters{
+			var tilemap *Tilemap
+			if encounter.TilemapID.Valid {
+				tmp, err := db.GetTilemapByID(ctx, encounter.TilemapID.Int32)
+				if err != nil && err != sql.ErrNoRows {
+					panic(err)
+				}
+				tilemap = &tmp
+			}
+			filledEncounters[j] = FilledEncounter{
 				Encounter:  encounter,
+				Tilemap:    tilemap,
 				Characters: characters,
 			}
 		}
-		campaignsWithEncounters[i] = CampaignWithEncounters{
+		filledCampaigns[i] = FilledCampaign{
 			Campaign:   campaign,
-			Encounters: encountersWithCharacters,
+			Encounters: filledEncounters,
 		}
 	}
-	return campaignsWithEncounters
+	return filledCampaigns
 }

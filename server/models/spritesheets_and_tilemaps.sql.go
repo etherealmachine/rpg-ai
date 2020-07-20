@@ -181,6 +181,25 @@ func (q *Queries) GetTilemapByHash(ctx context.Context, hash []byte) (Tilemap, e
 	return i, err
 }
 
+const getTilemapByID = `-- name: GetTilemapByID :one
+SELECT id, owner_id, name, description, definition, hash, created_at FROM tilemaps WHERE id = $1
+`
+
+func (q *Queries) GetTilemapByID(ctx context.Context, id int32) (Tilemap, error) {
+	row := q.db.QueryRowContext(ctx, getTilemapByID, id)
+	var i Tilemap
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Description,
+		&i.Definition,
+		&i.Hash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const insertTilemapThumbnail = `-- name: InsertTilemapThumbnail :execrows
 WITH owned_tilemap AS (
   SELECT id FROM tilemaps WHERE owner_id = $6 AND id = $5

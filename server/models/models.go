@@ -16,6 +16,12 @@ type Campaign struct {
 	CreatedAt   time.Time
 }
 
+type CampaignCharacter struct {
+	ID          int32
+	CampaignID  int32
+	CharacterID int32
+}
+
 type Character struct {
 	ID         int32
 	OwnerID    int32
