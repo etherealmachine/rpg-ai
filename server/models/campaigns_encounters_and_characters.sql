@@ -27,6 +27,11 @@ DELETE FROM campaign_characters
 WHERE campaign_characters.id = $1 AND
 EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2);
 
+-- name: ListCharactersForCampaign :many
+SELECT characters.* FROM campaign_characters
+JOIN characters ON characters.id = character_id
+WHERE campaign_id = $1;
+
 -- name: CreateEncounter :one
 INSERT INTO encounters (campaign_id, name, tilemap_id)
 SELECT $1, $2, $3
@@ -58,6 +63,12 @@ INSERT INTO characters (owner_id, name, definition) VALUES ($1, $2, $3) RETURNIN
 -- name: DeleteCharacter :exec
 DELETE FROM characters WHERE id = $1 AND owner_id = $2;
 
+-- name: UpdateCharacter :exec
+UPDATE characters SET
+  name = $3
+WHERE characters.id = $1 AND
+EXISTS (SELECT id FROM characters WHERE characters.id = $1 AND characters.owner_id = $2);
+
 -- name: ListCharactersByOwnerID :many
 SELECT * FROM characters WHERE owner_id = $1;
 
@@ -65,3 +76,14 @@ SELECT * FROM characters WHERE owner_id = $1;
 SELECT characters.* FROM encounter_characters
 JOIN characters ON characters.id = character_id
 WHERE encounter_id = $1;
+
+-- name: AddCharacterToEncounter :exec
+INSERT INTO encounter_characters (encounter_id, character_id)
+SELECT $1, $2
+FROM campaigns
+WHERE EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $2 AND campaigns.owner_id = $3);
+
+-- name: RemoveCharacterFromEncounter :exec
+DELETE FROM encounter_characters
+WHERE encounter_characters.id = $1 AND
+EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2);

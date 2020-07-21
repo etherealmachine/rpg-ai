@@ -1,5 +1,7 @@
-{% import "github.com/etherealmachine/rpg.ai/server/models" %}
-{% import "github.com/nleeper/goment" %}
+{% import (
+  "github.com/etherealmachine/rpg.ai/server/models"
+  "github.com/nleeper/goment"
+) %}
 
 {% code
 type UserProfilePage struct {
@@ -27,67 +29,19 @@ type UserProfilePage struct {
 
     <h4>Campaigns</h4>
     {% for _, campaign := range p.Campaigns %}
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title d-flex flex-row justify-content-between">
-            <span>{%s campaign.Name %}</span>
-            {% if g, err := goment.New(campaign.CreatedAt); err == nil  %}
-              <span class="text-muted">{%s g.FromNow() %}</span>
-            {% endif %}
-          </h5>
-          <p class="card-text">{%s campaign.Description.String %}</p>
-          <h5>Encounters</h5>
-          {% for _, encounter := range campaign.Encounters %}
-            {%= EncounterEditor(p.BasePage, campaign, encounter) %}
-          {% endfor %}
-          {%= EncounterCreator(p.BasePage, campaign, p.UserTilemaps) %}
-          <form action="/campaign/delete" method="POST">
-            <input type="hidden" name="ID" value="{%v campaign.ID %}" />
-            <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
-            <button type="submit" class="btn btn-danger">Delete</button>
-          </form>
-        </div>
-      </div>
+      {%= CampaignDisplay(p.BasePage, campaign, p.UserTilemaps) %}
     {% endfor %}
 
     <h5>New Campaign</h5>
-    <form action="/campaign/create" method="POST">
-      <div class="form-group">
-        <label for="name">Name</label>
-        <input class="form-control" name="Name" placeholder="Name" />
-      </div>
-      <div class="form-group">
-        <label for="description">Description</label>
-        <textarea class="form-control" name="Description"></textarea>
-      </div>
-      <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
-      <button type="submit" class="btn btn-primary">Create</button>
-    </form>
+    {%= CampaignCreator(p.BasePage) %}
 
     <h4>Characters</h4>
     {% for _, character := range p.Characters %}
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title d-flex flex-row justify-content-between">
-            <span>{%s character.Name %}</span>
-            {% if g, err := goment.New(character.CreatedAt); err == nil  %}
-              <span class="text-muted">{%s g.FromNow() %}</span>
-            {% endif %}
-          </h5>
-        </div>
-      </div>
+      {%= CharacterDisplay(p.BasePage, character) %}
     {% endfor %}
 
     <h5>New Character</h5>
-    <form action="/character/create" method="POST">
-      <div class="form-group">
-        <label for="name">Name</label>
-        <input class="form-control" name="Name" placeholder="Name" />
-      </div>
-      <input type="hidden" name="Definition" value="{}" />
-      <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
-      <button type="submit" class="btn btn-primary">Create</button>
-    </form>
+    {%= CharacterCreator(p.BasePage) %}
 
     <h4>Assets</h4>
     <div class="AssetTable" data-props="{%q JSON(map[string]interface{}{

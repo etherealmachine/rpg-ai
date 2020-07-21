@@ -1,4 +1,7 @@
-{% import "github.com/etherealmachine/rpg.ai/server/models" %}
+{% import (
+  "github.com/etherealmachine/rpg.ai/server/models"
+  "github.com/nleeper/goment"
+) %}
 
 {% code
 type CampaignPage struct {
@@ -10,4 +13,77 @@ type CampaignPage struct {
 {% func (p *CampaignPage) Content() %}
   <div class="container">
   </div>
+{% endfunc %}
+
+{% func CampaignCreator(p *BasePage) %}
+  <form action="/campaign/create" method="POST">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input class="form-control" name="Name" placeholder="Name" />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" name="Description"></textarea>
+    </div>
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-primary">Create</button>
+  </form>
+{% endfunc %}
+
+{% func CampaignDisplay(p *BasePage, campaign models.FilledCampaign, tilemaps []models.FilledTilemap) %}
+  <div class="collapse show campaign-{%v campaign.ID %}">
+    {%= CampaignCard(p, campaign, tilemaps) %}
+    <button
+        class="btn btn-secondary"
+        type="button"
+        data-toggle="collapse"
+        data-target=".campaign-{%v campaign.ID %}">Edit</button>
+  </div>
+  <div class="collapse campaign-{%v campaign.ID %}">
+    {%= CampaignEditor(p, campaign) %}
+    <button
+        class="btn btn-warning"
+        type="button"
+        data-toggle="collapse"
+        data-target=".campaign-{%v campaign.ID %}">Cancel</button>
+  </div>
+{% endfunc %}
+
+{% func CampaignCard(p *BasePage, campaign models.FilledCampaign, tilemaps []models.FilledTilemap) %}
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title d-flex flex-row justify-content-between">
+        <span>{%s campaign.Name %}</span>
+        {% if g, err := goment.New(campaign.CreatedAt); err == nil  %}
+          <span class="text-muted">{%s g.FromNow() %}</span>
+        {% endif %}
+      </h5>
+      <p class="card-text">{%s campaign.Description.String %}</p>
+      <h5>Encounters</h5>
+      {% for _, encounter := range campaign.Encounters %}
+        {%= EncounterDisplay(p, campaign, encounter, tilemaps) %}
+      {% endfor %}
+      {%= EncounterCreator(p, campaign, tilemaps) %}
+    </div>
+  </div>
+{% endfunc %}
+
+{% func CampaignEditor(p *BasePage, campaign models.FilledCampaign) %}
+  <form action="/campaign/update" method="POST">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input class="form-control" name="Name" value="{%s campaign.Name %}" />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" name="Description">{%s campaign.Description.String %}</textarea>
+    </div>
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+  <form action="/campaign/delete" method="POST">
+    <input type="hidden" name="ID" value="{%v campaign.ID %}" />
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+  </form>
 {% endfunc %}

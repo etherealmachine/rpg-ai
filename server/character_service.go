@@ -29,3 +29,12 @@ func (s *CharacterService) DeleteCharacter(r *http.Request, arg *models.DeleteCh
 	arg.OwnerID = u.ID
 	return s.db.DeleteCharacter(r.Context(), *arg)
 }
+
+func (s *CharacterService) UpdateCharacter(r *http.Request, arg *models.UpdateCharacterParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.UpdateCharacter(r.Context(), *arg)
+}

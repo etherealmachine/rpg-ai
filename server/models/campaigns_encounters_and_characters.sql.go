@@ -27,6 +27,24 @@ func (q *Queries) AddCharacterToCampaign(ctx context.Context, arg AddCharacterTo
 	return err
 }
 
+const addCharacterToEncounter = `-- name: AddCharacterToEncounter :exec
+INSERT INTO encounter_characters (encounter_id, character_id)
+SELECT $1, $2
+FROM campaigns
+WHERE EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $2 AND campaigns.owner_id = $3)
+`
+
+type AddCharacterToEncounterParams struct {
+	EncounterID int32
+	CharacterID int32
+	OwnerID     int32
+}
+
+func (q *Queries) AddCharacterToEncounter(ctx context.Context, arg AddCharacterToEncounterParams) error {
+	_, err := q.db.ExecContext(ctx, addCharacterToEncounter, arg.EncounterID, arg.CharacterID, arg.OwnerID)
+	return err
+}
+
 const createCampaign = `-- name: CreateCampaign :one
 INSERT INTO campaigns (owner_id, name, description) VALUES ($1, $2, $3) RETURNING id, owner_id, name, description, created_at
 `
@@ -243,6 +261,42 @@ func (q *Queries) ListCharactersByOwnerID(ctx context.Context, ownerID int32) ([
 	return items, nil
 }
 
+const listCharactersForCampaign = `-- name: ListCharactersForCampaign :many
+SELECT characters.id, characters.owner_id, characters.name, characters.definition, characters.sprite, characters.created_at FROM campaign_characters
+JOIN characters ON characters.id = character_id
+WHERE campaign_id = $1
+`
+
+func (q *Queries) ListCharactersForCampaign(ctx context.Context, campaignID int32) ([]Character, error) {
+	rows, err := q.db.QueryContext(ctx, listCharactersForCampaign, campaignID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Character
+	for rows.Next() {
+		var i Character
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.Definition,
+			&i.Sprite,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCharactersForEncounter = `-- name: ListCharactersForEncounter :many
 SELECT characters.id, characters.owner_id, characters.name, characters.definition, characters.sprite, characters.created_at FROM encounter_characters
 JOIN characters ON characters.id = character_id
@@ -329,6 +383,22 @@ func (q *Queries) RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCha
 	return err
 }
 
+const removeCharacterFromEncounter = `-- name: RemoveCharacterFromEncounter :exec
+DELETE FROM encounter_characters
+WHERE encounter_characters.id = $1 AND
+EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2)
+`
+
+type RemoveCharacterFromEncounterParams struct {
+	ID      int32
+	OwnerID int32
+}
+
+func (q *Queries) RemoveCharacterFromEncounter(ctx context.Context, arg RemoveCharacterFromEncounterParams) error {
+	_, err := q.db.ExecContext(ctx, removeCharacterFromEncounter, arg.ID, arg.OwnerID)
+	return err
+}
+
 const updateCampaign = `-- name: UpdateCampaign :exec
 UPDATE campaigns SET
   name = COALESCE($3, name),
@@ -350,6 +420,24 @@ func (q *Queries) UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) 
 		arg.Name,
 		arg.Description,
 	)
+	return err
+}
+
+const updateCharacter = `-- name: UpdateCharacter :exec
+UPDATE characters SET
+  name = $3
+WHERE characters.id = $1 AND
+EXISTS (SELECT id FROM characters WHERE characters.id = $1 AND characters.owner_id = $2)
+`
+
+type UpdateCharacterParams struct {
+	ID      int32
+	OwnerID int32
+	Name    string
+}
+
+func (q *Queries) UpdateCharacter(ctx context.Context, arg UpdateCharacterParams) error {
+	_, err := q.db.ExecContext(ctx, updateCharacter, arg.ID, arg.OwnerID, arg.Name)
 	return err
 }
 

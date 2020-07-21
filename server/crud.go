@@ -15,11 +15,11 @@ func CRUD(r *mux.Router, service interface{}) {
 	for i := 0; i < serviceType.NumMethod(); i++ {
 		method := serviceType.Method(i)
 		if strings.HasPrefix(method.Name, "Create") {
-			r.HandleFunc("/create", crudMethod(service, serviceType, method))
+			r.HandleFunc("/create", crudMethod(service, serviceType, method)).Methods("POST")
 		} else if strings.HasPrefix(method.Name, "Update") {
-			r.HandleFunc("/update", crudMethod(service, serviceType, method))
+			r.HandleFunc("/update", crudMethod(service, serviceType, method)).Methods("POST")
 		} else if strings.HasPrefix(method.Name, "Delete") {
-			r.HandleFunc("/delete", crudMethod(service, serviceType, method))
+			r.HandleFunc("/delete", crudMethod(service, serviceType, method)).Methods("POST")
 		}
 	}
 }
@@ -74,6 +74,8 @@ func crudMethod(service interface{}, serviceType reflect.Type, method reflect.Me
 					field.FieldByName("String").Set(reflect.ValueOf(value))
 					field.FieldByName("Valid").Set(reflect.ValueOf(true))
 				}
+			case fieldType.Type.PkgPath() == "encoding/json" && fieldType.Type.Name() == "RawMessage":
+				field.Set(reflect.ValueOf([]byte(value)))
 			default:
 				log.Printf(
 					"Error in crud request: could not fill field %s (type %s.%s) from form value %q",

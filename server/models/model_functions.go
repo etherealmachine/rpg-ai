@@ -39,6 +39,7 @@ func (t *Thumbnail) Path() string {
 type FilledCampaign struct {
 	Campaign
 	Encounters []FilledEncounter
+	Characters []Character
 }
 
 type FilledEncounter struct {

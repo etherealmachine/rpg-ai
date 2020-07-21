@@ -1,0 +1,100 @@
+{% import (
+  "github.com/etherealmachine/rpg.ai/server/models"
+)%}
+
+{% func EncounterDisplay(p *BasePage, campaign models.FilledCampaign, encounter models.FilledEncounter, tilemaps []models.FilledTilemap) %}
+  <div class="collapse show encounter-{%v encounter.ID %}">
+    {%= EncounterCard(p, campaign, encounter) %}
+    <button
+        class="btn btn-secondary"
+        type="button"
+        data-toggle="collapse"
+        data-target=".encounter-{%v encounter.ID %}">Edit</button>
+  </div>
+  <div class="collapse encounter-{%v encounter.ID %}">
+    {%= EncounterEditor(p, campaign, encounter, tilemaps) %}
+    <button
+        class="btn btn-warning"
+        type="button"
+        data-toggle="collapse"
+        data-target=".encounter-{%v encounter.ID %}">Cancel</button>
+  </div>
+{% endfunc %}
+
+{% func EncounterCard(p *BasePage, campaign models.FilledCampaign, encounter models.FilledEncounter) %}
+  <div>
+    <h6>{%s encounter.Name %}</h6>
+    <p>{%s encounter.Description.String %}</p>
+    {% if encounter.Tilemap != nil %}
+      <p>{%s encounter.Tilemap.Name %}</p>
+    {% endif %}
+    {% for _, character := range encounter.Characters %}
+      <p>{%s character.Name %}</p>
+    {% endfor %}
+  </div>
+{% endfunc %}
+
+{% func EncounterEditor(p *BasePage, campaign models.FilledCampaign, encounter models.FilledEncounter, tilemaps []models.FilledTilemap) %}
+  <form action="/encounter/update" method="POST">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input class="form-control" name="Name" value="{%s encounter.Name %}" />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" name="Description">{%s encounter.Description.String %}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="tilemap">Tilemap</label>
+      <select class="form-control" name="TilemapID">
+        {% for _, tilemap := range tilemaps %}
+          {% if encounter.TilemapID.Valid && encounter.TilemapID.Int32 == tilemap.ID %}
+            <option value="{%v tilemap.ID %}" selected>{%s tilemap.Name %}</option>
+          {% else %}
+            <option value="{%v tilemap.ID %}">{%s tilemap.Name %}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="characters">Characters</label>
+      <select multiple class="form-control" name="Characters">
+        {% for _, character := range campaign.Characters %}
+          <option value="{%v character.ID %}">{%s character.Name %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <input type="hidden" name="ID" value="{%v encounter.ID %}" />
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+  <form action="encounter/delete" method="POST">
+    <input type="hidden" name="ID" value="{%v encounter.ID %}" />
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+  </form>
+{% endfunc %}
+
+{% func EncounterCreator(p *BasePage, campaign models.FilledCampaign, tilemaps []models.FilledTilemap) %}
+  <form action="/encounter/create" method="POST">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input class="form-control" name="Name" placeholder="Name" />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea class="form-control" name="Description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="tilemap">Tilemap</label>
+      <select class="form-control" name="TilemapID">
+        {% for _, tilemap := range tilemaps %}
+          <option value="{%v tilemap.ID %}">{%s tilemap.Name %}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <input type="hidden" name="CampaignID" value="{%v campaign.ID %}" />
+    <input type="hidden" name="gorilla.csrf.Token" value="{%s p.CsrfToken %}" />
+    <button type="submit" class="btn btn-primary">Add Encounter</button>
+  </form>
+{% endfunc %}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 
@@ -12,64 +11,48 @@ type EncounterService struct {
 	db *models.Queries
 }
 
-type CreateEncounterRequest struct {
-	CampaignID int32
-	Name       string
-	TilemapID  sql.NullInt32
-}
-
-type CreateEncounterResponse struct {
-}
-
-func (s *EncounterService) CreateEncounter(r *http.Request, args *CreateEncounterRequest, reply *CreateEncounterResponse) error {
+func (s *EncounterService) CreateEncounter(r *http.Request, arg *models.CreateEncounterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	_, err := s.db.CreateEncounter(r.Context(), models.CreateEncounterParams{
-		CampaignID: args.CampaignID,
-		Name:       args.Name,
-		TilemapID:  args.TilemapID,
-		OwnerID:    u.ID,
-	})
+	arg.OwnerID = u.ID
+	_, err := s.db.CreateEncounter(r.Context(), *arg)
 	return err
 }
 
-type DeleteEncounterRequest struct {
-	ID int32
-}
-
-type DeleteEncounterResponse struct {
-}
-
-func (s *EncounterService) DeleteEncounter(r *http.Request, args *DeleteEncounterRequest, reply *DeleteEncounterResponse) error {
+func (s *EncounterService) DeleteEncounter(r *http.Request, arg *models.DeleteEncounterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return s.db.DeleteEncounter(r.Context(), models.DeleteEncounterParams{OwnerID: u.ID, ID: args.ID})
+	arg.OwnerID = u.ID
+	return s.db.DeleteEncounter(r.Context(), *arg)
 }
 
-type UpdateEncounterRequest struct {
-	EncounterID int32
-	Name        string
-	Description sql.NullString
-	TilemapID   sql.NullInt32
-}
-
-type UpdateEncounterResponse struct {
-}
-
-func (s *EncounterService) UpdateEncounter(r *http.Request, args *UpdateEncounterRequest, reply *UpdateEncounterResponse) error {
+func (s *EncounterService) UpdateEncounter(r *http.Request, arg *models.UpdateEncounterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
 		return errors.New("no authenticated user found")
 	}
-	return s.db.UpdateEncounter(r.Context(), models.UpdateEncounterParams{
-		ID:          args.EncounterID,
-		OwnerID:     u.ID,
-		Name:        args.Name,
-		Description: args.Description,
-		TilemapID:   args.TilemapID,
-	})
+	arg.OwnerID = u.ID
+	return s.db.UpdateEncounter(r.Context(), *arg)
+}
+
+func (s *EncounterService) AddCharacterToEncounter(r *http.Request, arg *models.AddCharacterToEncounterParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.AddCharacterToEncounter(r.Context(), *arg)
+}
+
+func (s *EncounterService) RemoveCharacterFromEncounter(r *http.Request, arg *models.RemoveCharacterFromEncounterParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.RemoveCharacterFromEncounter(r.Context(), *arg)
 }
