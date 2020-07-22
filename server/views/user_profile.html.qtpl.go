@@ -100,60 +100,59 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
     <div class="CampaignManager" data-props="`)
 //line views/user_profile.html.qtpl:31
 	qw422016.E().Q(JSON(map[string]interface{}{
-		"Campaigns":  p.Campaigns,
-		"Characters": p.Characters,
-		"Tilemaps":   p.UserTilemaps,
+		"Campaigns": p.Campaigns,
+		"Tilemaps":  p.UserTilemaps,
 	}))
-//line views/user_profile.html.qtpl:36
+//line views/user_profile.html.qtpl:35
 	qw422016.N().S(`"></div>
 
     <h4>Characters</h4>
     <div class="CharacterManager" data-props="`)
-//line views/user_profile.html.qtpl:39
+//line views/user_profile.html.qtpl:38
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Characters": p.Characters,
 	}))
-//line views/user_profile.html.qtpl:42
+//line views/user_profile.html.qtpl:41
 	qw422016.N().S(`"></div>
 
     <h4>Assets</h4>
     <div class="AssetManager" data-props="`)
-//line views/user_profile.html.qtpl:45
+//line views/user_profile.html.qtpl:44
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Spritesheets": p.UserSpritesheets,
 		"Tilemaps":     p.UserTilemaps,
 	}))
-//line views/user_profile.html.qtpl:49
+//line views/user_profile.html.qtpl:48
 	qw422016.N().S(`"></div>
     <div class="AssetUploader"></div>
 
   </div>
 `)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 }
 
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 }
 
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 	return qs422016
-//line views/user_profile.html.qtpl:53
+//line views/user_profile.html.qtpl:52
 }

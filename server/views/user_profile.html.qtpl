@@ -30,7 +30,6 @@ type UserProfilePage struct {
     <h4>Campaigns</h4>
     <div class="CampaignManager" data-props="{%q JSON(map[string]interface{}{
       "Campaigns": p.Campaigns,
-      "Characters": p.Characters,
       "Tilemaps": p.UserTilemaps,
       })
     %}"></div>

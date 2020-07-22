@@ -24,8 +24,8 @@ WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3
 
 -- name: RemoveCharacterFromCampaign :exec
 DELETE FROM campaign_characters
-WHERE campaign_characters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2);
+WHERE campaign_characters.campaign_id = $1 AND campaign_characters.character_id = $2 AND
+EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $1 AND owner_id = $3);
 
 -- name: ListCharactersForCampaign :many
 SELECT characters.* FROM campaign_characters
@@ -33,12 +33,12 @@ JOIN characters ON characters.id = character_id
 WHERE campaign_id = $1;
 
 -- name: CreateEncounter :one
-INSERT INTO encounters (campaign_id, name, tilemap_id)
-SELECT $1, $2, $3
+INSERT INTO encounters (campaign_id, name, description, tilemap_id)
+SELECT $1, $2, $3, $4
 FROM campaigns
 WHERE
-  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $4)
-  AND EXISTS (SELECT id FROM tilemaps WHERE id = $3 AND tilemaps.owner_id = $4)
+  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $5)
+  AND (EXISTS (SELECT id FROM tilemaps WHERE id = $4 AND tilemaps.owner_id = $5) OR $4 IS NULL)
 RETURNING *;
 
 -- name: DeleteEncounter :exec
@@ -68,6 +68,9 @@ UPDATE characters SET
   name = $3
 WHERE characters.id = $1 AND
 EXISTS (SELECT id FROM characters WHERE characters.id = $1 AND characters.owner_id = $2);
+
+-- name: SearchCharacters :many
+SELECT * FROM characters WHERE name ilike $1;
 
 -- name: ListCharactersByOwnerID :many
 SELECT * FROM characters WHERE owner_id = $1;

@@ -93,26 +93,28 @@ func (q *Queries) CreateCharacter(ctx context.Context, arg CreateCharacterParams
 }
 
 const createEncounter = `-- name: CreateEncounter :one
-INSERT INTO encounters (campaign_id, name, tilemap_id)
-SELECT $1, $2, $3
+INSERT INTO encounters (campaign_id, name, description, tilemap_id)
+SELECT $1, $2, $3, $4
 FROM campaigns
 WHERE
-  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $4)
-  AND EXISTS (SELECT id FROM tilemaps WHERE id = $3 AND tilemaps.owner_id = $4)
+  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $5)
+  AND (EXISTS (SELECT id FROM tilemaps WHERE id = $4 AND tilemaps.owner_id = $5) OR $4 IS NULL)
 RETURNING id, campaign_id, name, description, tilemap_id, created_at
 `
 
 type CreateEncounterParams struct {
-	CampaignID int32
-	Name       string
-	TilemapID  sql.NullInt32
-	OwnerID    int32
+	CampaignID  int32
+	Name        string
+	Description sql.NullString
+	TilemapID   sql.NullInt32
+	OwnerID     int32
 }
 
 func (q *Queries) CreateEncounter(ctx context.Context, arg CreateEncounterParams) (Encounter, error) {
 	row := q.db.QueryRowContext(ctx, createEncounter,
 		arg.CampaignID,
 		arg.Name,
+		arg.Description,
 		arg.TilemapID,
 		arg.OwnerID,
 	)
@@ -369,17 +371,18 @@ func (q *Queries) ListEncountersForCampaign(ctx context.Context, campaignID int3
 
 const removeCharacterFromCampaign = `-- name: RemoveCharacterFromCampaign :exec
 DELETE FROM campaign_characters
-WHERE campaign_characters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2)
+WHERE campaign_characters.campaign_id = $1 AND campaign_characters.character_id = $2 AND
+EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $1 AND owner_id = $3)
 `
 
 type RemoveCharacterFromCampaignParams struct {
-	ID      int32
-	OwnerID int32
+	CampaignID  int32
+	CharacterID int32
+	OwnerID     int32
 }
 
 func (q *Queries) RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCharacterFromCampaignParams) error {
-	_, err := q.db.ExecContext(ctx, removeCharacterFromCampaign, arg.ID, arg.OwnerID)
+	_, err := q.db.ExecContext(ctx, removeCharacterFromCampaign, arg.CampaignID, arg.CharacterID, arg.OwnerID)
 	return err
 }
 
@@ -397,6 +400,40 @@ type RemoveCharacterFromEncounterParams struct {
 func (q *Queries) RemoveCharacterFromEncounter(ctx context.Context, arg RemoveCharacterFromEncounterParams) error {
 	_, err := q.db.ExecContext(ctx, removeCharacterFromEncounter, arg.ID, arg.OwnerID)
 	return err
+}
+
+const searchCharacters = `-- name: SearchCharacters :many
+SELECT id, owner_id, name, definition, sprite, created_at FROM characters WHERE name ilike $1
+`
+
+func (q *Queries) SearchCharacters(ctx context.Context, name string) ([]Character, error) {
+	rows, err := q.db.QueryContext(ctx, searchCharacters, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Character
+	for rows.Next() {
+		var i Character
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerID,
+			&i.Name,
+			&i.Definition,
+			&i.Sprite,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateCampaign = `-- name: UpdateCampaign :exec

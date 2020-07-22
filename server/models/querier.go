@@ -41,6 +41,7 @@ type Querier interface {
 	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
 	RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCharacterFromCampaignParams) error
 	RemoveCharacterFromEncounter(ctx context.Context, arg RemoveCharacterFromEncounterParams) error
+	SearchCharacters(ctx context.Context, name string) ([]Character, error)
 	UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) error
 	UpdateCharacter(ctx context.Context, arg UpdateCharacterParams) error
 	UpdateEncounter(ctx context.Context, arg UpdateEncounterParams) error

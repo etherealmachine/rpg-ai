@@ -87,6 +87,20 @@ func (s *CampaignService) ListCharacters(r *http.Request, arg *Empty, reply *Lis
 	return err
 }
 
+type SearchCharactersRequest struct {
+	Name string
+}
+
+func (s *CampaignService) SearchCharacters(r *http.Request, arg *SearchCharactersRequest, reply *ListCharactersResponse) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	var err error
+	reply.Characters, err = s.db.SearchCharacters(r.Context(), arg.Name)
+	return err
+}
+
 func (s *CampaignService) CreateCharacter(r *http.Request, arg *models.CreateCharacterParams, reply *Empty) error {
 	u := currentUser(r)
 	if u == nil {
