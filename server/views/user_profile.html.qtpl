@@ -28,23 +28,21 @@ type UserProfilePage struct {
     {% endif %}
 
     <h4>Campaigns</h4>
-    {% for _, campaign := range p.Campaigns %}
-      {%= CampaignDisplay(p.BasePage, campaign, p.UserTilemaps) %}
-    {% endfor %}
-
-    <h5>New Campaign</h5>
-    {%= CampaignCreator(p.BasePage) %}
+    <div class="CampaignManager" data-props="{%q JSON(map[string]interface{}{
+      "Campaigns": p.Campaigns,
+      "Characters": p.Characters,
+      "Tilemaps": p.UserTilemaps,
+      })
+    %}"></div>
 
     <h4>Characters</h4>
-    {% for _, character := range p.Characters %}
-      {%= CharacterDisplay(p.BasePage, character) %}
-    {% endfor %}
-
-    <h5>New Character</h5>
-    {%= CharacterCreator(p.BasePage) %}
+    <div class="CharacterManager" data-props="{%q JSON(map[string]interface{}{
+      "Characters": p.Characters,
+      })
+    %}"></div>
 
     <h4>Assets</h4>
-    <div class="AssetTable" data-props="{%q JSON(map[string]interface{}{
+    <div class="AssetManager" data-props="{%q JSON(map[string]interface{}{
       "Spritesheets": p.UserSpritesheets,
       "Tilemaps": p.UserTilemaps,
       })

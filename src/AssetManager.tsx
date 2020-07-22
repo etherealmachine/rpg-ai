@@ -10,7 +10,7 @@ interface State {
   editing: { [key: string]: boolean }
 }
 
-export default class AssetTable extends React.Component<State, State> {
+export default class AssetManager extends React.Component<State, State> {
 
   constructor(props: State) {
     super(props);

@@ -4,8 +4,10 @@ import ReactDOM from 'react-dom';
 import Map from './Map';
 import GoogleLoginButton from './GoogleLoginButton';
 import FacebookLoginButton from './FacebookLoginButton';
-import AssetTable from './AssetTable';
+import AssetManager from './AssetManager';
 import AssetUploader from './AssetUploader';
+import CampaignManager from './CampaignManager';
+import CharacterManager from './CharacterManager';
 
 import { createNanoEvents } from 'nanoevents';
 (window as any).emitter = createNanoEvents();
@@ -24,8 +26,10 @@ const components = {
   'GoogleLoginButton': GoogleLoginButton,
   'FacebookLoginButton': FacebookLoginButton,
   'Map': Map,
-  'AssetTable': AssetTable,
+  'AssetManager': AssetManager,
   'AssetUploader': AssetUploader,
+  'CampaignManager': CampaignManager,
+  'CharacterManager': CharacterManager,
 };
 
 for (let [name, fn] of Object.entries(components)) {

@@ -97,91 +97,63 @@ func (p *UserProfilePage) StreamContent(qw422016 *qt422016.Writer) {
 	qw422016.N().S(`
 
     <h4>Campaigns</h4>
-    `)
+    <div class="CampaignManager" data-props="`)
 //line views/user_profile.html.qtpl:31
-	for _, campaign := range p.Campaigns {
-//line views/user_profile.html.qtpl:31
-		qw422016.N().S(`
-      `)
-//line views/user_profile.html.qtpl:32
-		StreamCampaignDisplay(qw422016, p.BasePage, campaign, p.UserTilemaps)
-//line views/user_profile.html.qtpl:32
-		qw422016.N().S(`
-    `)
-//line views/user_profile.html.qtpl:33
-	}
-//line views/user_profile.html.qtpl:33
-	qw422016.N().S(`
-
-    <h5>New Campaign</h5>
-    `)
+	qw422016.E().Q(JSON(map[string]interface{}{
+		"Campaigns":  p.Campaigns,
+		"Characters": p.Characters,
+		"Tilemaps":   p.UserTilemaps,
+	}))
 //line views/user_profile.html.qtpl:36
-	StreamCampaignCreator(qw422016, p.BasePage)
-//line views/user_profile.html.qtpl:36
-	qw422016.N().S(`
+	qw422016.N().S(`"></div>
 
     <h4>Characters</h4>
-    `)
+    <div class="CharacterManager" data-props="`)
 //line views/user_profile.html.qtpl:39
-	for _, character := range p.Characters {
-//line views/user_profile.html.qtpl:39
-		qw422016.N().S(`
-      `)
-//line views/user_profile.html.qtpl:40
-		StreamCharacterDisplay(qw422016, p.BasePage, character)
-//line views/user_profile.html.qtpl:40
-		qw422016.N().S(`
-    `)
-//line views/user_profile.html.qtpl:41
-	}
-//line views/user_profile.html.qtpl:41
-	qw422016.N().S(`
-
-    <h5>New Character</h5>
-    `)
-//line views/user_profile.html.qtpl:44
-	StreamCharacterCreator(qw422016, p.BasePage)
-//line views/user_profile.html.qtpl:44
-	qw422016.N().S(`
+	qw422016.E().Q(JSON(map[string]interface{}{
+		"Characters": p.Characters,
+	}))
+//line views/user_profile.html.qtpl:42
+	qw422016.N().S(`"></div>
 
     <h4>Assets</h4>
-    <div class="AssetTable" data-props="`)
-//line views/user_profile.html.qtpl:47
+    <div class="AssetManager" data-props="`)
+//line views/user_profile.html.qtpl:45
 	qw422016.E().Q(JSON(map[string]interface{}{
 		"Spritesheets": p.UserSpritesheets,
 		"Tilemaps":     p.UserTilemaps,
 	}))
-//line views/user_profile.html.qtpl:51
+//line views/user_profile.html.qtpl:49
 	qw422016.N().S(`"></div>
     <div class="AssetUploader"></div>
 
   </div>
 `)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 }
 
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 func (p *UserProfilePage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	p.StreamContent(qw422016)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	qt422016.ReleaseWriter(qw422016)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 }
 
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 func (p *UserProfilePage) Content() string {
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	p.WriteContent(qb422016)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	qs422016 := string(qb422016.B)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 	return qs422016
-//line views/user_profile.html.qtpl:55
+//line views/user_profile.html.qtpl:53
 }
