@@ -31,6 +31,7 @@ type BasePage struct {
   <link rel="icon" href="{%s p.PublicURL %}/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
+  <meta name="google-site-verification" content="J5K4SeRnUS2URfcMWs8RCnyaIsvKEZD-OODt9Mx68UI" />
   <link rel="apple-touch-icon" href="{%s p.PublicURL %}/logo192.png" />
   <title>RPG.ai</title>
   {% for _, node := range p.Styles %}
