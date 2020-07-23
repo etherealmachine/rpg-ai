@@ -1,14 +1,5 @@
 import JSONRPCService from './JSONRPCService';
 
-export interface AddCharacterToCampaignParams {
-    CampaignID: number
-    CharacterID: number
-    OwnerID: number
-}
-
-export interface Empty {
-}
-
 export interface AddCharacterToEncounterParams {
     EncounterID: number
     CharacterID: number
@@ -83,15 +74,6 @@ export interface Empty {
 
 export interface ListCharactersResponse {
     Characters: Character[] | null
-}
-
-export interface RemoveCharacterFromCampaignParams {
-    CampaignID: number
-    CharacterID: number
-    OwnerID: number
-}
-
-export interface Empty {
 }
 
 export interface RemoveCharacterFromEncounterParams {
@@ -212,9 +194,6 @@ export interface Tilemap {
 }
 
 class CampaignService extends JSONRPCService {
-    async AddCharacterToCampaign(args: AddCharacterToCampaignParams): Promise<Empty> {
-      return this.jsonrpc<Empty>("AddCharacterToCampaign", args);
-    }
     async AddCharacterToEncounter(args: AddCharacterToEncounterParams): Promise<Empty> {
       return this.jsonrpc<Empty>("AddCharacterToEncounter", args);
     }
@@ -241,9 +220,6 @@ class CampaignService extends JSONRPCService {
     }
     async ListCharacters(args: Empty): Promise<ListCharactersResponse> {
       return this.jsonrpc<ListCharactersResponse>("ListCharacters", args);
-    }
-    async RemoveCharacterFromCampaign(args: RemoveCharacterFromCampaignParams): Promise<Empty> {
-      return this.jsonrpc<Empty>("RemoveCharacterFromCampaign", args);
     }
     async RemoveCharacterFromEncounter(args: RemoveCharacterFromEncounterParams): Promise<Empty> {
       return this.jsonrpc<Empty>("RemoveCharacterFromEncounter", args);

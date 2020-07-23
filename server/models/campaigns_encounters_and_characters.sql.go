@@ -9,24 +9,6 @@ import (
 	"encoding/json"
 )
 
-const addCharacterToCampaign = `-- name: AddCharacterToCampaign :exec
-INSERT INTO campaign_characters (campaign_id, character_id)
-SELECT $1, $2
-FROM campaigns
-WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3)
-`
-
-type AddCharacterToCampaignParams struct {
-	CampaignID  int32
-	CharacterID int32
-	OwnerID     int32
-}
-
-func (q *Queries) AddCharacterToCampaign(ctx context.Context, arg AddCharacterToCampaignParams) error {
-	_, err := q.db.ExecContext(ctx, addCharacterToCampaign, arg.CampaignID, arg.CharacterID, arg.OwnerID)
-	return err
-}
-
 const addCharacterToEncounter = `-- name: AddCharacterToEncounter :exec
 INSERT INTO encounter_characters (encounter_id, character_id)
 SELECT $1, $2
@@ -263,42 +245,6 @@ func (q *Queries) ListCharactersByOwnerID(ctx context.Context, ownerID int32) ([
 	return items, nil
 }
 
-const listCharactersForCampaign = `-- name: ListCharactersForCampaign :many
-SELECT characters.id, characters.owner_id, characters.name, characters.definition, characters.sprite, characters.created_at FROM campaign_characters
-JOIN characters ON characters.id = character_id
-WHERE campaign_id = $1
-`
-
-func (q *Queries) ListCharactersForCampaign(ctx context.Context, campaignID int32) ([]Character, error) {
-	rows, err := q.db.QueryContext(ctx, listCharactersForCampaign, campaignID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Character
-	for rows.Next() {
-		var i Character
-		if err := rows.Scan(
-			&i.ID,
-			&i.OwnerID,
-			&i.Name,
-			&i.Definition,
-			&i.Sprite,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listCharactersForEncounter = `-- name: ListCharactersForEncounter :many
 SELECT characters.id, characters.owner_id, characters.name, characters.definition, characters.sprite, characters.created_at FROM encounter_characters
 JOIN characters ON characters.id = character_id
@@ -367,23 +313,6 @@ func (q *Queries) ListEncountersForCampaign(ctx context.Context, campaignID int3
 		return nil, err
 	}
 	return items, nil
-}
-
-const removeCharacterFromCampaign = `-- name: RemoveCharacterFromCampaign :exec
-DELETE FROM campaign_characters
-WHERE campaign_characters.campaign_id = $1 AND campaign_characters.character_id = $2 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $1 AND owner_id = $3)
-`
-
-type RemoveCharacterFromCampaignParams struct {
-	CampaignID  int32
-	CharacterID int32
-	OwnerID     int32
-}
-
-func (q *Queries) RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCharacterFromCampaignParams) error {
-	_, err := q.db.ExecContext(ctx, removeCharacterFromCampaign, arg.CampaignID, arg.CharacterID, arg.OwnerID)
-	return err
 }
 
 const removeCharacterFromEncounter = `-- name: RemoveCharacterFromEncounter :exec

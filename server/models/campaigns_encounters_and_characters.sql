@@ -16,22 +16,6 @@ UPDATE campaigns SET
   description = COALESCE($4, description)
 WHERE id = $1 AND owner_id = $2;
 
--- name: AddCharacterToCampaign :exec
-INSERT INTO campaign_characters (campaign_id, character_id)
-SELECT $1, $2
-FROM campaigns
-WHERE EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $3);
-
--- name: RemoveCharacterFromCampaign :exec
-DELETE FROM campaign_characters
-WHERE campaign_characters.campaign_id = $1 AND campaign_characters.character_id = $2 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $1 AND owner_id = $3);
-
--- name: ListCharactersForCampaign :many
-SELECT characters.* FROM campaign_characters
-JOIN characters ON characters.id = character_id
-WHERE campaign_id = $1;
-
 -- name: CreateEncounter :one
 INSERT INTO encounters (campaign_id, name, description, tilemap_id)
 SELECT $1, $2, $3, $4

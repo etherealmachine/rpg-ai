@@ -7,6 +7,7 @@ interface State {
   Campaigns: FilledCampaign[] | null
   Characters: Character[] | null
   editing: { [key: number]: boolean }
+  editingEncounter: { [key: number]: boolean }
   newCampaign: {
     Name: string,
   },
@@ -22,6 +23,7 @@ export default class CampaignManager extends React.Component<State, State> {
     this.state = {
       ...props,
       editing: {},
+      editingEncounter: {},
       newCampaign: {
         Name: '',
       },
@@ -111,6 +113,40 @@ export default class CampaignManager extends React.Component<State, State> {
     }).then(this.updateCampaignsList);
   }
 
+  onEncounterSaveClicked = (encounter: FilledEncounter) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    CampaignService.UpdateEncounter({
+      OwnerID: -1,
+      ID: encounter.ID,
+      Name: encounter.Name,
+      Description: encounter.Description,
+      TilemapID: encounter.TilemapID,
+    }).then(() => {
+      this.setState(produce(this.state, state => {
+        state.editingEncounter[encounter.ID] = false;
+      }));
+      this.updateCampaignsList();
+    });
+  }
+
+  onEncounterEditClicked = (encounter: FilledEncounter) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    this.setState(produce(this.state, state => {
+      state.editingEncounter[encounter.ID] = true;
+    }));
+  }
+
+  onEncounterCancelClicked = (encounter: FilledEncounter) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    this.setState(produce(this.state, state => {
+      state.editingEncounter[encounter.ID] = false;
+    }));
+  }
+
+  onEncounterDeleteClicked = (encounter: FilledEncounter) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    CampaignService.DeleteEncounter({
+      OwnerID: -1,
+      ID: encounter.ID,
+    }).then(this.updateCampaignsList);
+  }
+
   onEncounterChange = (campaign: FilledCampaign, encounter: FilledEncounter | null, attr: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     event.preventDefault();
     if (!encounter) {
@@ -132,7 +168,13 @@ export default class CampaignManager extends React.Component<State, State> {
               if (c.Encounters) {
                 c.Encounters.forEach(e => {
                   if (e.ID === encounter.ID) {
-                    (e as any)[attr] = event.target.value;
+                    if ((e as any)[attr].hasOwnProperty('String')) {
+                      (e as any)[attr]['String'] = event.target.value;
+                    } else if ((e as any)[attr].hasOwnProperty('Int32')) {
+                      (e as any)[attr]['Int32'] = event.target.value;
+                    } else {
+                      (e as any)[attr] = event.target.value;
+                    }
                   }
                 });
               }
@@ -173,28 +215,6 @@ export default class CampaignManager extends React.Component<State, State> {
     });
   }
 
-  onAddCharacterToCampaignClicked = (campaign: FilledCampaign, character: Character) => (event: React.MouseEvent<HTMLButtonElement>) => {
-    CampaignService.AddCharacterToCampaign({
-      OwnerID: -1,
-      CampaignID: campaign.ID,
-      CharacterID: character.ID,
-    }).then(() => {
-      this.setState(produce(this.state, state => {
-        state.characterQuery = '';
-        state.suggestedCharacters = [];
-      }));
-      this.updateCampaignsList();
-    });
-  }
-
-  onRemoveCharacterFromCampaignClicked = (campaign: FilledCampaign, character: Character) => (event: React.MouseEvent<HTMLButtonElement>) => {
-    CampaignService.RemoveCharacterFromCampaign({
-      OwnerID: -1,
-      CampaignID: campaign.ID,
-      CharacterID: character.ID,
-    }).then(this.updateCampaignsList);
-  }
-
   render() {
     return <div className="container">
       {this.state.Campaigns && this.state.Campaigns.map(campaign => <div className="card" key={campaign.ID}>
@@ -217,25 +237,27 @@ export default class CampaignManager extends React.Component<State, State> {
               <button className="btn btn-secondary" onClick={this.onEditClicked(campaign)}>Edit</button>
             </div>
           }
-          <h6>Cast</h6>
-          {campaign.Characters?.map(character => <div className="card" key={character.Name}>
-            <div className="card-body">
-              <h5 className="card-title">{character.Name}</h5>
-              <button className="btn btn-danger" onClick={this.onRemoveCharacterFromCampaignClicked(campaign, character)}><i className="fa fa-minus" aria-hidden="true"></i></button>
-            </div>
-          </div>)}
-          <input className="form-control" value={this.state.characterQuery} onChange={this.onCharacterQueryChange} />
-          {this.state.suggestedCharacters.map(character => <div className="card" key={character.Name}>
-            <div className="card-body d-flex">
-              <h5 className="card-title">{character.Name}</h5>
-              <button className="btn btn-success" onClick={this.onAddCharacterToCampaignClicked(campaign, character)}><i className="fa fa-plus" aria-hidden="true"></i></button>
-            </div>
-          </div>)}
           <h6>Encounters</h6>
           {campaign.Encounters?.map(encounter => <div className="card" key={encounter.Name}>
             <div className="card-body">
-              <h5 className="card-title">{encounter.Name}</h5>
-              <p className="card-text">{encounter.Description.String}</p>
+              {this.state.editingEncounter[encounter.ID] ?
+                <div>
+                  <input className="form-control" value={encounter.Name} onChange={this.onEncounterChange(campaign, encounter, 'Name')} />
+                  <textarea className="form-control" value={encounter.Description.String} onChange={this.onEncounterChange(campaign, encounter, 'Description')} />
+                  <div className="d-flex justify-content-between">
+                    <div className="d-flex">
+                      <button className="btn btn-primary" onClick={this.onEncounterSaveClicked(encounter)}>Save</button>
+                      <button className="btn btn-secondary" onClick={this.onEncounterCancelClicked(encounter)}>Cancel</button>
+                    </div>
+                    <button className="btn btn-danger" onClick={this.onEncounterDeleteClicked(encounter)}>Delete</button>
+                  </div>
+                </div> :
+                <div>
+                  <h5 className="card-title">{encounter.Name}</h5>
+                  <p className="card-text">{encounter.Description.String}</p>
+                  <button className="btn btn-secondary" onClick={this.onEncounterEditClicked(encounter)}>Edit</button>
+                </div>
+              }
             </div>
           </div>)}
           <div className="card">

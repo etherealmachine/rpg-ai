@@ -33,13 +33,6 @@ CREATE TABLE characters
 
 CREATE INDEX index_characters_on_owner_id on characters(owner_id);
 
-CREATE TABLE campaign_characters
-(
-  id SERIAL PRIMARY KEY,
-  campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
-  character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE
-);
-
 CREATE TABLE encounter_characters
 (
   id SERIAL PRIMARY KEY,

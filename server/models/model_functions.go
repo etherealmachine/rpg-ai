@@ -55,10 +55,6 @@ func ListFilledCampaignsByOwnerID(ctx context.Context, db *Queries, ownerID int3
 	}
 	filledCampaigns := make([]FilledCampaign, len(campaigns))
 	for i, campaign := range campaigns {
-		characters, err := db.ListCharactersForCampaign(ctx, campaign.ID)
-		if err != nil {
-			panic(err)
-		}
 		encounters, err := db.ListEncountersForCampaign(ctx, campaign.ID)
 		if err != nil {
 			panic(err)
@@ -86,7 +82,6 @@ func ListFilledCampaignsByOwnerID(ctx context.Context, db *Queries, ownerID int3
 		filledCampaigns[i] = FilledCampaign{
 			Campaign:   campaign,
 			Encounters: filledEncounters,
-			Characters: characters,
 		}
 	}
 	return filledCampaigns

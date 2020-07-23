@@ -7,7 +7,6 @@ import (
 )
 
 type Querier interface {
-	AddCharacterToCampaign(ctx context.Context, arg AddCharacterToCampaignParams) error
 	AddCharacterToEncounter(ctx context.Context, arg AddCharacterToEncounterParams) error
 	CreateCampaign(ctx context.Context, arg CreateCampaignParams) (Campaign, error)
 	CreateCharacter(ctx context.Context, arg CreateCharacterParams) (Character, error)
@@ -29,7 +28,6 @@ type Querier interface {
 	InsertTilemapThumbnail(ctx context.Context, arg InsertTilemapThumbnailParams) (int64, error)
 	ListCampaignsByOwnerID(ctx context.Context, ownerID int32) ([]Campaign, error)
 	ListCharactersByOwnerID(ctx context.Context, ownerID int32) ([]Character, error)
-	ListCharactersForCampaign(ctx context.Context, campaignID int32) ([]Character, error)
 	ListCharactersForEncounter(ctx context.Context, encounterID int32) ([]Character, error)
 	ListEncountersForCampaign(ctx context.Context, campaignID int32) ([]Encounter, error)
 	ListRecentSpritesheets(ctx context.Context, limit int32) ([]Spritesheet, error)
@@ -39,7 +37,6 @@ type Querier interface {
 	ListThumbnailsForSpritesheets(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForSpritesheetsRow, error)
 	ListThumbnailsForTilemaps(ctx context.Context, dollar_1 []int32) ([]ListThumbnailsForTilemapsRow, error)
 	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
-	RemoveCharacterFromCampaign(ctx context.Context, arg RemoveCharacterFromCampaignParams) error
 	RemoveCharacterFromEncounter(ctx context.Context, arg RemoveCharacterFromEncounterParams) error
 	SearchCharacters(ctx context.Context, name string) ([]Character, error)
 	UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) error
