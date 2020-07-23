@@ -21,14 +21,14 @@ INSERT INTO encounters (campaign_id, name, description, tilemap_id)
 SELECT $1, $2, $3, $4
 FROM campaigns
 WHERE
-  EXISTS (SELECT id FROM campaigns WHERE id = $1 AND campaigns.owner_id = $5)
-  AND (EXISTS (SELECT id FROM tilemaps WHERE id = $4 AND tilemaps.owner_id = $5) OR $4 IS NULL)
+  EXISTS (SELECT true FROM campaigns WHERE id = $1 AND campaigns.owner_id = $5)
+  AND (EXISTS (SELECT true FROM tilemaps WHERE id = $4 AND tilemaps.owner_id = $5) OR $4 IS NULL)
 RETURNING *;
 
 -- name: DeleteEncounter :exec
 DELETE FROM encounters
 WHERE encounters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
+EXISTS (SELECT true FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
 
 -- name: ListEncountersForCampaign :many
 SELECT * FROM encounters WHERE campaign_id = $1;
@@ -39,7 +39,7 @@ UPDATE encounters SET
   description = COALESCE($4, description),
   tilemap_id = COALESCE($5, tilemap_id)
 WHERE encounters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
+EXISTS (SELECT true FROM campaigns WHERE campaigns.id = encounters.campaign_id AND owner_id = $2);
 
 -- name: CreateCharacter :one
 INSERT INTO characters (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING *;
@@ -51,7 +51,7 @@ DELETE FROM characters WHERE id = $1 AND owner_id = $2;
 UPDATE characters SET
   name = $3
 WHERE characters.id = $1 AND
-EXISTS (SELECT id FROM characters WHERE characters.id = $1 AND characters.owner_id = $2);
+EXISTS (SELECT true FROM characters WHERE characters.id = $1 AND characters.owner_id = $2);
 
 -- name: SearchCharacters :many
 SELECT * FROM characters WHERE name ilike $1;
@@ -68,9 +68,9 @@ WHERE encounter_id = $1;
 INSERT INTO encounter_characters (encounter_id, character_id)
 SELECT $1, $2
 FROM campaigns
-WHERE EXISTS (SELECT id FROM campaigns WHERE campaigns.id = $2 AND campaigns.owner_id = $3);
+WHERE EXISTS (SELECT true FROM encounters JOIN campaigns ON campaigns.id = encounters.campaign_id AND campaigns.owner_id = $3 WHERE encounters.id = $1);
 
 -- name: RemoveCharacterFromEncounter :exec
 DELETE FROM encounter_characters
-WHERE encounter_characters.id = $1 AND
-EXISTS (SELECT id FROM campaigns WHERE campaigns.id = campaign_characters.campaign_id AND owner_id = $2);
+WHERE encounter_characters.encounter_id = $1 AND encounter_characters.character_id = $2
+AND EXISTS (SELECT true FROM encounters JOIN campaigns ON campaigns.id = encounters.campaign_id AND campaigns.owner_id = $3 WHERE encounters.id = $1);

@@ -77,7 +77,8 @@ export interface ListCharactersResponse {
 }
 
 export interface RemoveCharacterFromEncounterParams {
-    ID: number
+    EncounterID: number
+    CharacterID: number
     OwnerID: number
 }
 

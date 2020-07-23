@@ -2,10 +2,12 @@ import React from 'react';
 import produce from 'immer';
 
 import CampaignService, { FilledCampaign, FilledEncounter, Character } from './CampaignService';
+import { FilledTilemap } from './AssetService';
 
 interface State {
   Campaigns: FilledCampaign[] | null
   Characters: Character[] | null
+  Tilemaps: FilledTilemap[] | null
   editing: { [key: number]: boolean }
   editingEncounter: { [key: number]: boolean }
   newCampaign: {
@@ -147,7 +149,7 @@ export default class CampaignManager extends React.Component<State, State> {
     }).then(this.updateCampaignsList);
   }
 
-  onEncounterChange = (campaign: FilledCampaign, encounter: FilledEncounter | null, attr: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  onEncounterChange = (campaign: FilledCampaign, encounter: FilledEncounter | null, attr: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     event.preventDefault();
     if (!encounter) {
       this.setState(produce(this.state, state => {
@@ -208,11 +210,28 @@ export default class CampaignManager extends React.Component<State, State> {
     }));
     CampaignService.SearchCharacters({
       Name: '%' + event.target.value + '%',
-    }).then((resp) => {
+    }).then(resp => {
       this.setState(produce(this.state, state => {
         state.suggestedCharacters = resp.Characters || [];
       }));
     });
+  }
+
+  onAddCharacterToEncounter = (encounter: FilledEncounter, character: Character) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    CampaignService.AddCharacterToEncounter({
+      OwnerID: -1,
+      EncounterID: encounter.ID,
+      CharacterID: character.ID,
+    }).then(this.updateCampaignsList);
+  }
+
+  onRemoveCharacterFromEncounter = (encounter: FilledEncounter, character: Character) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    CampaignService.RemoveCharacterFromEncounter({
+      OwnerID: -1,
+      EncounterID: encounter.ID,
+      CharacterID: character.ID,
+    }).then(this.updateCampaignsList);
+
   }
 
   render() {
@@ -244,6 +263,26 @@ export default class CampaignManager extends React.Component<State, State> {
                 <div>
                   <input className="form-control" value={encounter.Name} onChange={this.onEncounterChange(campaign, encounter, 'Name')} />
                   <textarea className="form-control" value={encounter.Description.String} onChange={this.onEncounterChange(campaign, encounter, 'Description')} />
+                  <div className="form-group">
+                    {encounter.Characters?.map(character => <div className="card" key={character.ID}>
+                      <div className="card-body">
+                        <h5 className="card-title">{character.Name}</h5>
+                        <button className="btn btn-danger" onClick={this.onRemoveCharacterFromEncounter(encounter, character)}><i className="fa fa-minus" aria-hidden="true"></i></button>
+                      </div>
+                    </div>)}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="AddCharacter">Add Character</label>
+                    <input name="AddCharacter" className="form-control" onChange={this.onCharacterQueryChange} />
+                    <div className="d-flex">
+                      {this.state.suggestedCharacters.map(character => <div className="card" key={character.ID}>
+                        <div className="card-body">
+                          <h5 className="card-title">{character.Name}</h5>
+                          <button className="btn btn-success" onClick={this.onAddCharacterToEncounter(encounter, character)}><i className="fa fa-plus" aria-hidden="true"></i></button>
+                        </div>
+                      </div>)}
+                    </div>
+                  </div>
                   <div className="d-flex justify-content-between">
                     <div className="d-flex">
                       <button className="btn btn-primary" onClick={this.onEncounterSaveClicked(encounter)}>Save</button>
@@ -270,6 +309,14 @@ export default class CampaignManager extends React.Component<State, State> {
               <div className="form-group">
                 <label htmlFor="Description">Description</label>
                 <textarea name="Description" className="form-control" value={this.state.newEncounters[campaign.ID]?.Description || ''} onChange={this.onEncounterChange(campaign, null, 'Description')} />
+              </div>
+              <div className="form-group">
+                <label htmlFor="Tilemap">Tilemap</label>
+                <select name="Tilemap" className="form-control" onChange={this.onEncounterChange(campaign, null, 'TilemapID')}>
+                  {this.state.Tilemaps && this.state.Tilemaps.map(tilemap => <option value={tilemap.ID} key={tilemap.ID}>
+                    {tilemap.Name}
+                  </option>)}
+                </select>
               </div>
               <button type="submit" className="btn btn-primary" onClick={this.onCreateEncounterClicked(campaign)}>Create</button>
             </form>
