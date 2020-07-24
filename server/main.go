@@ -100,6 +100,7 @@ func main() {
 	r.Handle("/spritesheet/definition/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(SpritesheetDefinitionController)).Methods("GET")
 	r.Handle("/spritesheet/image/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(SpritesheetImageController)).Methods("GET")
 	r.Handle("/thumbnail/{hash:[A-Za-z0-9+=/]+}", http.HandlerFunc(ThumbnailController)).Methods("GET")
+	r.Handle("/encounter/{id:[0-9+=/]+}/{character_id:[0-9+=/]+}", http.HandlerFunc(EncounterController)).Methods("GET")
 	r.Handle("/login", http.HandlerFunc(LoginController)).Methods("GET")
 	r.Handle("/logout", LoginRequired(http.HandlerFunc(LogoutController))).Methods("GET")
 	r.Handle("/csrf", http.HandlerFunc(CsrfTokenController)).Methods("GET")

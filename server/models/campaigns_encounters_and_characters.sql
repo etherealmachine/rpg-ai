@@ -59,6 +59,9 @@ SELECT * FROM characters WHERE name ilike $1;
 -- name: ListCharactersByOwnerID :many
 SELECT * FROM characters WHERE owner_id = $1;
 
+-- name: GetCharacterByID :one
+SELECT * from characters WHERE id = $1;
+
 -- name: ListCharactersForEncounter :many
 SELECT characters.* FROM encounter_characters
 JOIN characters ON characters.id = character_id
@@ -74,3 +77,12 @@ WHERE EXISTS (SELECT true FROM encounters JOIN campaigns ON campaigns.id = encou
 DELETE FROM encounter_characters
 WHERE encounter_characters.encounter_id = $1 AND encounter_characters.character_id = $2
 AND EXISTS (SELECT true FROM encounters JOIN campaigns ON campaigns.id = encounters.campaign_id AND campaigns.owner_id = $3 WHERE encounters.id = $1);
+
+-- name: GetEncounterForCharacter :one
+SELECT * FROM encounters
+WHERE encounters.id = $1
+AND EXISTS (
+  SELECT true
+  FROM encounter_characters
+  JOIN characters ON characters.id = encounter_characters.character_id AND characters.owner_id = $3
+  WHERE encounter_id = $1 AND character_id = $2);

@@ -172,8 +172,10 @@ export default class CampaignManager extends React.Component<State, State> {
                   if (e.ID === encounter.ID) {
                     if ((e as any)[attr].hasOwnProperty('String')) {
                       (e as any)[attr]['String'] = event.target.value;
+                      (e as any)[attr]['Valid'] = true;
                     } else if ((e as any)[attr].hasOwnProperty('Int32')) {
-                      (e as any)[attr]['Int32'] = event.target.value;
+                      (e as any)[attr]['Int32'] = parseInt(event.target.value);
+                      (e as any)[attr]['Valid'] = true;
                     } else {
                       (e as any)[attr] = event.target.value;
                     }
@@ -261,8 +263,19 @@ export default class CampaignManager extends React.Component<State, State> {
             <div className="card-body">
               {this.state.editingEncounter[encounter.ID] ?
                 <div>
-                  <input className="form-control" value={encounter.Name} onChange={this.onEncounterChange(campaign, encounter, 'Name')} />
-                  <textarea className="form-control" value={encounter.Description.String} onChange={this.onEncounterChange(campaign, encounter, 'Description')} />
+                  <label htmlFor="Name">Name</label>
+                  <input name="Name" className="form-control" value={encounter.Name} onChange={this.onEncounterChange(campaign, encounter, 'Name')} />
+                  <label htmlFor="Description">Description  </label>
+                  <textarea name="Description" className="form-control" value={encounter.Description.String} onChange={this.onEncounterChange(campaign, encounter, 'Description')} />
+                  <div className="form-group">
+                    <label htmlFor="Tilemap">Tilemap</label>
+                    <select name="Tilemap" className="form-control" onChange={this.onEncounterChange(campaign, encounter, 'TilemapID')}>
+                      {this.state.Tilemaps && this.state.Tilemaps.map(tilemap => <option value={tilemap.ID} key={tilemap.ID}>
+                        {tilemap.Name}
+                      </option>)}
+                    </select>
+                  </div>
+                  <h6>Characters</h6>
                   <div className="form-group">
                     {encounter.Characters?.map(character => <div className="card" key={character.ID}>
                       <div className="card-body">
@@ -294,6 +307,20 @@ export default class CampaignManager extends React.Component<State, State> {
                 <div>
                   <h5 className="card-title">{encounter.Name}</h5>
                   <p className="card-text">{encounter.Description.String}</p>
+                  <h6>Tilemap</h6>
+                  {encounter.Tilemap && <div className="card">
+                    <div className="card-body">
+                      <h5 className="card-title">{encounter.Tilemap.Name}</h5>
+                      <p className="card-text">{encounter.Tilemap.Description.String}</p>
+                    </div>
+                  </div>}
+                  <h6>Characters</h6>
+                  {encounter.Characters?.map(character => <div key={character.ID} className="card">
+                    <div className="card-body">
+                      <h5 className="card-title">{character.Name}</h5>
+                      <a href={`/encounter/${encounter.ID}/${character.ID}`}>Join encounter</a>
+                    </div>
+                  </div>)}
                   <button className="btn btn-secondary" onClick={this.onEncounterEditClicked(encounter)}>Edit</button>
                 </div>
               }

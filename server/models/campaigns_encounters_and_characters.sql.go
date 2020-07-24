@@ -156,6 +156,54 @@ func (q *Queries) DeleteEncounter(ctx context.Context, arg DeleteEncounterParams
 	return err
 }
 
+const getCharacterByID = `-- name: GetCharacterByID :one
+SELECT id, owner_id, name, definition, sprite, created_at from characters WHERE id = $1
+`
+
+func (q *Queries) GetCharacterByID(ctx context.Context, id int32) (Character, error) {
+	row := q.db.QueryRowContext(ctx, getCharacterByID, id)
+	var i Character
+	err := row.Scan(
+		&i.ID,
+		&i.OwnerID,
+		&i.Name,
+		&i.Definition,
+		&i.Sprite,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getEncounterForCharacter = `-- name: GetEncounterForCharacter :one
+SELECT id, campaign_id, name, description, tilemap_id, created_at FROM encounters
+WHERE encounters.id = $1
+AND EXISTS (
+  SELECT true
+  FROM encounter_characters
+  JOIN characters ON characters.id = encounter_characters.character_id AND characters.owner_id = $3
+  WHERE encounter_id = $1 AND character_id = $2)
+`
+
+type GetEncounterForCharacterParams struct {
+	ID          int32
+	CharacterID int32
+	OwnerID     int32
+}
+
+func (q *Queries) GetEncounterForCharacter(ctx context.Context, arg GetEncounterForCharacterParams) (Encounter, error) {
+	row := q.db.QueryRowContext(ctx, getEncounterForCharacter, arg.ID, arg.CharacterID, arg.OwnerID)
+	var i Encounter
+	err := row.Scan(
+		&i.ID,
+		&i.CampaignID,
+		&i.Name,
+		&i.Description,
+		&i.TilemapID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getOwnedCampaignByID = `-- name: GetOwnedCampaignByID :one
 SELECT id, owner_id, name, description, created_at FROM campaigns WHERE id = $1 AND owner_id = $2
 `

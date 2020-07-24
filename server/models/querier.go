@@ -19,6 +19,8 @@ type Querier interface {
 	DeleteEncounter(ctx context.Context, arg DeleteEncounterParams) error
 	DeleteSpritesheet(ctx context.Context, arg DeleteSpritesheetParams) error
 	DeleteTilemap(ctx context.Context, arg DeleteTilemapParams) error
+	GetCharacterByID(ctx context.Context, id int32) (Character, error)
+	GetEncounterForCharacter(ctx context.Context, arg GetEncounterForCharacterParams) (Encounter, error)
 	GetOwnedCampaignByID(ctx context.Context, arg GetOwnedCampaignByIDParams) (Campaign, error)
 	GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error)
 	GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error)

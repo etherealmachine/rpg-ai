@@ -422,6 +422,49 @@ func ThumbnailController(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, fmt.Sprintf("thumbnail-%d", thumbnail.ID), thumbnail.CreatedAt, bytes.NewReader(thumbnail.Image))
 }
 
+func EncounterController(w http.ResponseWriter, r *http.Request) {
+	currentUser := currentUser(r)
+	encounterID, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		panic(err)
+	}
+	characterID, err := strconv.Atoi(mux.Vars(r)["character_id"])
+	if err != nil {
+		panic(err)
+	}
+	encounter, err := db.GetEncounterForCharacter(r.Context(), models.GetEncounterForCharacterParams{
+		OwnerID:     currentUser.ID,
+		ID:          int32(encounterID),
+		CharacterID: int32(characterID),
+	})
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	character, err := db.GetCharacterByID(r.Context(), int32(characterID))
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	tilemap, err := db.GetTilemapByID(r.Context(), encounter.TilemapID.Int32)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	views.WritePageTemplate(w, &views.EncounterPage{
+		BasePage:  basePage(r),
+		Encounter: encounter,
+		Tilemap:   tilemap,
+		Character: &character,
+	})
+}
+
 func LogoutController(w http.ResponseWriter, r *http.Request) {
 	session, err := SessionCookieStore.Get(r, "authenticated_user")
 	if err != nil {

@@ -8,6 +8,7 @@ import AssetManager from './AssetManager';
 import AssetUploader from './AssetUploader';
 import CampaignManager from './CampaignManager';
 import CharacterManager from './CharacterManager';
+import Encounter from './Encounter';
 
 import { createNanoEvents } from 'nanoevents';
 (window as any).emitter = createNanoEvents();
@@ -30,6 +31,7 @@ const components = {
   'AssetUploader': AssetUploader,
   'CampaignManager': CampaignManager,
   'CharacterManager': CharacterManager,
+  'Encounter': Encounter,
 };
 
 for (let [name, fn] of Object.entries(components)) {
