@@ -1,13 +1,13 @@
 import React from 'react';
 
-import { Tilemap, Spritesheet } from '../AssetService';
+import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
-import { Tilemap as TiledTilemap, TilemapLayer } from '../Tiled';
+import { Tilemap as TiledTilemap, TilemapLayer, TilesetSource, Tileset } from '../Tiled';
 
 interface Props {
   Encounter: Encounter
   Tilemap: Tilemap
-  Spritesheets: Spritesheet[]
+  Spritesheets: ListSpritesheetsForTilemapRow[]
   Character: Character
 }
 
@@ -26,16 +26,27 @@ export default class EncounterUI extends React.Component<Props, State> {
   }
 
   tile(index: number) {
-    const hash = "YCzQzxouPVqCPDzfxQO9OKkT9bqLkAQ44veTeeCDW7E6vY0pTFI/54B44hIxRqK50sDy3Tz7vWDeyPUIw/6MLA==";
-    return < td style={{ width: this.state.tilemap.tilewidth, height: this.state.tilemap.tileheight, padding: 0 }} >
-      <img
-        alt=""
-        src={`/spritesheet/image/${hash}`}
-        style={{ objectFit: 'cover' }}
-        width={this.state.tilemap.tilewidth}
-        height={this.state.tilemap.tileheight}>
-      </img>
-    </ td >;
+    const tilesetIndex = this.state.tilemap.tilesets.findIndex(tileset => index <= tileset.firstgid) - 1;
+    const tileset = this.state.tilemap.tilesets[tilesetIndex];
+    if (tileset === undefined) return null;
+    if ((tileset as TilesetSource).source === undefined) return null;
+    const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
+    if (spritesheet === undefined) return null;
+    const definition = (spritesheet.SpritesheetDefinition as unknown) as Tileset;
+    const offset = index - tileset.firstgid;
+    const x = offset % definition.columns;
+    const y = offset / definition.columns;
+    const xPosition = x * (definition.tilewidth + definition.spacing + definition.margin);
+    const yPosition = y * (definition.tileheight + definition.spacing + definition.margin);
+    return < td
+      style={{
+        width: this.state.tilemap.tilewidth,
+        height: this.state.tilemap.tileheight,
+        padding: 0,
+        backgroundImage: `url("/spritesheet/image/${spritesheet.SpritesheetHash}")`,
+        backgroundPosition: `${xPosition}px ${yPosition}px`,
+      }}
+    />;
   }
 
   layer(layer: TilemapLayer) {
