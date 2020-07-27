@@ -48,6 +48,7 @@ export interface ListSpritesheetsForTilemapRow {
     SpritesheetID: number
     SpritesheetName: string
     SpritesheetHash: string
+    SpritesheetDefinition: string
 }
 
 export interface NullInt32 {

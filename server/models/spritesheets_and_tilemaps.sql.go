@@ -346,14 +346,15 @@ func (q *Queries) ListSpritesheetsByOwnerID(ctx context.Context, ownerID int32) 
 }
 
 const listSpritesheetsForTilemap = `-- name: ListSpritesheetsForTilemap :many
-SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name, s.hash as spritesheet_hash FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
+SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name, s.hash AS spritesheet_hash, s.definition AS spritesheet_definition FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1
 `
 
 type ListSpritesheetsForTilemapRow struct {
-	TilemapID       int32
-	SpritesheetID   int32
-	SpritesheetName string
-	SpritesheetHash []byte
+	TilemapID             int32
+	SpritesheetID         int32
+	SpritesheetName       string
+	SpritesheetHash       []byte
+	SpritesheetDefinition json.RawMessage
 }
 
 func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int32) ([]ListSpritesheetsForTilemapRow, error) {
@@ -370,6 +371,7 @@ func (q *Queries) ListSpritesheetsForTilemap(ctx context.Context, tilemapID int3
 			&i.SpritesheetID,
 			&i.SpritesheetName,
 			&i.SpritesheetHash,
+			&i.SpritesheetDefinition,
 		); err != nil {
 			return nil, err
 		}

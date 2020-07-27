@@ -457,11 +457,16 @@ func EncounterController(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		panic(err)
 	}
+	spritesheets, err := db.ListSpritesheetsForTilemap(r.Context(), tilemap.ID)
+	if err != nil && err != sql.ErrNoRows {
+		panic(err)
+	}
 	views.WritePageTemplate(w, &views.EncounterPage{
-		BasePage:  basePage(r),
-		Encounter: encounter,
-		Tilemap:   tilemap,
-		Character: &character,
+		BasePage:     basePage(r),
+		Encounter:    encounter,
+		Tilemap:      tilemap,
+		Spritesheets: spritesheets,
+		Character:    &character,
 	})
 }
 

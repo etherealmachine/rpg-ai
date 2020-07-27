@@ -7,6 +7,7 @@ type EncounterPage struct {
   *BasePage
   Encounter models.Encounter
   Tilemap models.Tilemap
+  Spritesheets []models.ListSpritesheetsForTilemapRow
   Character *models.Character
 }
 %}
@@ -16,6 +17,7 @@ type EncounterPage struct {
     "Encounter": p.Encounter,
     "Tilemap": p.Tilemap,
     "Character": p.Character,
+    "Spritesheets": p.Spritesheets,
     })
   %}"></div>
 {% endfunc %}

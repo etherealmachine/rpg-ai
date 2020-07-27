@@ -13,6 +13,7 @@ export default class OrthoMap extends Phaser.Scene {
   init(args: any) {
     this.tilemapModel = args.tilemapModel;
     this.tiledMap = args.map;
+    (window as any).map = this;
   }
 
   generateThumbnail() {
@@ -38,6 +39,83 @@ export default class OrthoMap extends Phaser.Scene {
       })
   }
 
+  onKeyDown = (event: KeyboardEvent) => {
+    switch (event.keyCode) {
+      case Phaser.Input.Keyboard.KeyCodes.P:
+        this.generateThumbnail();
+        break;
+      case Phaser.Input.Keyboard.KeyCodes.W:
+        this.objects[4].incY(-(this.tiledMap.tileheight || 0));
+        break;
+      case Phaser.Input.Keyboard.KeyCodes.A:
+        this.objects[4].incX(-(this.tiledMap.tilewidth || 0));
+        break;
+      case Phaser.Input.Keyboard.KeyCodes.S:
+        this.objects[4].incY(this.tiledMap.tileheight || 0);
+        break;
+      case Phaser.Input.Keyboard.KeyCodes.D:
+        this.objects[4].incX(this.tiledMap.tilewidth || 0);
+        break;
+    }
+  }
+
+  addObjectAnnotation(layer: Phaser.Tilemaps.ObjectLayer, object: Phaser.Types.Tilemaps.TiledObject): Phaser.GameObjects.Sprite | null {
+    const { gid, x, y } = object;
+    if (gid === undefined || x === undefined || y === undefined) return null;
+    const gidIndices = this.tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
+    const i = gidIndices.find(gidindex => gid >= gidindex[1]);
+    if (i === undefined) {
+      console.error(`no gid index found for ${gid}`);
+      return null;
+    }
+    const tileset = this.tiledMap.tilesets[i[0]] as TilesetSource;
+    const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
+    s.setDisplayOrigin(0, this.tiledMap.tileheight);
+    s.setInteractive();
+    s.on('pointerover', () => {
+      let description = '';
+      if (object.properties) {
+        description = (object.properties as any)[0]["value"];
+      }
+      (window as any).emitter.emit("hoveron", {
+        type: "npc",
+        name: layer.name,
+        description: description,
+      });
+    });
+    s.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+    return s;
+  }
+
+  addPolygonAnnotation(layer: Phaser.Tilemaps.ObjectLayer, object: Phaser.Types.Tilemaps.TiledObject) {
+    const points = object.polygon || object.polyline;
+    const poly = this.add.polygon(object.x, object.y, points, 0x000, 0.2);
+    poly.setDisplayOrigin(0, 0);
+    poly.setInteractive();
+    poly.on('pointerover', () => {
+      (window as any).emitter.emit("hoveron", {
+        type: "room",
+        name: layer.name,
+        description: (layer.properties as any)[0]["value"],
+      });
+    });
+    poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+  }
+
+  addRectangleAnnotation(layer: Phaser.Tilemaps.ObjectLayer, object: Phaser.Types.Tilemaps.TiledObject) {
+    const poly = this.add.rectangle(object.x, object.y, object.width, object.height, 0x000, 0.2);
+    poly.setDisplayOrigin(0, 0);
+    poly.setInteractive();
+    poly.on('pointerover', () => {
+      (window as any).emitter.emit("hoveron", {
+        type: "room",
+        name: layer.name,
+        description: (layer.properties as any)[0]["value"],
+      });
+    });
+    poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+  }
+
   create() {
     const tiledMap = this.tiledMap;
     if (!tiledMap) return;
@@ -55,25 +133,7 @@ export default class OrthoMap extends Phaser.Scene {
       zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
     };
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
-    this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
-      switch (event.keyCode) {
-        case Phaser.Input.Keyboard.KeyCodes.P:
-          this.generateThumbnail();
-          break;
-        case Phaser.Input.Keyboard.KeyCodes.W:
-          this.objects[5].incY(-(this.tiledMap.tileheight || 0));
-          break;
-        case Phaser.Input.Keyboard.KeyCodes.A:
-          this.objects[5].incX(-(this.tiledMap.tilewidth || 0));
-          break;
-        case Phaser.Input.Keyboard.KeyCodes.S:
-          this.objects[5].incY(this.tiledMap.tileheight || 0);
-          break;
-        case Phaser.Input.Keyboard.KeyCodes.D:
-          this.objects[5].incX(this.tiledMap.tilewidth || 0);
-          break;
-      }
-    });
+    this.input.keyboard.on('keydown', this.onKeyDown);
     this.cameras.main.setBackgroundColor('#ddd');
     const map = this.make.tilemap({
       width: tiledMap.width,
@@ -91,69 +151,35 @@ export default class OrthoMap extends Phaser.Scene {
     map.layers.forEach(layer => {
       map.createStaticLayer(layer.name, tilesets);
     });
-    const gidIndices = tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
     for (let layer of map.objects) {
       const group = this.add.group({ name: layer.name });
       for (let object of layer.objects) {
-        const { gid, x, y, width, height, polygon, polyline } = object;
-        if (x === undefined || y === undefined) {
+        if (object.x === undefined || object.y === undefined) {
           continue;
         }
-        if (gid) {
-          const i = gidIndices.find(gidindex => gid >= gidindex[1]);
-          if (i === undefined) {
-            console.error(`no gid index found for ${gid}`);
-            continue;
+        if (object.gid) {
+          const s = this.addObjectAnnotation(layer, object);
+          if (s) {
+            group.add(s);
           }
-          const tileset = tiledMap.tilesets[i[0]] as TilesetSource;
-          const s = this.add.sprite(x, y, tileset.source, gid - tileset.firstgid);
-          s.setDisplayOrigin(0, tiledMap.tileheight);
-          s.setInteractive();
-          s.on('pointerover', () => {
-            let description = '';
-            if (object.properties) {
-              description = (object.properties as any)[0]["value"];
-            }
-            (window as any).emitter.emit("hoveron", {
-              type: "npc",
-              name: layer.name,
-              description: description,
-            });
-          });
-          s.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
-          group.add(s);
-        } else if (polygon || polyline) {
-          const points = polygon || polyline;
-          const poly = this.add.polygon(x, y, points, 0x000, 0.2);
-          poly.setDisplayOrigin(0, 0);
-          group.add(poly);
-          poly.setInteractive();
-          poly.on('pointerover', () => {
-            (window as any).emitter.emit("hoveron", {
-              type: "room",
-              name: layer.name,
-              description: (layer.properties as any)[0]["value"],
-            });
-          });
-          poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
-        } else if (width && height) {
-          const poly = this.add.rectangle(x, y, width, height, 0x000, 0.2);
-          poly.setDisplayOrigin(0, 0);
-          group.add(poly);
-          poly.setInteractive();
-          poly.on('pointerover', () => {
-            (window as any).emitter.emit("hoveron", {
-              type: "room",
-              name: layer.name,
-              description: (layer.properties as any)[0]["value"],
-            });
-          });
-          poly.on('pointerout', () => (window as any).emitter.emit("hoveroff"));
+        } else if (object.polygon || object.polyline) {
+          this.addPolygonAnnotation(layer, object);
+        } else if (object.width && object.height) {
+          this.addRectangleAnnotation(layer, object);
         }
       }
       this.objects.push(group);
     }
-
+    const overlay = new Phaser.Tilemaps.LayerData({
+      name: 'Overlay',
+      x: 0,
+      y: 0,
+      width: map.layers[0].width,
+      height: map.layers[0].height,
+      data: map.layers[0].data.map((tiles: Phaser.Tilemaps.Tile[]) => 0),
+    });
+    map.layers.unshift(overlay);
+    map.createDynamicLayer(overlay.name, tilesets);
     this.cameras.main.centerOn((tiledMap.tilewidth * tiledMap.width) / 2, (tiledMap.tileheight * tiledMap.height) / 2);
   }
 

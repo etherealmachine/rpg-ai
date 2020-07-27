@@ -29,7 +29,7 @@ SELECT * FROM tilemaps WHERE hash = $1;
 INSERT INTO tilemap_references (tilemap_id, spritesheet_id) VALUES ($1, $2);
 
 -- name: ListSpritesheetsForTilemap :many
-SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name, s.hash as spritesheet_hash FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1;
+SELECT tilemap_id, spritesheet_id, s.name AS spritesheet_name, s.hash AS spritesheet_hash, s.definition AS spritesheet_definition FROM tilemap_references r JOIN spritesheets s ON s.id = r.spritesheet_id WHERE tilemap_id = $1;
 
 -- name: ListThumbnailsForTilemaps :many
 SELECT tilemap_id, hash FROM thumbnails WHERE tilemap_id = ANY($1::INTEGER[]);

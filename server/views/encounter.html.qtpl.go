@@ -25,50 +25,52 @@ var (
 //line views/encounter.html.qtpl:6
 type EncounterPage struct {
 	*BasePage
-	Encounter models.Encounter
-	Tilemap   models.Tilemap
-	Character *models.Character
+	Encounter    models.Encounter
+	Tilemap      models.Tilemap
+	Spritesheets []models.ListSpritesheetsForTilemapRow
+	Character    *models.Character
 }
 
-//line views/encounter.html.qtpl:14
+//line views/encounter.html.qtpl:15
 func (p *EncounterPage) StreamContent(qw422016 *qt422016.Writer) {
-//line views/encounter.html.qtpl:14
+//line views/encounter.html.qtpl:15
 	qw422016.N().S(`
   <div style="flex: 1" class="Encounter" data-props="`)
-//line views/encounter.html.qtpl:15
+//line views/encounter.html.qtpl:16
 	qw422016.E().Q(JSON(map[string]interface{}{
-		"Encounter": p.Encounter,
-		"Tilemap":   p.Tilemap,
-		"Character": p.Character,
+		"Encounter":    p.Encounter,
+		"Tilemap":      p.Tilemap,
+		"Character":    p.Character,
+		"Spritesheets": p.Spritesheets,
 	}))
-//line views/encounter.html.qtpl:20
+//line views/encounter.html.qtpl:22
 	qw422016.N().S(`"></div>
 `)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 }
 
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 func (p *EncounterPage) WriteContent(qq422016 qtio422016.Writer) {
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	p.StreamContent(qw422016)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	qt422016.ReleaseWriter(qw422016)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 }
 
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 func (p *EncounterPage) Content() string {
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	p.WriteContent(qb422016)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	qs422016 := string(qb422016.B)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 	return qs422016
-//line views/encounter.html.qtpl:21
+//line views/encounter.html.qtpl:23
 }

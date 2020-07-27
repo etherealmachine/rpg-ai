@@ -8,7 +8,7 @@ import AssetManager from './AssetManager';
 import AssetUploader from './AssetUploader';
 import CampaignManager from './CampaignManager';
 import CharacterManager from './CharacterManager';
-import Encounter from './Encounter';
+import Encounter from './encounter/Encounter';
 
 import { createNanoEvents } from 'nanoevents';
 (window as any).emitter = createNanoEvents();
