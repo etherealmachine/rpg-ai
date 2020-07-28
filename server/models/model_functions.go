@@ -5,26 +5,27 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"net/url"
 )
 
 func (s *Spritesheet) DownloadPath() string {
-	return fmt.Sprintf("/spritesheet/%s", base64.StdEncoding.EncodeToString([]byte(s.Hash)))
+	return fmt.Sprintf("/spritesheet/%s", url.PathEscape(base64.StdEncoding.EncodeToString([]byte(s.Hash))))
 }
 
 func (s *Spritesheet) ImagePath() string {
-	return fmt.Sprintf("/spritesheet/image/%s", base64.StdEncoding.EncodeToString([]byte(s.Hash)))
+	return fmt.Sprintf("/spritesheet/image/%s", url.PathEscape(base64.StdEncoding.EncodeToString([]byte(s.Hash))))
 }
 
 func (s *Spritesheet) ThumbnailPath() string {
-	return fmt.Sprintf("/spritesheet/image/%s", base64.StdEncoding.EncodeToString([]byte(s.Hash)))
+	return fmt.Sprintf("/spritesheet/image/%s", url.PathEscape(base64.StdEncoding.EncodeToString([]byte(s.Hash))))
 }
 
 func (t *Tilemap) DownloadPath() string {
-	return fmt.Sprintf("/tilemap/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
+	return fmt.Sprintf("/tilemap/%s", url.PathEscape(base64.StdEncoding.EncodeToString([]byte(t.Hash))))
 }
 
 func (t *Tilemap) MapPath() string {
-	return fmt.Sprintf("/map/%s", base64.StdEncoding.EncodeToString([]byte(t.Hash)))
+	return fmt.Sprintf("/map/%s", url.PathEscape(base64.StdEncoding.EncodeToString([]byte(t.Hash))))
 }
 
 type FilledTilemap struct {

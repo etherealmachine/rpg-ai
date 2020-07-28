@@ -28,17 +28,18 @@ export default class EncounterUI extends React.Component<Props, State> {
   tile(index: number) {
     const tilesetIndex = this.state.tilemap.tilesets.findIndex(tileset => index <= tileset.firstgid) - 1;
     const tileset = this.state.tilemap.tilesets[tilesetIndex];
-    if (tileset === undefined) return null;
+    if (tileset === undefined) return <td style={{ width: this.state.tilemap.tilewidth, height: this.state.tilemap.tileheight }}></td>;
     if ((tileset as TilesetSource).source === undefined) return null;
     const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
-    if (spritesheet === undefined) return null;
+    if (spritesheet === undefined) return <td style={{ width: this.state.tilemap.tilewidth, height: this.state.tilemap.tileheight }}></td>;
     const definition = (spritesheet.SpritesheetDefinition as unknown) as Tileset;
     const offset = index - tileset.firstgid;
     const x = offset % definition.columns;
-    const y = offset / definition.columns;
-    const xPosition = x * (definition.tilewidth + definition.spacing + definition.margin);
-    const yPosition = y * (definition.tileheight + definition.spacing + definition.margin);
-    return < td
+    const y = Math.floor(offset / definition.columns);
+    const xPosition = -x * (definition.tilewidth + definition.spacing + definition.margin);
+    const yPosition = -y * (definition.tileheight + definition.spacing + definition.margin);
+    return <td
+      data-tile={`${definition.name}-${x}-${y}`}
       style={{
         width: this.state.tilemap.tilewidth,
         height: this.state.tilemap.tileheight,
