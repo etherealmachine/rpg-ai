@@ -63,7 +63,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         {row}
       </tr>);
     }
-    return <table style={{ position: 'absolute', top: 0, left: 0 }}>
+    return <table data-layer={layer.name} style={{ position: 'absolute', top: 0, left: 0 }}>
       <tbody>
         {rows}
       </tbody>
