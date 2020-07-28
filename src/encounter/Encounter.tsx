@@ -1,4 +1,5 @@
 import React from 'react';
+import produce from 'immer';
 
 import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
@@ -13,6 +14,10 @@ interface Props {
 
 interface State {
   tilemap: TiledTilemap
+  position: {
+    x: number,
+    y: number,
+  }
 }
 
 export default class EncounterUI extends React.Component<Props, State> {
@@ -21,6 +26,10 @@ export default class EncounterUI extends React.Component<Props, State> {
     super(props);
     this.state = {
       tilemap: ((props.Tilemap.Definition as unknown) as TiledTilemap),
+      position: {
+        x: 10,
+        y: 10,
+      }
     };
     (window as any).encounter = this;
   }
@@ -70,12 +79,49 @@ export default class EncounterUI extends React.Component<Props, State> {
     </table >;
   }
 
+  player() {
+    return <div style={{
+      position: 'absolute',
+      width: this.state.tilemap.tilewidth,
+      height: this.state.tilemap.tileheight,
+      backgroundColor: 'red',
+      top: this.state.position.y * this.state.tilemap.tileheight,
+      left: this.state.position.x * this.state.tilemap.tilewidth,
+    }}></div>
+  }
+
+  handleKeyPress = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case 'w':
+        this.setState(produce(this.state, state => {
+          state.position.y--;
+        }));
+        break;
+      case 'a':
+        this.setState(produce(this.state, state => {
+          state.position.x--;
+        }));
+        break;
+      case 's':
+        this.setState(produce(this.state, state => {
+          state.position.y++;
+        }));
+        break;
+      case 'd':
+        this.setState(produce(this.state, state => {
+          state.position.x++;
+        }));
+        break;
+    }
+  }
+
   render() {
     const width = this.state.tilemap.layers[0].width * this.state.tilemap.tilewidth;
     const height = this.state.tilemap.layers[0].height * this.state.tilemap.tileheight;
-    return <div className="d-flex flex-column justify-content-center align-items-center">
+    return <div className="d-flex flex-column justify-content-center align-items-center" onKeyPress={this.handleKeyPress} tabIndex={0} style={{ outline: 'none' }}>
       <div style={{ position: 'relative', width: width, height: height }}>
         {this.state.tilemap.layers.map(layer => <React.Fragment key={layer.name}>{this.layer(layer)}</React.Fragment>)}
+        {this.player()}
       </div>
     </div>;
   }
