@@ -4,6 +4,7 @@ import produce from 'immer';
 import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
 import { Tilemap as TiledTilemap, TilemapLayer, TilesetSource, Tileset } from '../Tiled';
+import { rasterizeLine } from '../OrthoMath';
 
 interface Props {
   Encounter: Encounter
@@ -13,116 +14,202 @@ interface Props {
 }
 
 interface State {
-  tilemap: TiledTilemap
-  position: {
-    x: number,
-    y: number,
-  }
+  tilemap: TiledTilemap,
+  position: { x: number, y: number },
+  scale: number,
+  offset: { x: number, y: number },
 }
 
 export default class EncounterUI extends React.Component<Props, State> {
+
+  canvasRef = React.createRef<HTMLCanvasElement>()
+  spritesheetImages: { [key: string]: HTMLImageElement } = {}
+  canvasReady = false
+  seen: { [key: number]: boolean } = {}
 
   constructor(props: Props) {
     super(props);
     this.state = {
       tilemap: ((props.Tilemap.Definition as unknown) as TiledTilemap),
-      position: {
-        x: 10,
-        y: 10,
-      }
+      position: { x: 0, y: 0 },
+      scale: 1,
+      offset: { x: 0, y: 0 },
     };
     (window as any).encounter = this;
-  }
-
-  tile(index: number) {
-    const tilesetIndex = this.state.tilemap.tilesets.findIndex(tileset => index <= tileset.firstgid) - 1;
-    const tileset = this.state.tilemap.tilesets[tilesetIndex];
-    if (tileset === undefined) return <td style={{ width: this.state.tilemap.tilewidth, height: this.state.tilemap.tileheight }}></td>;
-    if ((tileset as TilesetSource).source === undefined) return null;
-    const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
-    if (spritesheet === undefined) return <td style={{ width: this.state.tilemap.tilewidth, height: this.state.tilemap.tileheight }}></td>;
-    const definition = (spritesheet.SpritesheetDefinition as unknown) as Tileset;
-    const offset = index - tileset.firstgid;
-    const x = offset % definition.columns;
-    const y = Math.floor(offset / definition.columns);
-    const xPosition = -x * (definition.tilewidth + definition.spacing + definition.margin);
-    const yPosition = -y * (definition.tileheight + definition.spacing + definition.margin);
-    return <td
-      data-tile={`${definition.name}-${x}-${y}`}
-      style={{
-        width: this.state.tilemap.tilewidth,
-        height: this.state.tilemap.tileheight,
-        padding: 0,
-        backgroundImage: `url("/spritesheet/image/${spritesheet.SpritesheetHash}")`,
-        backgroundPosition: `${xPosition}px ${yPosition}px`,
-      }}
-    />;
-  }
-
-  layer(layer: TilemapLayer) {
-    const rows = [];
-    for (let i = 0; i < layer.height; i++) {
-      const row = [];
-      for (let j = 0; j < layer.width; j++) {
-        row.push(<React.Fragment key={`cell-${i}-${j}`}>
-          {this.tile(layer.data[i * layer.width + j])}
-        </React.Fragment>);
-      }
-      rows.push(<tr key={`row-${i}`} style={{ lineHeight: 0 }}>
-        {row}
-      </tr>);
-    }
-    return <table data-layer={layer.name} style={{ position: 'absolute', top: 0, left: 0 }}>
-      <tbody>
-        {rows}
-      </tbody>
-    </table >;
-  }
-
-  player() {
-    return <div style={{
-      position: 'absolute',
-      width: this.state.tilemap.tilewidth,
-      height: this.state.tilemap.tileheight,
-      backgroundColor: 'red',
-      top: this.state.position.y * this.state.tilemap.tileheight,
-      left: this.state.position.x * this.state.tilemap.tilewidth,
-    }}></div>
   }
 
   handleKeyPress = (event: React.KeyboardEvent) => {
     switch (event.key) {
       case 'w':
-        this.setState(produce(this.state, state => {
-          state.position.y--;
-        }));
+        if (this.canEnter(this.state.position.x, this.state.position.y - 1)) {
+          this.setState(produce(this.state, state => { state.position.y--; }));
+        }
         break;
       case 'a':
-        this.setState(produce(this.state, state => {
-          state.position.x--;
-        }));
+        if (this.canEnter(this.state.position.x - 1, this.state.position.y)) {
+          this.setState(produce(this.state, state => { state.position.x--; }));
+        }
         break;
       case 's':
-        this.setState(produce(this.state, state => {
-          state.position.y++;
-        }));
+        if (this.canEnter(this.state.position.x, this.state.position.y + 1)) {
+          this.setState(produce(this.state, state => { state.position.y++; }));
+        }
         break;
       case 'd':
-        this.setState(produce(this.state, state => {
-          state.position.x++;
-        }));
+        if (this.canEnter(this.state.position.x + 1, this.state.position.y)) {
+          this.setState(produce(this.state, state => { state.position.x++; }));
+        }
         break;
     }
   }
 
+  canEnter(x: number, y: number): boolean {
+    if (x < 0) return false;
+    if (x >= this.state.tilemap.width) return false;
+    if (y < 0) return false;
+    if (y >= this.state.tilemap.height) return false;
+    let canEnter = false;
+    for (let layer of this.state.tilemap.layers) {
+      if (!layer.data) continue;
+      const collide = layer.properties && layer.properties.find(prop => prop.name === 'collision');
+      const tile = layer.data[y * this.state.tilemap.width + x];
+      if (tile > 0 && collide) {
+        return false;
+      }
+      if (tile > 0) {
+        canEnter = true;
+      }
+    }
+    return canEnter;
+  }
+
+  canSee(x: number, y: number): boolean {
+    const dx = x - this.state.position.x;
+    const dy = y - this.state.position.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) return false;
+    for (let point of rasterizeLine(this.state.position.x, this.state.position.y, x, y)) {
+      if (this.isWall(point.x, point.y)) {
+        if (x === point.x && y === point.y) {
+          return true;
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
+  isWall(x: number, y: number): boolean {
+    for (let layer of this.state.tilemap.layers) {
+      if (!layer.data) continue;
+      const collide = layer.properties && layer.properties.find(prop => prop.name === 'collision');
+      if (!collide) continue;
+      const tile = layer.data[y * this.state.tilemap.width + x];
+      if (tile > 0) return true;
+    }
+    return false;
+  }
+
+  componentDidMount() {
+    Promise.all(this.state.tilemap.tilesets.map(tileset => {
+      if ((tileset as TilesetSource).source === undefined) return null;
+      const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
+      if (!spritesheet) return null;
+      const image = new Image();
+      image.src = `/spritesheet/image/${spritesheet.SpritesheetHash}`;
+      this.spritesheetImages[spritesheet.SpritesheetHash] = image;
+      return new Promise((resolve, _reject) => {
+        image.onload = resolve;
+      });
+    })).then(this.updateCanvas);
+  }
+
+  tilesetForTileID(index: number) {
+    const tilesetIndex = this.state.tilemap.tilesets.filter(tileset => tileset.firstgid).findIndex(tileset => index <= tileset.firstgid!) - 1;
+    const tileset = this.state.tilemap.tilesets[tilesetIndex];
+    if (tileset === undefined) return null;
+    if ((tileset as TilesetSource).source === undefined) return null;
+    const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
+    if (spritesheet === undefined) return null;
+    const definition = (spritesheet.SpritesheetDefinition as unknown) as Tileset;
+    definition.firstgid = tileset.firstgid;
+    definition.spritesheet = spritesheet.SpritesheetHash;
+    return definition;
+  }
+
+  updateCanvas = () => {
+    const ctx = this.canvasRef?.current?.getContext('2d');
+    if (!ctx) return;
+    const W = this.canvasRef.current?.width || 0;
+    const H = this.canvasRef.current?.height || 0;
+    ctx.clearRect(0, 0, W, H);
+    const seen: number[] = [];
+    this.state.tilemap.layers.forEach(layer => {
+      if (!layer.data) return;
+      layer.data.forEach((tileIndex, index) => {
+        if (!layer.width || !layer.height) return;
+        const tileset = this.tilesetForTileID(tileIndex);
+        if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
+        const tileX = index % layer.width;
+        const tileY = Math.floor(index / layer.height);
+        const worldX = index % layer.width * tileset.tilewidth;
+        const worldY = Math.floor(index / layer.height) * tileset.tileheight;
+
+        const seen = this.seen[tileY * this.state.tilemap.width + tileX];
+        if (!seen && !this.canSee(tileX, tileY)) return;
+
+        const offset = tileIndex - tileset.firstgid;
+        const tilesetX = offset % tileset.columns;
+        const tilesetY = Math.floor(offset / tileset.columns);
+        const xPosition = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
+        const yPosition = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
+        ctx.drawImage(
+          this.spritesheetImages[tileset.spritesheet],
+          xPosition,
+          yPosition,
+          tileset.tilewidth,
+          tileset.tileheight,
+          worldX * this.state.scale + this.state.offset.x,
+          worldY * this.state.scale + this.state.offset.y,
+          tileset.tilewidth * this.state.scale,
+          tileset.tileheight * this.state.scale,
+        );
+        this.seen[index] = true;
+      });
+    });
+    for (let i = 0; i < W / this.state.tilemap.tilewidth; i++) {
+      for (let j = 0; j < H / this.state.tilemap.tileheight; j++) {
+        const index = j * (W / this.state.tilemap.tilewidth) + i;
+        const dx = i - this.state.position.x;
+        const dy = j - this.state.position.y;
+        if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(
+            i * this.state.tilemap.tilewidth * this.state.scale + this.state.offset.x,
+            j * this.state.tilemap.tileheight * this.state.scale + this.state.offset.y,
+            this.state.tilemap.tilewidth * this.state.scale,
+            this.state.tilemap.tileheight * this.state.scale
+          );
+        }
+      }
+    }
+    ctx.fillStyle = 'red';
+    ctx.fillRect(
+      this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + this.state.offset.x,
+      this.state.position.y * this.state.tilemap.tileheight * this.state.scale + this.state.offset.y,
+      this.state.tilemap.tilewidth * this.state.scale,
+      this.state.tilemap.tileheight * this.state.scale
+    );
+    this.canvasReady = true;
+  }
+
   render() {
-    const width = this.state.tilemap.layers[0].width * this.state.tilemap.tilewidth;
-    const height = this.state.tilemap.layers[0].height * this.state.tilemap.tileheight;
+    if (this.canvasReady) {
+      this.updateCanvas();
+    }
+    const width = this.state.tilemap.layers.reduce((max, layer) => Math.max(layer.width || 0, max), 0) * this.state.tilemap.tilewidth * this.state.scale;
+    const height = this.state.tilemap.layers.reduce((max, layer) => Math.max(layer.height || 0, max), 0) * this.state.tilemap.tileheight * this.state.scale;
     return <div className="d-flex flex-column justify-content-center align-items-center" onKeyPress={this.handleKeyPress} tabIndex={0} style={{ outline: 'none' }}>
-      <div style={{ position: 'relative', width: width, height: height }}>
-        {this.state.tilemap.layers.map(layer => <React.Fragment key={layer.name}>{this.layer(layer)}</React.Fragment>)}
-        {this.player()}
-      </div>
+      <canvas ref={this.canvasRef} width={width} height={height}></canvas>
     </div>;
   }
 }

@@ -391,6 +391,40 @@ func SpritesheetDefinitionController(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
 }
 
+func SpritesheetDownloadDefinitionController(w http.ResponseWriter, r *http.Request) {
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
+	if err != nil {
+		panic(err)
+	}
+	spritesheet, err := db.GetSpritesheetByHash(r.Context(), hash)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	basename := strings.TrimSuffix(spritesheet.Name, filepath.Ext(spritesheet.Name))
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.json\"", basename))
+	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Definition))
+}
+
+func SpritesheetDownloadImageController(w http.ResponseWriter, r *http.Request) {
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
+	if err != nil {
+		panic(err)
+	}
+	spritesheet, err := db.GetSpritesheetByHash(r.Context(), hash)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	basename := strings.TrimSuffix(spritesheet.Name, filepath.Ext(spritesheet.Name))
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.png\"", basename))
+	http.ServeContent(w, r, spritesheet.Name, spritesheet.CreatedAt, bytes.NewReader(spritesheet.Image))
+}
+
 func TilemapController(w http.ResponseWriter, r *http.Request) {
 	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
 	if err != nil {
@@ -403,6 +437,23 @@ func TilemapController(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		panic(err)
 	}
+	http.ServeContent(w, r, tilemap.Name, tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
+}
+
+func TilemapDownloadController(w http.ResponseWriter, r *http.Request) {
+	hash, err := base64.StdEncoding.DecodeString(mux.Vars(r)["hash"])
+	if err != nil {
+		panic(err)
+	}
+	tilemap, err := db.GetTilemapByHash(r.Context(), hash)
+	if err == sql.ErrNoRows {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	basename := strings.TrimSuffix(tilemap.Name, filepath.Ext(tilemap.Name))
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.json\"", basename))
 	http.ServeContent(w, r, tilemap.Name, tilemap.CreatedAt, bytes.NewReader(tilemap.Definition))
 }
 

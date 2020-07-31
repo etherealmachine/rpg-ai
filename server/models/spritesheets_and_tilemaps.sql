@@ -2,7 +2,22 @@
 INSERT INTO spritesheets (owner_id, name, definition, image) VALUES ($1, $2, $3, $4) RETURNING *;
 
 -- name: CreateTilemap :one
-INSERT INTO tilemaps (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING *;
+INSERT INTO tilemaps (owner_id, name, description, definition) VALUES ($1, $2, $3, $4) RETURNING *;
+
+-- name: UpdateTilemap :exec
+UPDATE tilemaps SET
+  name = $3,
+  description = COALESCE($4, description),
+  definition = COALESCE($5, definition)
+WHERE tilemaps.id = $1 AND tilemaps.owner_id = $2;
+
+-- name: UpdateSpritesheet :exec
+UPDATE spritesheets SET
+  name = $3,
+  description = COALESCE($4, description),
+  definition = COALESCE($5, definition),
+  image = COALESCE($6, image)
+WHERE spritesheets.id = $1 AND spritesheets.owner_id = $2;
 
 -- name: ListSpritesheetsByOwnerID :many
 SELECT id, created_at, name, description, hash FROM spritesheets WHERE owner_id = $1;

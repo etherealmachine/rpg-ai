@@ -30,6 +30,29 @@ export interface ListSpritesheetsForTilemapResponse {
     References: ListSpritesheetsForTilemapRow[] | null
 }
 
+export interface UpdateSpritesheetParams {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+    Image: string
+}
+
+export interface Empty {
+}
+
+export interface UpdateTilemapParams {
+    ID: number
+    OwnerID: number
+    Name: string
+    Description: NullString
+    Definition: string
+}
+
+export interface Empty {
+}
+
 export interface FilledTilemap {
         
     ID: number
@@ -106,6 +129,12 @@ class AssetService extends JSONRPCService {
     }
     async ListReferences(args: ListSpritesheetsForTilemapRequest): Promise<ListSpritesheetsForTilemapResponse> {
       return this.jsonrpc<ListSpritesheetsForTilemapResponse>("ListReferences", args);
+    }
+    async UpdateSpritesheet(args: UpdateSpritesheetParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("UpdateSpritesheet", args);
+    }
+    async UpdateTilemap(args: UpdateTilemapParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("UpdateTilemap", args);
     }
 }
 

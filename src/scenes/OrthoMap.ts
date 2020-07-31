@@ -62,7 +62,7 @@ export default class OrthoMap extends Phaser.Scene {
   addObjectAnnotation(layer: Phaser.Tilemaps.ObjectLayer, object: Phaser.Types.Tilemaps.TiledObject): Phaser.GameObjects.Sprite | null {
     const { gid, x, y } = object;
     if (gid === undefined || x === undefined || y === undefined) return null;
-    const gidIndices = this.tiledMap.tilesets.map((t, i) => [i, t.firstgid]).sort((a, b) => b[1] - a[1]);
+    const gidIndices = this.tiledMap.tilesets.map((t, i) => [i, t.firstgid || -1]).sort((a, b) => b[1] - a[1]);
     const i = gidIndices.find(gidindex => gid >= gidindex[1]);
     if (i === undefined) {
       console.error(`no gid index found for ${gid}`);

@@ -70,9 +70,9 @@ export default class HexMap extends Phaser.Scene {
     for (let q = 0; q < this.tiledMap.width; q++) {
       for (let r = 0; r < this.tiledMap.height; r++) {
         const hex = OffsetCoord.qoffsetToCube(OffsetCoord.ODD, new OffsetCoord(q, r));
-        map.set(hex.toString(), this.tiledMap.layers.map(layer => {
+        map.set(hex.toString(), this.tiledMap.layers.filter(layer => layer.data).map(layer => {
           return {
-            index: layer.data[r * this.tiledMap.width + q] - 1,
+            index: layer.data![r * this.tiledMap.width + q] - 1,
             spritesheet: (this.tiledMap.tilesets[0] as TilesetSource).source,
           };
         }));

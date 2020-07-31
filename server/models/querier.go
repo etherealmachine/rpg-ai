@@ -44,6 +44,8 @@ type Querier interface {
 	UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) error
 	UpdateCharacter(ctx context.Context, arg UpdateCharacterParams) error
 	UpdateEncounter(ctx context.Context, arg UpdateEncounterParams) error
+	UpdateSpritesheet(ctx context.Context, arg UpdateSpritesheetParams) error
+	UpdateTilemap(ctx context.Context, arg UpdateTilemapParams) error
 	UpdateTilemapThumbnail(ctx context.Context, arg UpdateTilemapThumbnailParams) error
 }
 

@@ -45,17 +45,23 @@ func (q *Queries) CreateSpritesheet(ctx context.Context, arg CreateSpritesheetPa
 }
 
 const createTilemap = `-- name: CreateTilemap :one
-INSERT INTO tilemaps (owner_id, name, definition) VALUES ($1, $2, $3) RETURNING id, owner_id, name, description, definition, hash, created_at
+INSERT INTO tilemaps (owner_id, name, description, definition) VALUES ($1, $2, $3, $4) RETURNING id, owner_id, name, description, definition, hash, created_at
 `
 
 type CreateTilemapParams struct {
-	OwnerID    int32
-	Name       string
-	Definition json.RawMessage
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	Definition  json.RawMessage
 }
 
 func (q *Queries) CreateTilemap(ctx context.Context, arg CreateTilemapParams) (Tilemap, error) {
-	row := q.db.QueryRowContext(ctx, createTilemap, arg.OwnerID, arg.Name, arg.Definition)
+	row := q.db.QueryRowContext(ctx, createTilemap,
+		arg.OwnerID,
+		arg.Name,
+		arg.Description,
+		arg.Definition,
+	)
 	var i Tilemap
 	err := row.Scan(
 		&i.ID,
@@ -489,6 +495,63 @@ func (q *Queries) ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]L
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateSpritesheet = `-- name: UpdateSpritesheet :exec
+UPDATE spritesheets SET
+  name = $3,
+  description = COALESCE($4, description),
+  definition = COALESCE($5, definition),
+  image = COALESCE($6, image)
+WHERE spritesheets.id = $1 AND spritesheets.owner_id = $2
+`
+
+type UpdateSpritesheetParams struct {
+	ID          int32
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	Definition  json.RawMessage
+	Image       []byte
+}
+
+func (q *Queries) UpdateSpritesheet(ctx context.Context, arg UpdateSpritesheetParams) error {
+	_, err := q.db.ExecContext(ctx, updateSpritesheet,
+		arg.ID,
+		arg.OwnerID,
+		arg.Name,
+		arg.Description,
+		arg.Definition,
+		arg.Image,
+	)
+	return err
+}
+
+const updateTilemap = `-- name: UpdateTilemap :exec
+UPDATE tilemaps SET
+  name = $3,
+  description = COALESCE($4, description),
+  definition = COALESCE($5, definition)
+WHERE tilemaps.id = $1 AND tilemaps.owner_id = $2
+`
+
+type UpdateTilemapParams struct {
+	ID          int32
+	OwnerID     int32
+	Name        string
+	Description sql.NullString
+	Definition  json.RawMessage
+}
+
+func (q *Queries) UpdateTilemap(ctx context.Context, arg UpdateTilemapParams) error {
+	_, err := q.db.ExecContext(ctx, updateTilemap,
+		arg.ID,
+		arg.OwnerID,
+		arg.Name,
+		arg.Description,
+		arg.Definition,
+	)
+	return err
 }
 
 const updateTilemapThumbnail = `-- name: UpdateTilemapThumbnail :exec

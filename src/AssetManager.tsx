@@ -2,7 +2,6 @@ import React from 'react';
 import produce from 'immer';
 
 import AssetService, { Spritesheet, FilledTilemap } from './AssetService';
-import { references } from './Tiled';
 
 interface State {
   Tilemaps: FilledTilemap[]
@@ -12,6 +11,8 @@ interface State {
 
 export default class AssetManager extends React.Component<State, State> {
 
+  fileInputRefs: { [key: string]: React.RefObject<HTMLInputElement> } = {}
+
   constructor(props: State) {
     super(props);
     this.state = {
@@ -19,13 +20,24 @@ export default class AssetManager extends React.Component<State, State> {
       editing: {},
     };
     if (!props.Tilemaps || !props.Spritesheets) {
-      AssetService.ListAssets({}).then(resp => {
-        this.setState(produce(this.state, state => {
-          state.Tilemaps = resp.Tilemaps || [];
-          state.Spritesheets = resp.Spritesheets || [];
-        }));
+      this.updateAssets();
+    } else {
+      props.Tilemaps.forEach(tilemap => {
+        this.fileInputRefs[tilemap.Hash] = React.createRef();
       });
     }
+  }
+
+  updateAssets() {
+    AssetService.ListAssets({}).then(resp => {
+      (resp.Tilemaps || []).forEach(tilemap => {
+        this.fileInputRefs[tilemap.Hash] = React.createRef();
+      });
+      this.setState(produce(this.state, state => {
+        state.Tilemaps = resp.Tilemaps || [];
+        state.Spritesheets = resp.Spritesheets || [];
+      }));
+    });
   }
 
   onEditSpritesheetClicked = (spritesheet: Spritesheet) => (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -36,12 +48,7 @@ export default class AssetManager extends React.Component<State, State> {
 
   onDeleteSpritesheetClicked = (spritesheet: Spritesheet) => (event: React.MouseEvent<HTMLButtonElement>) => {
     AssetService.DeleteSpritesheet({ ID: spritesheet.ID }).then(() => {
-      AssetService.ListAssets({}).then(resp => {
-        this.setState(produce(this.state, state => {
-          state.Tilemaps = resp.Tilemaps || [];
-          state.Spritesheets = resp.Spritesheets || [];
-        }));
-      });
+      this.updateAssets();
     });
   }
 
@@ -53,15 +60,22 @@ export default class AssetManager extends React.Component<State, State> {
 
   onDeleteTilemapClicked = (tilemap: FilledTilemap) => (event: React.MouseEvent<HTMLButtonElement>) => {
     AssetService.DeleteTilemap({ ID: tilemap.ID }).then(() => {
-      AssetService.ListAssets({}).then(resp => {
-        const state = {
-          ...this.state,
-          Tilemaps: resp.Tilemaps || [],
-          Spritesheets: resp.Spritesheets || [],
-        };
-        this.setState(state);
-      });
+      this.updateAssets();
     });
+  }
+
+  onSaveTilemapClicked = (tilemap: FilledTilemap) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    const fileInput = this.fileInputRefs[tilemap.Hash].current;
+    if (!fileInput || !fileInput.files) return;
+    const reader = new FileReader();
+    reader.onload = (ev: ProgressEvent<FileReader>) => {
+      if (typeof ev.target?.result === 'string') {
+        AssetService.UpdateTilemap({ ID: tilemap.ID, OwnerID: -1, Name: tilemap.Name, Description: { String: "", Valid: false }, Definition: JSON.parse(ev.target.result) }).then(() => {
+          this.updateAssets();
+        });
+      }
+    }
+    reader.readAsText(fileInput.files[0]);
   }
 
   tilemapThumbnail(asset: FilledTilemap) {
@@ -77,13 +91,13 @@ export default class AssetManager extends React.Component<State, State> {
   }
 
   render() {
+    (window as any).AssetManager = this;
     return <table className="table">
       <thead>
         <tr>
           <th>Name</th>
           <th>Thumbnail</th>
           <th>Uploaded At</th>
-          <th>References</th>
         </tr>
       </thead>
       <tbody>
@@ -92,15 +106,21 @@ export default class AssetManager extends React.Component<State, State> {
           <td>{this.tilemapThumbnail(asset)}</td>
           <td>{asset.CreatedAt}</td>
           <td>
-            {asset.Definition && references([JSON.parse(asset.Definition)])}
-          </td>
-          <td>
             <div className="d-flex flex-column">
               {this.state.editing[asset.Hash] ?
-                <button type="button" className="btn btn-warning mb-4" onClick={this.onEditTilemapClicked(asset)}>Cancel</button> :
-                <button type="button" className="btn btn-secondary mb-4" onClick={this.onEditTilemapClicked(asset)}>Edit</button>
+                <React.Fragment>
+                  <button type="button" className="btn btn-warning mb-4" onClick={this.onEditTilemapClicked(asset)}>Cancel</button>
+                  <div className="d-flex">
+                    <input type="file" name={`file-input-${asset.ID}`} ref={this.fileInputRefs[asset.Hash]} />
+                    <button type="button" className="btn btn-primary mb-4" onClick={this.onSaveTilemapClicked(asset)}>Save</button>
+                  </div>
+                  <a className="btn btn-primary mt-4" href={`/tilemap/download/${asset.Hash}`}>Download</a>
+                  <button type="button" className="btn btn-danger mt-4" onClick={this.onDeleteTilemapClicked(asset)}>Delete</button>
+                </React.Fragment> :
+                <React.Fragment>
+                  <button type="button" className="btn btn-secondary mb-4" onClick={this.onEditTilemapClicked(asset)}>Edit</button>
+                </React.Fragment>
               }
-              <button type="button" className="btn btn-danger mt-4" onClick={this.onDeleteTilemapClicked(asset)}>Delete</button>
             </div>
           </td>
         </tr>
@@ -109,14 +129,19 @@ export default class AssetManager extends React.Component<State, State> {
           <td>{asset.Name}</td>
           <td>{this.spritesheetThumbnail(asset)}</td>
           <td>{asset.CreatedAt}</td>
-          <td></td>
           <td>
             <div className="d-flex flex-column">
               {this.state.editing[asset.Hash] ?
-                <button type="button" className="btn btn-warning mb-4" onClick={this.onEditSpritesheetClicked(asset)}>Cancel</button> :
-                <button type="button" className="btn btn-secondary mb-4" onClick={this.onEditSpritesheetClicked(asset)}>Edit</button>
+                <React.Fragment>
+                  <button type="button" className="btn btn-warning mb-4" onClick={this.onEditSpritesheetClicked(asset)}>Cancel</button>
+                  <a className="btn btn-primary mt-4" href={`/spritesheet/download/definition/${asset.Hash}`}>Download Definition</a>
+                  <a className="btn btn-primary mt-4" href={`/spritesheet/download/image/${asset.Hash}`}>Download Image</a>
+                  <button type="button" className="btn btn-danger mt-4" onClick={this.onDeleteSpritesheetClicked(asset)}>Delete</button>
+                </React.Fragment> :
+                <React.Fragment>
+                  <button type="button" className="btn btn-secondary mb-4" onClick={this.onEditSpritesheetClicked(asset)}>Edit</button>
+                </React.Fragment>
               }
-              <button type="button" className="btn btn-danger mt-4" onClick={this.onDeleteSpritesheetClicked(asset)}>Delete</button>
             </div>
           </td>
         </tr>

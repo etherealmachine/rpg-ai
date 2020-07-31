@@ -1,11 +1,6 @@
 export interface Tileset {
   name: string
   columns: number
-  grid: {
-    width: number
-    height: number
-    orientation: string
-  }
   image: string
   imageheight: number
   imagewidth: number
@@ -17,8 +12,14 @@ export interface Tileset {
   tileheight: number
   type: string
   version: number
-  firstgid: number
-  tiles: TileDefinition[]
+  firstgid?: number
+  spritesheet?: string
+  grid?: {
+    width: number
+    height: number
+    orientation: string
+  }
+  tiles?: TileDefinition[]
 }
 
 export interface TileDefinition {
@@ -52,13 +53,20 @@ export interface TilemapLayer {
   id: number
   name: string
   type: string
-  data: number[]
-  height: number
-  width: number
+  data?: number[]
+  height?: number
+  width?: number
+  properties?: Array<Property>
   x: number
   y: number
   visible: boolean
   opacity: number
+}
+
+export interface Property {
+  name: string
+  type: string
+  value: any
 }
 
 export function references(objs: (Tilemap | Tileset | string)[]): Set<string> {
@@ -76,5 +84,5 @@ export function references(objs: (Tilemap | Tileset | string)[]): Set<string> {
       return (obj as Tileset).image;
     }
     return obj;
-  }).flat().filter(ref => ref));
+  }).flat().filter(ref => ref) as Array<string>);
 }

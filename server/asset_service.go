@@ -57,6 +57,24 @@ func (s *AssetService) ListAssets(r *http.Request, args *ListAssetsRequest, repl
 	return nil
 }
 
+func (s *AssetService) UpdateTilemap(r *http.Request, arg *models.UpdateTilemapParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.UpdateTilemap(r.Context(), *arg)
+}
+
+func (s *AssetService) UpdateSpritesheet(r *http.Request, arg *models.UpdateSpritesheetParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.UpdateSpritesheet(r.Context(), *arg)
+}
+
 type DeleteAssetRequest struct {
 	ID int32
 }
