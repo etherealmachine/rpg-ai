@@ -17,7 +17,7 @@ interface State {
   tilemap: TiledTilemap,
   position: { x: number, y: number },
   scale: number,
-  offset: { x: number, y: number },
+  camera: { x: number, y: number },
 }
 
 export default class EncounterUI extends React.Component<Props, State> {
@@ -33,7 +33,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       tilemap: ((props.Tilemap.Definition as unknown) as TiledTilemap),
       position: { x: 0, y: 0 },
       scale: 1,
-      offset: { x: 0, y: 0 },
+      camera: { x: 0, y: 0 },
     };
     (window as any).encounter = this;
   }
@@ -60,6 +60,17 @@ export default class EncounterUI extends React.Component<Props, State> {
           this.setState(produce(this.state, state => { state.position.x++; }));
         }
         break;
+      case 'q':
+        this.setState(produce(this.state, state => { state.scale = Math.max(state.scale - 0.1, 1) }));
+        break;
+      case 'e':
+        this.setState(produce(this.state, state => { state.scale = Math.min(state.scale + 0.1, 4) }));
+        break;
+      case 'c':
+        this.setState(produce(this.state, state => {
+          state.camera.x = state.position.x * state.tilemap.tilewidth * state.scale;
+          state.camera.y = state.position.y * state.tilemap.tileheight * state.scale;
+        }));
     }
   }
 
@@ -137,12 +148,19 @@ export default class EncounterUI extends React.Component<Props, State> {
   }
 
   updateCanvas = () => {
-    const ctx = this.canvasRef?.current?.getContext('2d');
+    const canvas = this.canvasRef.current;
+    if (!canvas) return;
+    if (canvas.width !== canvas.offsetWidth) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const W = this.canvasRef.current?.width || 0;
-    const H = this.canvasRef.current?.height || 0;
-    ctx.clearRect(0, 0, W, H);
-    const seen: number[] = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const offset = {
+      x: (canvas.width / 2) - this.state.camera.x,
+      y: (canvas.height / 2) - this.state.camera.y,
+    };
     this.state.tilemap.layers.forEach(layer => {
       if (!layer.data) return;
       layer.data.forEach((tileIndex, index) => {
@@ -154,12 +172,12 @@ export default class EncounterUI extends React.Component<Props, State> {
         const worldX = index % layer.width * tileset.tilewidth;
         const worldY = Math.floor(index / layer.height) * tileset.tileheight;
 
-        const seen = this.seen[tileY * this.state.tilemap.width + tileX];
+        const seen = this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX];
         if (!seen && !this.canSee(tileX, tileY)) return;
 
-        const offset = tileIndex - tileset.firstgid;
-        const tilesetX = offset % tileset.columns;
-        const tilesetY = Math.floor(offset / tileset.columns);
+        const indexInTileset = tileIndex - tileset.firstgid;
+        const tilesetX = indexInTileset % tileset.columns;
+        const tilesetY = Math.floor(indexInTileset / tileset.columns);
         const xPosition = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
         const yPosition = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
         ctx.drawImage(
@@ -168,24 +186,24 @@ export default class EncounterUI extends React.Component<Props, State> {
           yPosition,
           tileset.tilewidth,
           tileset.tileheight,
-          worldX * this.state.scale + this.state.offset.x,
-          worldY * this.state.scale + this.state.offset.y,
-          tileset.tilewidth * this.state.scale,
-          tileset.tileheight * this.state.scale,
+          worldX * this.state.scale + offset.x - 2,
+          worldY * this.state.scale + offset.y - 2,
+          tileset.tilewidth * this.state.scale + 2,
+          tileset.tileheight * this.state.scale + 2,
         );
-        this.seen[index] = true;
+        this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX] = true;
       });
     });
-    for (let i = 0; i < W / this.state.tilemap.tilewidth; i++) {
-      for (let j = 0; j < H / this.state.tilemap.tileheight; j++) {
-        const index = j * (W / this.state.tilemap.tilewidth) + i;
+    for (let i = 0; i < canvas.width / this.state.tilemap.tilewidth; i++) {
+      for (let j = 0; j < canvas.height / this.state.tilemap.tileheight; j++) {
+        const index = j * (canvas.width / this.state.tilemap.tilewidth) + i;
         const dx = i - this.state.position.x;
         const dy = j - this.state.position.y;
         if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
           ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
           ctx.fillRect(
-            i * this.state.tilemap.tilewidth * this.state.scale + this.state.offset.x,
-            j * this.state.tilemap.tileheight * this.state.scale + this.state.offset.y,
+            i * this.state.tilemap.tilewidth * this.state.scale + offset.x,
+            j * this.state.tilemap.tileheight * this.state.scale + offset.y,
             this.state.tilemap.tilewidth * this.state.scale,
             this.state.tilemap.tileheight * this.state.scale
           );
@@ -194,8 +212,8 @@ export default class EncounterUI extends React.Component<Props, State> {
     }
     ctx.fillStyle = 'red';
     ctx.fillRect(
-      this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + this.state.offset.x,
-      this.state.position.y * this.state.tilemap.tileheight * this.state.scale + this.state.offset.y,
+      this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
+      this.state.position.y * this.state.tilemap.tileheight * this.state.scale + offset.y,
       this.state.tilemap.tilewidth * this.state.scale,
       this.state.tilemap.tileheight * this.state.scale
     );
@@ -206,10 +224,8 @@ export default class EncounterUI extends React.Component<Props, State> {
     if (this.canvasReady) {
       this.updateCanvas();
     }
-    const width = this.state.tilemap.layers.reduce((max, layer) => Math.max(layer.width || 0, max), 0) * this.state.tilemap.tilewidth * this.state.scale;
-    const height = this.state.tilemap.layers.reduce((max, layer) => Math.max(layer.height || 0, max), 0) * this.state.tilemap.tileheight * this.state.scale;
-    return <div className="d-flex flex-column justify-content-center align-items-center" onKeyPress={this.handleKeyPress} tabIndex={0} style={{ outline: 'none' }}>
-      <canvas ref={this.canvasRef} width={width} height={height}></canvas>
+    return <div onKeyPress={this.handleKeyPress} tabIndex={0} style={{ outline: 'none', height: '100%' }}>
+      <canvas ref={this.canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
     </div>;
   }
 }
