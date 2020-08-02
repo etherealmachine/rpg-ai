@@ -38,6 +38,16 @@ export interface CreateEncounterParams {
 export interface Empty {
 }
 
+export interface CreateNPCParams {
+    OwnerID: number
+    Name: string
+    Definition: string
+}
+
+export interface CreateNPCResponse {
+    NPC: Npc
+}
+
 export interface DeleteCampaignParams {
     ID: number
     OwnerID: number
@@ -55,6 +65,14 @@ export interface Empty {
 }
 
 export interface DeleteEncounterParams {
+    ID: number
+    OwnerID: number
+}
+
+export interface Empty {
+}
+
+export interface DeleteNPCParams {
     ID: number
     OwnerID: number
 }
@@ -93,6 +111,14 @@ export interface ListCharactersResponse {
     Characters: Character[] | null
 }
 
+export interface SearchNPCsRequest {
+    Query: string
+}
+
+export interface SearchNPCsResponse {
+    NPCs: Npc[] | null
+}
+
 export interface UpdateCampaignParams {
     ID: number
     OwnerID: number
@@ -118,6 +144,17 @@ export interface UpdateEncounterParams {
     Name: string
     Description: NullString
     TilemapID: NullInt32
+}
+
+export interface Empty {
+}
+
+export interface UpdateNPCParams {
+    ID: number
+    OwnerID: number
+    Name: string
+    Definition: string
+    Sprite: string
 }
 
 export interface Empty {
@@ -174,6 +211,16 @@ export interface FilledEncounter {
     Characters: Character[] | null
 }
 
+export interface Npc {
+    ID: number
+    OwnerID: number
+    Name: string
+    Definition: string
+    Sprite: string
+    Hash: string
+    CreatedAt: Date
+}
+
 export interface NullInt32 {
     Int32: number
     Valid: boolean
@@ -207,6 +254,9 @@ class CampaignService extends JSONRPCService {
     async CreateEncounter(args: CreateEncounterParams): Promise<Empty> {
       return this.jsonrpc<Empty>("CreateEncounter", args);
     }
+    async CreateNPC(args: CreateNPCParams): Promise<CreateNPCResponse> {
+      return this.jsonrpc<CreateNPCResponse>("CreateNPC", args);
+    }
     async DeleteCampaign(args: DeleteCampaignParams): Promise<Empty> {
       return this.jsonrpc<Empty>("DeleteCampaign", args);
     }
@@ -215,6 +265,9 @@ class CampaignService extends JSONRPCService {
     }
     async DeleteEncounter(args: DeleteEncounterParams): Promise<Empty> {
       return this.jsonrpc<Empty>("DeleteEncounter", args);
+    }
+    async DeleteNPC(args: DeleteNPCParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("DeleteNPC", args);
     }
     async ListCampaigns(args: Empty): Promise<ListCampaignsResponse> {
       return this.jsonrpc<ListCampaignsResponse>("ListCampaigns", args);
@@ -228,6 +281,9 @@ class CampaignService extends JSONRPCService {
     async SearchCharacters(args: SearchCharactersRequest): Promise<ListCharactersResponse> {
       return this.jsonrpc<ListCharactersResponse>("SearchCharacters", args);
     }
+    async SearchNPCs(args: SearchNPCsRequest): Promise<SearchNPCsResponse> {
+      return this.jsonrpc<SearchNPCsResponse>("SearchNPCs", args);
+    }
     async UpdateCampaign(args: UpdateCampaignParams): Promise<Empty> {
       return this.jsonrpc<Empty>("UpdateCampaign", args);
     }
@@ -236,6 +292,9 @@ class CampaignService extends JSONRPCService {
     }
     async UpdateEncounter(args: UpdateEncounterParams): Promise<Empty> {
       return this.jsonrpc<Empty>("UpdateEncounter", args);
+    }
+    async UpdateNPC(args: UpdateNPCParams): Promise<Empty> {
+      return this.jsonrpc<Empty>("UpdateNPC", args);
     }
 }
 

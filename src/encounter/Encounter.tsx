@@ -3,7 +3,7 @@ import produce from 'immer';
 
 import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
-import { Tilemap as TiledTilemap, TilemapLayer, TilesetSource, Tileset } from '../Tiled';
+import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import { rasterizeLine } from '../OrthoMath';
 
 interface Props {

@@ -9,6 +9,7 @@ import AssetUploader from './AssetUploader';
 import CampaignManager from './CampaignManager';
 import CharacterManager from './CharacterManager';
 import Encounter from './encounter/Encounter';
+import SpriteMaker from './SpriteMaker';
 
 import { createNanoEvents } from 'nanoevents';
 (window as any).emitter = createNanoEvents();
@@ -32,6 +33,7 @@ const components = {
   'CampaignManager': CampaignManager,
   'CharacterManager': CharacterManager,
   'Encounter': Encounter,
+  'SpriteMaker': SpriteMaker,
 };
 
 for (let [name, fn] of Object.entries(components)) {

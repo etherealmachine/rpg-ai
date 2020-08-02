@@ -1,0 +1,10 @@
+CREATE TABLE npcs
+(
+  id SERIAL PRIMARY KEY,
+  owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  definition JSONB NOT NULL,
+  sprite BYTEA NOT NULL,
+  hash BYTEA NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+);

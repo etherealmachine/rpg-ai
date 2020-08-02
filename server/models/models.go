@@ -40,6 +40,16 @@ type EncounterCharacter struct {
 	CharacterID int32
 }
 
+type Npc struct {
+	ID         int32
+	OwnerID    int32
+	Name       string
+	Definition json.RawMessage
+	Sprite     []byte
+	Hash       []byte
+	CreatedAt  time.Time
+}
+
 type Spritesheet struct {
 	ID          int32
 	OwnerID     int32

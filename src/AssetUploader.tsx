@@ -236,14 +236,14 @@ export default class AssetUploader extends React.Component<{}, State> {
   }
 }
 
-export function SetTilemapThumbnail(tilemapID: number, blob: Blob) {
+export function SetImage(id: number, type: string, blob: Blob) {
   JSONRPCService.csrfToken().then(token => {
     const req = new XMLHttpRequest();
-    req.open("POST", "/set-tilemap-thumbnail", true);
+    req.open("POST", `/set-${type}-image`, true);
     const formData = new FormData();
-    formData.append("tilemapID", `${tilemapID}`);
+    formData.append("id", `${id}`);
     formData.append("gorilla.csrf.Token", token);
-    formData.append("thumbnail", blob);
+    formData.append("image", blob);
     req.send(formData);
   });
 }

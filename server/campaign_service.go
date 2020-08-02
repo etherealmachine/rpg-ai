@@ -156,3 +156,53 @@ func (s *CampaignService) RemoveCharacterFromEncounter(r *http.Request, arg *mod
 	arg.OwnerID = u.ID
 	return s.db.RemoveCharacterFromEncounter(r.Context(), *arg)
 }
+
+type CreateNPCResponse struct {
+	NPC models.Npc
+}
+
+func (s *CampaignService) CreateNPC(r *http.Request, arg *models.CreateNPCParams, reply *CreateNPCResponse) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	_, err := s.db.CreateNPC(r.Context(), *arg)
+	return err
+}
+
+func (s *CampaignService) DeleteNPC(r *http.Request, arg *models.DeleteNPCParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.DeleteNPC(r.Context(), *arg)
+}
+
+func (s *CampaignService) UpdateNPC(r *http.Request, arg *models.UpdateNPCParams, reply *Empty) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	arg.OwnerID = u.ID
+	return s.db.UpdateNPC(r.Context(), *arg)
+}
+
+type SearchNPCsRequest struct {
+	Query string
+}
+
+type SearchNPCsResponse struct {
+	NPCs []models.Npc
+}
+
+func (s *CampaignService) SearchNPCs(r *http.Request, arg *SearchNPCsRequest, reply *SearchNPCsResponse) error {
+	u := currentUser(r)
+	if u == nil {
+		return errors.New("no authenticated user found")
+	}
+	var err error
+	reply.NPCs, err = s.db.SearchNPCs(r.Context(), arg.Query)
+	return err
+}

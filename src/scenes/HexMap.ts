@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Tilemap, TilesetSource } from '../Tiled';
 import { OffsetCoord, Layout } from '../HexMath';
 import { Tilemap as TilemapModel } from '../AssetService';
-import { SetTilemapThumbnail } from '../AssetUploader';
+import { SetImage } from '../AssetUploader';
 
 export default class HexMap extends Phaser.Scene {
   tilemapModel!: TilemapModel
@@ -37,7 +37,7 @@ export default class HexMap extends Phaser.Scene {
         c.getContext("2d")?.drawImage(image as HTMLImageElement, 0, 0);
         (c as HTMLCanvasElement).toBlob(blob => {
           if (!blob) return;
-          if (this.tilemapModel) SetTilemapThumbnail(this.tilemapModel.ID, blob);
+          if (this.tilemapModel) SetImage(this.tilemapModel.ID, 'tilemap', blob);
         });
       })
   }

@@ -11,16 +11,19 @@ type Querier interface {
 	CreateCampaign(ctx context.Context, arg CreateCampaignParams) (Campaign, error)
 	CreateCharacter(ctx context.Context, arg CreateCharacterParams) (Character, error)
 	CreateEncounter(ctx context.Context, arg CreateEncounterParams) (Encounter, error)
+	CreateNPC(ctx context.Context, arg CreateNPCParams) (Npc, error)
 	CreateSpritesheet(ctx context.Context, arg CreateSpritesheetParams) (Spritesheet, error)
 	CreateTilemap(ctx context.Context, arg CreateTilemapParams) (Tilemap, error)
 	CreateTilemapReference(ctx context.Context, arg CreateTilemapReferenceParams) error
 	DeleteCampaign(ctx context.Context, arg DeleteCampaignParams) error
 	DeleteCharacter(ctx context.Context, arg DeleteCharacterParams) error
 	DeleteEncounter(ctx context.Context, arg DeleteEncounterParams) error
+	DeleteNPC(ctx context.Context, arg DeleteNPCParams) error
 	DeleteSpritesheet(ctx context.Context, arg DeleteSpritesheetParams) error
 	DeleteTilemap(ctx context.Context, arg DeleteTilemapParams) error
 	GetCharacterByID(ctx context.Context, id int32) (Character, error)
 	GetEncounterForCharacter(ctx context.Context, arg GetEncounterForCharacterParams) (Encounter, error)
+	GetNPCByID(ctx context.Context, id int32) (Npc, error)
 	GetOwnedCampaignByID(ctx context.Context, arg GetOwnedCampaignByIDParams) (Campaign, error)
 	GetSpritesheetByHash(ctx context.Context, hash []byte) (Spritesheet, error)
 	GetThumbnailByHash(ctx context.Context, hash []byte) (GetThumbnailByHashRow, error)
@@ -41,9 +44,11 @@ type Querier interface {
 	ListTilemapsByOwnerID(ctx context.Context, ownerID int32) ([]ListTilemapsByOwnerIDRow, error)
 	RemoveCharacterFromEncounter(ctx context.Context, arg RemoveCharacterFromEncounterParams) error
 	SearchCharacters(ctx context.Context, name string) ([]Character, error)
+	SearchNPCs(ctx context.Context, name string) ([]Npc, error)
 	UpdateCampaign(ctx context.Context, arg UpdateCampaignParams) error
 	UpdateCharacter(ctx context.Context, arg UpdateCharacterParams) error
 	UpdateEncounter(ctx context.Context, arg UpdateEncounterParams) error
+	UpdateNPC(ctx context.Context, arg UpdateNPCParams) error
 	UpdateSpritesheet(ctx context.Context, arg UpdateSpritesheetParams) error
 	UpdateTilemap(ctx context.Context, arg UpdateTilemapParams) error
 	UpdateTilemapThumbnail(ctx context.Context, arg UpdateTilemapThumbnailParams) error
