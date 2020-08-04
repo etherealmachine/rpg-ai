@@ -18,6 +18,8 @@ interface State {
   position: { x: number, y: number },
   scale: number,
   camera: { x: number, y: number },
+  fogOfWar: boolean,
+  lineOfSight: boolean,
 }
 
 export default class EncounterUI extends React.Component<Props, State> {
@@ -26,6 +28,18 @@ export default class EncounterUI extends React.Component<Props, State> {
   spritesheetImages: { [key: string]: HTMLImageElement } = {}
   canvasReady = false
   seen: { [key: number]: boolean } = {}
+  layerTiles: number[][] = []
+  layerHashes: string[] = []
+  hashCounts: { [key: string]: number } = {}
+  hashGraph: { [key: string]: { [key: string]: { [key: string]: number } } } = {}
+  entropy: number[] = []
+  allowedHashes: { hash: string, count: number }[][] = []
+  neighbors = [
+    { dir: 'north', x: 0, y: -1 },
+    { dir: 'east', x: 1, y: 0 },
+    { dir: 'south', x: 0, y: 1 },
+    { dir: 'west', x: -1, y: 0 },
+  ]
 
   constructor(props: Props) {
     super(props);
@@ -34,7 +48,11 @@ export default class EncounterUI extends React.Component<Props, State> {
       position: { x: 0, y: 0 },
       scale: 1,
       camera: { x: 0, y: 0 },
+      fogOfWar: false,
+      lineOfSight: false,
     };
+    this.parseTuples();
+    this.calculateEntropy();
     (window as any).encounter = this;
   }
 
@@ -71,7 +89,124 @@ export default class EncounterUI extends React.Component<Props, State> {
           state.camera.x = state.position.x * state.tilemap.tilewidth * state.scale;
           state.camera.y = state.position.y * state.tilemap.tileheight * state.scale;
         }));
+        break;
+      case 'n':
+        this.collapseStep();
+        break;
     }
+  }
+
+  parseTuples() {
+    this.layerTiles = [];
+    this.layerHashes = [];
+    const W = this.state.tilemap.width;
+    const H = this.state.tilemap.height;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const layers: number[] = [];
+        for (let layer of this.state.tilemap.layers) {
+          if (!layer.data) continue;
+          layers.push(layer.data[y * W + x]);
+        }
+        this.layerTiles.push(layers);
+        this.layerHashes.push(layers.join(':'));
+      }
+    }
+    this.hashCounts = {};
+    this.hashGraph = {};
+    for (let x = 0; x < W; x++) {
+      for (let y = 0; y < H; y++) {
+        const t = this.layerHashes[y * W + x];
+        if (this.hashCounts[t] === undefined) this.hashCounts[t] = 0;
+        this.hashCounts[t]++;
+        for (let neighbor of this.neighbors) {
+          const nx = x + neighbor.x;
+          const ny = y + neighbor.y;
+          if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+            const n = this.layerHashes[ny * W + nx];
+            if (this.hashGraph[n] === undefined) this.hashGraph[n] = {};
+            if (this.hashGraph[n][neighbor.dir] === undefined) this.hashGraph[n][neighbor.dir] = {};
+            if (this.hashGraph[n][neighbor.dir][t] === undefined) this.hashGraph[n][neighbor.dir][t] = 0;
+            this.hashGraph[n][neighbor.dir][t]++;
+          }
+        }
+      }
+    }
+  }
+
+  calculateEntropy() {
+    const W = this.state.tilemap.width;
+    const H = this.state.tilemap.height;
+    this.entropy = [];
+    this.allowedHashes = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        let tileEntropy = 0;
+        let allowedHashes: { hash: string, count: number }[] = [];
+        if (this.layerTiles[y * W + x].reduce((acc, t) => t + acc, 0) === 0) {
+          for (let neighbor of this.neighbors) {
+            const nx = x + neighbor.x;
+            const ny = y + neighbor.y;
+            if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
+              const n = this.layerHashes[ny * W + nx];
+              const neighborHashes = this.hashGraph[n][neighbor.dir];
+              if (neighborHashes) {
+                Object.entries(neighborHashes).forEach(([hash, count]) => {
+                  allowedHashes.push({ hash: hash, count: count });
+                });
+              }
+            }
+          }
+          if (allowedHashes.length === 0) {
+            Object.entries(this.hashCounts).forEach(([hash, count]) => {
+              allowedHashes.push({ hash: hash, count: count });
+            });
+          }
+          const sum = allowedHashes.reduce((acc, h) => acc + h.count, 0);
+          const logSum = allowedHashes.reduce((acc, h) => acc + h.count * Math.log(h.count), 0);
+          tileEntropy = Math.log(sum) - logSum / sum;
+        }
+        this.allowedHashes.push(allowedHashes);
+        this.entropy.push(tileEntropy);
+      }
+    }
+  }
+
+  collapseStep() {
+    this.calculateEntropy();
+    const W = this.state.tilemap.width;
+    const H = this.state.tilemap.height;
+    const minNonZeroEntropy = this.entropy.reduce((min, e) => e > 0 && e < min ? e : min, Infinity);
+    for (let x = 0; x < W; x++) {
+      for (let y = 0; y < H; y++) {
+        const e = this.entropy[y * W + x];
+        if (e === minNonZeroEntropy) {
+          const selection = this.lottery(this.allowedHashes[y * W + x]);
+          const tiles = selection.hash.split(':').map(t => parseInt(t));
+          this.layerTiles[y * W + x] = tiles;
+          tiles.forEach((tileIndex, layerIndex) => {
+            this.state.tilemap.layers[layerIndex].data![y * W + x] = tileIndex;
+          });
+          this.updateCanvas();
+          return;
+        }
+      }
+    }
+  }
+
+  lottery(arr: { hash: string, count: number }[]) {
+    const sum = arr.reduce((acc, h) => acc + h.count, 0);
+    const selected = Math.random() * sum;
+    let total = 0;
+    let winner = -1;
+    for (let i = 0; i < arr.length; i++) {
+      total += arr[i].count;
+      if (selected <= total) {
+        winner = i;
+        break;
+      }
+    }
+    return arr[winner];
   }
 
   canEnter(x: number, y: number): boolean {
@@ -158,8 +293,8 @@ export default class EncounterUI extends React.Component<Props, State> {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const offset = {
-      x: (canvas.width / 2) - this.state.camera.x,
-      y: (canvas.height / 2) - this.state.camera.y,
+      x: 100,
+      y: 100,
     };
     this.state.tilemap.layers.forEach(layer => {
       if (!layer.data) return;
@@ -173,7 +308,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         const worldY = Math.floor(index / layer.height) * tileset.tileheight;
 
         const seen = this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX];
-        if (!seen && !this.canSee(tileX, tileY)) return;
+        if (!seen && !this.canSee(tileX, tileY) && this.state.lineOfSight) return;
 
         const indexInTileset = tileIndex - tileset.firstgid;
         const tilesetX = indexInTileset % tileset.columns;
@@ -194,20 +329,37 @@ export default class EncounterUI extends React.Component<Props, State> {
         this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX] = true;
       });
     });
-    for (let i = 0; i < canvas.width / this.state.tilemap.tilewidth; i++) {
-      for (let j = 0; j < canvas.height / this.state.tilemap.tileheight; j++) {
-        const index = j * (canvas.width / this.state.tilemap.tilewidth) + i;
-        const dx = i - this.state.position.x;
-        const dy = j - this.state.position.y;
-        if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-          ctx.fillRect(
-            i * this.state.tilemap.tilewidth * this.state.scale + offset.x,
-            j * this.state.tilemap.tileheight * this.state.scale + offset.y,
-            this.state.tilemap.tilewidth * this.state.scale,
-            this.state.tilemap.tileheight * this.state.scale
-          );
+    if (this.state.fogOfWar) {
+      for (let i = 0; i < canvas.width / this.state.tilemap.tilewidth; i++) {
+        for (let j = 0; j < canvas.height / this.state.tilemap.tileheight; j++) {
+          const index = j * (canvas.width / this.state.tilemap.tilewidth) + i;
+          const dx = i - this.state.position.x;
+          const dy = j - this.state.position.y;
+          if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(
+              i * this.state.tilemap.tilewidth * this.state.scale + offset.x,
+              j * this.state.tilemap.tileheight * this.state.scale + offset.y,
+              this.state.tilemap.tilewidth * this.state.scale,
+              this.state.tilemap.tileheight * this.state.scale
+            );
+          }
         }
+      }
+    }
+    const W = this.state.tilemap.width;
+    const H = this.state.tilemap.height;
+    const maxEntropy = this.entropy.reduce((max, e) => Math.max(e, max), 0);
+    for (let x = 0; x < W; x++) {
+      for (let y = 0; y < H; y++) {
+        const e = this.entropy[y * W + x] / maxEntropy;
+        ctx.fillStyle = `rgba(0, 0, 0, ${e})`;
+        ctx.fillRect(
+          x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
+          y * this.state.tilemap.tileheight * this.state.scale + offset.y,
+          this.state.tilemap.tilewidth * this.state.scale,
+          this.state.tilemap.tileheight * this.state.scale
+        );
       }
     }
     ctx.fillStyle = 'red';
