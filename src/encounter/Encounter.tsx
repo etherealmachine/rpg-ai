@@ -5,6 +5,7 @@ import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
 import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import { rasterizeLine } from '../OrthoMath';
+import WaveFunction from '../WaveFunction';
 
 interface Props {
   Encounter: Encounter
@@ -20,6 +21,7 @@ interface State {
   camera: { x: number, y: number },
   fogOfWar: boolean,
   lineOfSight: boolean,
+  mouse?: { x: number, y: number, buttons?: number },
 }
 
 export default class EncounterUI extends React.Component<Props, State> {
@@ -28,18 +30,7 @@ export default class EncounterUI extends React.Component<Props, State> {
   spritesheetImages: { [key: string]: HTMLImageElement } = {}
   canvasReady = false
   seen: { [key: number]: boolean } = {}
-  layerTiles: number[][] = []
-  layerHashes: string[] = []
-  hashCounts: { [key: string]: number } = {}
-  hashGraph: { [key: string]: { [key: string]: { [key: string]: number } } } = {}
-  entropy: number[] = []
-  allowedHashes: { hash: string, count: number }[][] = []
-  neighbors = [
-    { dir: 'north', x: 0, y: -1 },
-    { dir: 'east', x: 1, y: 0 },
-    { dir: 'south', x: 0, y: 1 },
-    { dir: 'west', x: -1, y: 0 },
-  ]
+  waveFunction: WaveFunction
 
   constructor(props: Props) {
     super(props);
@@ -51,9 +42,8 @@ export default class EncounterUI extends React.Component<Props, State> {
       fogOfWar: false,
       lineOfSight: false,
     };
-    this.parseTuples();
-    this.calculateEntropy();
     (window as any).encounter = this;
+    this.waveFunction = new WaveFunction(this.state.tilemap);
   }
 
   handleKeyPress = (event: React.KeyboardEvent) => {
@@ -91,122 +81,26 @@ export default class EncounterUI extends React.Component<Props, State> {
         }));
         break;
       case 'n':
-        this.collapseStep();
+        this.waveFunction.stepCollapse();
+        this.updateCanvas();
         break;
     }
   }
 
-  parseTuples() {
-    this.layerTiles = [];
-    this.layerHashes = [];
-    const W = this.state.tilemap.width;
-    const H = this.state.tilemap.height;
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const layers: number[] = [];
-        for (let layer of this.state.tilemap.layers) {
-          if (!layer.data) continue;
-          layers.push(layer.data[y * W + x]);
-        }
-        this.layerTiles.push(layers);
-        this.layerHashes.push(layers.join(':'));
-      }
-    }
-    this.hashCounts = {};
-    this.hashGraph = {};
-    for (let x = 0; x < W; x++) {
-      for (let y = 0; y < H; y++) {
-        const t = this.layerHashes[y * W + x];
-        if (this.hashCounts[t] === undefined) this.hashCounts[t] = 0;
-        this.hashCounts[t]++;
-        for (let neighbor of this.neighbors) {
-          const nx = x + neighbor.x;
-          const ny = y + neighbor.y;
-          if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
-            const n = this.layerHashes[ny * W + nx];
-            if (this.hashGraph[n] === undefined) this.hashGraph[n] = {};
-            if (this.hashGraph[n][neighbor.dir] === undefined) this.hashGraph[n][neighbor.dir] = {};
-            if (this.hashGraph[n][neighbor.dir][t] === undefined) this.hashGraph[n][neighbor.dir][t] = 0;
-            this.hashGraph[n][neighbor.dir][t]++;
-          }
-        }
-      }
-    }
+  handleMouseMove = (event: React.MouseEvent) => {
+    const x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - (this.canvasRef.current?.offsetLeft || 0);
+    const y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop - (this.canvasRef.current?.offsetTop || 0);
+    this.setState(produce(this.state, state => {
+      state.mouse = { x: x, y: y };
+    }));
   }
 
-  calculateEntropy() {
-    const W = this.state.tilemap.width;
-    const H = this.state.tilemap.height;
-    this.entropy = [];
-    this.allowedHashes = [];
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        let tileEntropy = 0;
-        let allowedHashes: { hash: string, count: number }[] = [];
-        if (this.layerTiles[y * W + x].reduce((acc, t) => t + acc, 0) === 0) {
-          for (let neighbor of this.neighbors) {
-            const nx = x + neighbor.x;
-            const ny = y + neighbor.y;
-            if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
-              const n = this.layerHashes[ny * W + nx];
-              const neighborHashes = this.hashGraph[n][neighbor.dir];
-              if (neighborHashes) {
-                Object.entries(neighborHashes).forEach(([hash, count]) => {
-                  allowedHashes.push({ hash: hash, count: count });
-                });
-              }
-            }
-          }
-          if (allowedHashes.length === 0) {
-            Object.entries(this.hashCounts).forEach(([hash, count]) => {
-              allowedHashes.push({ hash: hash, count: count });
-            });
-          }
-          const sum = allowedHashes.reduce((acc, h) => acc + h.count, 0);
-          const logSum = allowedHashes.reduce((acc, h) => acc + h.count * Math.log(h.count), 0);
-          tileEntropy = Math.log(sum) - logSum / sum;
-        }
-        this.allowedHashes.push(allowedHashes);
-        this.entropy.push(tileEntropy);
-      }
-    }
-  }
-
-  collapseStep() {
-    this.calculateEntropy();
-    const W = this.state.tilemap.width;
-    const H = this.state.tilemap.height;
-    const minNonZeroEntropy = this.entropy.reduce((min, e) => e > 0 && e < min ? e : min, Infinity);
-    for (let x = 0; x < W; x++) {
-      for (let y = 0; y < H; y++) {
-        const e = this.entropy[y * W + x];
-        if (e === minNonZeroEntropy) {
-          const selection = this.lottery(this.allowedHashes[y * W + x]);
-          const tiles = selection.hash.split(':').map(t => parseInt(t));
-          this.layerTiles[y * W + x] = tiles;
-          tiles.forEach((tileIndex, layerIndex) => {
-            this.state.tilemap.layers[layerIndex].data![y * W + x] = tileIndex;
-          });
-          this.updateCanvas();
-          return;
-        }
-      }
-    }
-  }
-
-  lottery(arr: { hash: string, count: number }[]) {
-    const sum = arr.reduce((acc, h) => acc + h.count, 0);
-    const selected = Math.random() * sum;
-    let total = 0;
-    let winner = -1;
-    for (let i = 0; i < arr.length; i++) {
-      total += arr[i].count;
-      if (selected <= total) {
-        winner = i;
-        break;
-      }
-    }
-    return arr[winner];
+  handleMouseDown = (event: React.MouseEvent) => {
+    const x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - (this.canvasRef.current?.offsetLeft || 0);
+    const y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop - (this.canvasRef.current?.offsetTop || 0);
+    this.setState(produce(this.state, state => {
+      state.mouse = { x: x, y: y, buttons: event.buttons };
+    }));
   }
 
   canEnter(x: number, y: number): boolean {
@@ -304,8 +198,6 @@ export default class EncounterUI extends React.Component<Props, State> {
         if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
         const tileX = index % layer.width;
         const tileY = Math.floor(index / layer.height);
-        const worldX = index % layer.width * tileset.tilewidth;
-        const worldY = Math.floor(index / layer.height) * tileset.tileheight;
 
         const seen = this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX];
         if (!seen && !this.canSee(tileX, tileY) && this.state.lineOfSight) return;
@@ -313,16 +205,16 @@ export default class EncounterUI extends React.Component<Props, State> {
         const indexInTileset = tileIndex - tileset.firstgid;
         const tilesetX = indexInTileset % tileset.columns;
         const tilesetY = Math.floor(indexInTileset / tileset.columns);
-        const xPosition = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
-        const yPosition = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
+        const spriteX = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
+        const spriteY = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
         ctx.drawImage(
           this.spritesheetImages[tileset.spritesheet],
-          xPosition,
-          yPosition,
+          spriteX,
+          spriteY,
           tileset.tilewidth,
           tileset.tileheight,
-          worldX * this.state.scale + offset.x - 2,
-          worldY * this.state.scale + offset.y - 2,
+          tileX * tileset.tilewidth * this.state.scale + offset.x - 2,
+          tileY * tileset.tileheight * this.state.scale + offset.y - 2,
           tileset.tilewidth * this.state.scale + 2,
           tileset.tileheight * this.state.scale + 2,
         );
@@ -347,6 +239,38 @@ export default class EncounterUI extends React.Component<Props, State> {
         }
       }
     }
+    if (this.state.mouse) {
+      const x = Math.floor((this.state.mouse.x - offset.x) / this.state.scale / this.state.tilemap.tilewidth);
+      const y = Math.floor((this.state.mouse.y - offset.y) / this.state.scale / this.state.tilemap.tileheight);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+      ctx.fillRect(
+        x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
+        y * this.state.tilemap.tileheight * this.state.scale + offset.y,
+        this.state.tilemap.tilewidth * this.state.scale,
+        this.state.tilemap.tileheight * this.state.scale
+      );
+      const possibilities = this.waveFunction.possibilities[y * this.state.tilemap.width + x];
+      (possibilities || []).forEach((t, i) => {
+        t.layers.forEach((tileIndex, j) => {
+          const tileset = this.tilesetForTileID(tileIndex);
+          if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
+          const indexInTileset = tileIndex - tileset.firstgid;
+          const tilesetX = indexInTileset % tileset.columns;
+          const tilesetY = Math.floor(indexInTileset / tileset.columns);
+          const spriteX = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
+          const spriteY = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
+          ctx.drawImage(
+            this.spritesheetImages[tileset.spritesheet],
+            spriteX,
+            spriteY,
+            tileset.tilewidth,
+            tileset.tileheight,
+            800, i * j * tileset.tileheight, tileset.tilewidth, tileset.tileheight,
+          );
+        });
+      });
+    }
+    /*
     const W = this.state.tilemap.width;
     const H = this.state.tilemap.height;
     const maxEntropy = this.entropy.reduce((max, e) => Math.max(e, max), 0);
@@ -362,6 +286,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         );
       }
     }
+    */
     ctx.fillStyle = 'red';
     ctx.fillRect(
       this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
@@ -376,7 +301,11 @@ export default class EncounterUI extends React.Component<Props, State> {
     if (this.canvasReady) {
       this.updateCanvas();
     }
-    return <div onKeyPress={this.handleKeyPress} tabIndex={0} style={{ outline: 'none', height: '100%' }}>
+    return <div
+      onKeyPress={this.handleKeyPress}
+      onMouseMove={this.handleMouseMove}
+      onMouseDown={this.handleMouseDown}
+      tabIndex={0} style={{ outline: 'none', height: '100%' }}>
       <canvas ref={this.canvasRef} style={{ width: "100%", height: "100%" }}></canvas>
     </div>;
   }
