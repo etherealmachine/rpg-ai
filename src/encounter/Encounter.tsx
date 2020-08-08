@@ -270,14 +270,24 @@ export default class EncounterUI extends React.Component<Props, State> {
         });
       });
     }
-    /*
     const W = this.state.tilemap.width;
     const H = this.state.tilemap.height;
-    const maxEntropy = this.entropy.reduce((max, e) => Math.max(e, max), 0);
+    const maxEntropy = this.waveFunction.entropy.reduce((max: number, e) => e === undefined ? max : Math.max(e, max), 0);
+    const minEntropy = this.waveFunction.entropy.reduce((min: number, e) => e === undefined ? min : Math.min(e, min), Infinity);
     for (let x = 0; x < W; x++) {
       for (let y = 0; y < H; y++) {
-        const e = this.entropy[y * W + x] / maxEntropy;
-        ctx.fillStyle = `rgba(0, 0, 0, ${e})`;
+        const i = y * W + x;
+        if (this.waveFunction.tiles[i] !== undefined) continue;
+        const e = this.waveFunction.entropy[i];
+        if (this.waveFunction.possibilities[i].length === 0) {
+          ctx.fillStyle = 'red';
+        } else if (e === minEntropy) {
+          ctx.fillStyle = 'green';
+        } else if (e !== undefined) {
+          ctx.fillStyle = `rgba(0, 0, 0, ${e / maxEntropy})`;
+        } else {
+          continue;
+        }
         ctx.fillRect(
           x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
           y * this.state.tilemap.tileheight * this.state.scale + offset.y,
@@ -286,7 +296,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         );
       }
     }
-    */
+    /*
     ctx.fillStyle = 'red';
     ctx.fillRect(
       this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
@@ -295,6 +305,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       this.state.tilemap.tileheight * this.state.scale
     );
     this.canvasReady = true;
+    */
   }
 
   render() {

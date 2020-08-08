@@ -19,7 +19,7 @@
     "noEmit": true,
     "jsx": "react",
     "downlevelIteration": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
   },
   "include": [
     "src"
