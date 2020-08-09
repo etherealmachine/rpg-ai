@@ -33,8 +33,8 @@ export interface Tilemap {
   width: number
   orientation: string
   renderorder: string
-  staggeraxis: string
-  staggerindex: string
+  staggeraxis?: string
+  staggerindex?: string
   tiledversion: string
   version: number
   tileheight: number

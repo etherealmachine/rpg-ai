@@ -1,28 +1,15 @@
 import { Tilemap } from './Tiled';
-
-class Tile {
-  layers: number[]
-  hash: string
-
-  constructor(layers: number[]) {
-    this.layers = layers;
-    this.hash = layers.join(':');
-  }
-
-  static fromHash(hash: string): Tile {
-    return new Tile(hash.split(':').map(t => parseInt(t)));
-  }
-}
+import MinHeap from './MinHeap';
 
 export default class WaveFunction {
 
   tilemap: Tilemap
-  tiles: (Tile | undefined)[] = [];
-  weights: { [key: string]: number } = {}
-  connections: { [key: string]: { [key: string]: { [key: string]: number } } } = {}
+  tiles: string[] = []
+  weights: number[] = []
+  connections: { [key: number]: { [key: string]: { [key: number]: boolean } } } = {}
   entropy: (number | undefined)[] = []
-  possibilities: Tile[][] = []
-  decisionStack: { index: number, tile: Tile, rejectionStack: { index: number, rejections: Tile[] }[] }[] = []
+  entropyHeap: MinHeap<number> = new MinHeap<number>();
+  possibilities: Set<number>[] = []
   neighbors = [
     { dir: 'north', x: 0, y: -1 },
     { dir: 'east', x: 1, y: 0 },
@@ -33,7 +20,6 @@ export default class WaveFunction {
   constructor(tilemap: Tilemap) {
     this.tilemap = tilemap;
     this.parseTuples();
-    this.clear();
     this.initializePossibilities();
     this.initializeEntropy();
   }
@@ -53,76 +39,66 @@ export default class WaveFunction {
     const H = this.tilemap.height;
     const layers = this.tilemap.layers.filter(layer => layer.data).map(layer => layer.data) as number[][];
 
+    const tileset = new Set<string>();
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        const tile = new Tile(layers.map(layer => layer[y * W + x]));
-        if (tile.layers.reduce((sum, e) => sum + e, 0) === 0) {
-          this.tiles.push(undefined);
-        } else {
-          this.tiles.push(tile);
+        if (layers.filter(layer => layer[y * W + x] > 0).length > 0) {
+          const hash = layers.map(layer => layer[y * W + x]).join(',');
+          tileset.add(hash);
         }
-        if (this.weights[tile.hash] === undefined) this.weights[tile.hash] = 0;
-        this.weights[tile.hash]++;
       }
     }
+    this.tiles = Array.from(tileset);
+    this.weights = new Array(this.tiles.length).fill(0);
 
     for (let x = 0; x < W; x++) {
       for (let y = 0; y < H; y++) {
-        const t = this.tiles[y * W + x];
+        const t = this.tileAt(x, y);
         if (t === undefined) continue;
+        this.weights[t]++;
         for (let neighbor of this.neighbors) {
           const nx = x + neighbor.x;
           const ny = y + neighbor.y;
           if (nx >= 0 && nx < W && ny >= 0 && ny < H) {
-            const n = this.tiles[ny * W + nx];
+            const n = this.tileAt(nx, ny);
             if (n === undefined) continue;
-            this.incrementConnection(t.hash, neighbor.dir, n.hash);
-            this.incrementConnection(n.hash, WaveFunction.inverseDir(neighbor.dir), t.hash);
+            this.addConnection(t, neighbor.dir, n);
+            this.addConnection(n, WaveFunction.inverseDir(neighbor.dir), t);
           }
         }
       }
     }
   }
 
-  incrementConnection(a: string, dir: string, b: string) {
-    if (this.connections[a] === undefined) this.connections[a] = {};
-    if (this.connections[a][dir] === undefined) this.connections[a][dir] = {};
-    if (this.connections[a][dir][b] === undefined) this.connections[a][dir][b] = 0;
-    this.connections[a][dir][b]++;
+  tileAt(x: number, y: number): number | undefined {
+    const layers = this.tilemap.layers.filter(layer => layer.data).map(layer => layer.data) as number[][];
+    if (layers.filter(layer => layer[y * this.tilemap.width + x] > 0).length === 0) return undefined;
+    return this.tiles.indexOf(layers.map(layer => layer[y * this.tilemap.width + x]).join(','));
   }
 
-  clear() {
+  tileAtLoc(loc: number): number | undefined {
     const W = this.tilemap.width;
-    const H = this.tilemap.height;
-    this.tiles = new Array(W * H);
-    this.tilemap.layers.forEach(layer => {
-      layer.data = new Array(W * H);
-    });
+    const [x, y] = [loc % W, Math.floor(loc / W)];
+    return this.tileAt(x, y);
+  }
+
+  addConnection(a: number, dir: string, b: number) {
+    if (this.connections[a] === undefined) this.connections[a] = {};
+    if (this.connections[a][dir] === undefined) this.connections[a][dir] = {};
+    if (this.connections[a][dir][b] === undefined) this.connections[a][dir][b] = true;
   }
 
   initializePossibilities() {
     const W = this.tilemap.width;
     const H = this.tilemap.height;
+    this.tilemap.layers.forEach(layer => {
+      layer.data = new Array(W * H);
+    });
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        let possibilities = new Set(Object.keys(this.weights));
-        for (let neighbor of this.neighbors) {
-          const nx = x + neighbor.x;
-          const ny = y + neighbor.y;
-          if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-          const n = this.tiles[ny * W + nx];
-          if (n === undefined) continue;
-          for (let hash of possibilities) {
-            if (this.invalidConnection(n.hash, WaveFunction.inverseDir(neighbor.dir), hash)) {
-              possibilities.delete(hash);
-            }
-          }
-        }
-        const t = this.tiles[y * W + x];
-        if (t === undefined) {
-          this.possibilities.push(Array.from(possibilities).map(hash => Tile.fromHash(hash)));
-        } else {
-          this.possibilities.push([]);
+        this.possibilities[y * W + x] = new Set<number>();
+        for (let i = 0; i < this.weights.length; i++) {
+          this.possibilities[y * W + x].add(i);
         }
       }
     }
@@ -134,88 +110,105 @@ export default class WaveFunction {
     this.entropy = [];
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
-        const possibilities = this.possibilities[y * W + x];
-        if (possibilities.length === 0) {
-          this.entropy.push(undefined);
-        } else if (possibilities.length === 1) {
-          this.entropy.push(0);
-        } else {
-          const sum = possibilities.reduce((sum, t) => sum + this.weights[t.hash], 0);
-          const logSum = possibilities.reduce((sum, t) => sum + this.weights[t.hash] * Math.log(this.weights[t.hash]), 0);
-          this.entropy.push(Math.log(sum) - logSum / sum);
+        const entropy = this.calculateEntropy(y * W + x);
+        this.entropy.push(entropy);
+        if (entropy !== undefined) {
+          this.entropyHeap.insert(entropy, y * W + x);
         }
       }
     }
   }
 
   step() {
+    let minEntropy: number | undefined = undefined;
+    while (minEntropy === undefined || this.entropy[minEntropy] === undefined) {
+      if (this.entropyHeap.empty()) return true;
+      minEntropy = this.entropyHeap.pop();
+    }
+    const loc = minEntropy as number;
+    const selection = this.lottery(this.possibilities[loc]);
+    this.collapse(loc, selection);
+    return true;
+  }
+
+  collapse(loc: number, tile: number) {
+    this.tiles[tile].split(',').forEach((tileIndex, layerIndex) => {
+      this.tilemap.layers[layerIndex].data![loc] = parseInt(tileIndex);
+    });
+    this.possibilities[loc].clear();
+    this.entropy[loc] = undefined;
+    this.eachNeighbor(loc, (neighborLoc, neighborDir) => this.propagate(tile, neighborLoc, neighborDir));
+  }
+
+  propagate(tile: number, neighborLoc: number, neighborDir: string) {
+    if (this.possibilities[neighborLoc].size === 0) return;
+    for (let possibleTile of this.possibilities[neighborLoc]) {
+      if (this.invalidConnection(tile, neighborDir, possibleTile)) {
+        this.possibilities[neighborLoc].delete(possibleTile);
+      }
+    }
+    if (this.possibilities[neighborLoc].size === 1) {
+      this.collapse(neighborLoc, this.possibilities[neighborLoc].values().next().value);
+    } else if (this.possibilities[neighborLoc].size === 0) {
+      console.log(`contradiction at ${neighborLoc}, need to undo`);
+    } else {
+      this.updateEntropy(neighborLoc);
+    }
+  }
+
+  eachNeighbor(loc: number, fn: (loc: number, dir: string) => void) {
     const W = this.tilemap.width;
     const H = this.tilemap.height;
-    const minEntropy = this.entropy.reduce((min: number, e) => e === undefined ? min : Math.min(min, e), Infinity);
-    const i = this.entropy.indexOf(minEntropy);
-    if (i === -1) {
-      return true;
-    }
-    const selection = this.lottery(this.possibilities[i].map(t => ({ hash: t.hash, count: this.weights[t.hash] })));
-    const tile = Tile.fromHash(selection.hash);
-    this.tiles[i] = tile
-    this.entropy[i] = undefined;
-    const rejectionStack: { index: number, rejections: Tile[] }[] = [];
-    this.decisionStack.push({ index: i, tile: tile, rejectionStack: rejectionStack });
-    tile.layers.forEach((tileIndex, layerIndex) => {
-      this.tilemap.layers[layerIndex].data![i] = tileIndex;
-    });
-    this.possibilities[i] = [];
-    const [x, y] = [i % W, Math.floor(i / W)];
+    const [x, y] = [loc % W, Math.floor(loc / W)];
     for (let neighbor of this.neighbors) {
       const nx = x + neighbor.x;
       const ny = y + neighbor.y;
       if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-      const ni = ny * W + nx;
-      if (this.entropy[ni] === undefined) continue;
-      const possibilities = this.possibilities[ni];
-      const rejections = possibilities.filter(n => this.invalidConnection(tile.hash, neighbor.dir, n.hash));
-      rejections.forEach(rejection => possibilities.splice(possibilities.indexOf(rejection), 1));
-      rejectionStack.push({ index: ni, rejections: rejections });
-      this.entropy[ni] = this.calculateEntropy(ni);
-      if (this.entropy[ni] === undefined) {
-        return false;
-      }
+      fn(ny * W + nx, neighbor.dir);
     }
-    return true;
   }
 
-  calculateEntropy(i: number) {
-    const possibilities = this.possibilities[i];
-    if (possibilities.length === 0) {
-      return undefined;
-    } else if (possibilities.length === 1) {
-      return 0;
+  updateEntropy(i: number): number {
+    const newEntropy = this.calculateEntropy(i);
+    this.entropy[i] = newEntropy;
+    if (newEntropy === undefined) {
+      throw new Error('entropy undefined');
     }
-    const sum = possibilities.reduce((sum, t) => sum + this.weights[t.hash], 0);
-    const logSum = possibilities.reduce((sum, t) => sum + this.weights[t.hash] * Math.log(this.weights[t.hash]), 0);
-    return Math.log(sum) - logSum / sum;
+    this.entropyHeap.insert(newEntropy, i);
+    return newEntropy;
   }
 
-  invalidConnection(t: string, dir: string, n: string): boolean {
+  calculateEntropy(i: number): number | undefined {
+    let sum = 0;
+    let sumOfLogs = 0;
+    for (let t of this.possibilities[i]) {
+      sum += this.weights[t];
+      sumOfLogs += this.weights[t] * Math.log(this.weights[t]);
+    }
+    if (sum === 0) return undefined;
+    return Math.log(sum) - sumOfLogs / sum + 0.000001 * Math.random();
+  }
+
+  invalidConnection(t: number, dir: string, n: number): boolean {
     if (this.connections[t] === undefined) return false;
     if (this.connections[t][dir] === undefined) return false;
     return this.connections[t][dir][n] === undefined;
   }
 
-  lottery(arr: { hash: string, count: number }[]) {
-    const sum = arr.reduce((acc, h) => acc + h.count, 0);
+  lottery(tileset: Set<number>): number {
+    let sum = 0;
+    for (let t of tileset.values()) {
+      sum += this.weights[t];
+    }
     const selected = Math.random() * sum;
     let total = 0;
-    let winner = -1;
-    for (let i = 0; i < arr.length; i++) {
-      total += arr[i].count;
+    for (let i of tileset) {
+      total += this.weights[i];
       if (selected <= total) {
-        winner = i;
-        break;
+        return i;
       }
     }
-    return arr[winner];
+    throw new Error('lottery failed');
   }
 
 }

@@ -81,7 +81,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         }));
         break;
       case 'n':
-        this.waveFunction.stepCollapse();
+        if (!this.waveFunction.step()) console.log('no progress');
         this.updateCanvas();
         break;
     }
@@ -251,7 +251,8 @@ export default class EncounterUI extends React.Component<Props, State> {
       );
       const possibilities = this.waveFunction.possibilities[y * this.state.tilemap.width + x];
       (possibilities || []).forEach((t, i) => {
-        t.layers.forEach((tileIndex, j) => {
+        this.waveFunction.tiles[t].split(',').forEach((ti, j) => {
+          const tileIndex = parseInt(ti);
           const tileset = this.tilesetForTileID(tileIndex);
           if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
           const indexInTileset = tileIndex - tileset.firstgid;
@@ -274,17 +275,18 @@ export default class EncounterUI extends React.Component<Props, State> {
     const H = this.state.tilemap.height;
     const maxEntropy = this.waveFunction.entropy.reduce((max: number, e) => e === undefined ? max : Math.max(e, max), 0);
     const minEntropy = this.waveFunction.entropy.reduce((min: number, e) => e === undefined ? min : Math.min(e, min), Infinity);
+    const layers = this.waveFunction.tilemap.layers.filter(layer => layer.data).map(layer => layer.data) as number[][];
     for (let x = 0; x < W; x++) {
       for (let y = 0; y < H; y++) {
         const i = y * W + x;
-        if (this.waveFunction.tiles[i] !== undefined) continue;
+        if (layers.filter(layer => layer[y * W + x] > 0).length > 0) continue;
         const e = this.waveFunction.entropy[i];
-        if (this.waveFunction.possibilities[i].length === 0) {
+        if (this.waveFunction.possibilities[i].size === 0) {
           ctx.fillStyle = 'red';
-        } else if (e === minEntropy) {
+        } else if (i === this.waveFunction.entropyHeap.peek()) {
           ctx.fillStyle = 'green';
         } else if (e !== undefined) {
-          ctx.fillStyle = `rgba(0, 0, 0, ${e / maxEntropy})`;
+          ctx.fillStyle = `rgba(0, 0, 0, ${(e - minEntropy) / (maxEntropy - minEntropy)})`;
         } else {
           continue;
         }
@@ -304,8 +306,8 @@ export default class EncounterUI extends React.Component<Props, State> {
       this.state.tilemap.tilewidth * this.state.scale,
       this.state.tilemap.tileheight * this.state.scale
     );
-    this.canvasReady = true;
     */
+    this.canvasReady = true;
   }
 
   render() {
