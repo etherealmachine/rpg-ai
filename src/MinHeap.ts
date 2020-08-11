@@ -10,7 +10,8 @@ export default class MinHeap<T> {
     return this.heap.length === 0;
   }
 
-  peek(): T {
+  peek(): T | undefined {
+    if (this.empty()) return undefined;
     return this.heap[0].value;
   }
 

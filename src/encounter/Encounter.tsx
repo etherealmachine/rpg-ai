@@ -81,7 +81,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         }));
         break;
       case 'n':
-        if (!this.waveFunction.step()) console.log('no progress');
+        this.waveFunction.step();
         this.updateCanvas();
         break;
     }
@@ -183,6 +183,8 @@ export default class EncounterUI extends React.Component<Props, State> {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
     }
+    const W = this.state.tilemap.width;
+    const H = this.state.tilemap.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -250,7 +252,8 @@ export default class EncounterUI extends React.Component<Props, State> {
         this.state.tilemap.tileheight * this.state.scale
       );
       const possibilities = this.waveFunction.possibilities[y * this.state.tilemap.width + x];
-      (possibilities || []).forEach((t, i) => {
+      let i = 0;
+      (possibilities || []).forEach(t => {
         this.waveFunction.tiles[t].split(',').forEach((ti, j) => {
           const tileIndex = parseInt(ti);
           const tileset = this.tilesetForTileID(tileIndex);
@@ -266,13 +269,15 @@ export default class EncounterUI extends React.Component<Props, State> {
             spriteY,
             tileset.tilewidth,
             tileset.tileheight,
-            800, i * j * tileset.tileheight, tileset.tilewidth, tileset.tileheight,
+            i * tileset.tilewidth, 0, tileset.tilewidth, tileset.tileheight,
           );
         });
+        i++;
       });
+      ctx.font = "18px Arial";
+      ctx.fillStyle = "rgba(0, 0, 0, 1)";
+      ctx.fillText(`${x}, ${y}, ${y * W + x}`, 12, 2 * this.state.tilemap.tileheight);
     }
-    const W = this.state.tilemap.width;
-    const H = this.state.tilemap.height;
     const maxEntropy = this.waveFunction.entropy.reduce((max: number, e) => e === undefined ? max : Math.max(e, max), 0);
     const minEntropy = this.waveFunction.entropy.reduce((min: number, e) => e === undefined ? min : Math.min(e, min), Infinity);
     const layers = this.waveFunction.tilemap.layers.filter(layer => layer.data).map(layer => layer.data) as number[][];
