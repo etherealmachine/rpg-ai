@@ -1,19 +1,6 @@
 import { Tilemap } from './Tiled';
 import MinHeap from './MinHeap';
 
-interface Collapse {
-  loc: number
-  tile: number
-  possibilities: Set<number>
-  propagations: Propagation[]
-  contradiction?: boolean
-}
-
-interface Propagation {
-  loc: number
-  removed: Set<number>
-}
-
 export default class WaveFunction {
 
   tilemap: Tilemap
@@ -23,7 +10,6 @@ export default class WaveFunction {
   entropy: (number | undefined)[] = []
   entropyHeap: MinHeap<number> = new MinHeap<number>()
   possibilities: Set<number>[] = []
-  traces: Collapse[] = []
   neighbors = [
     { dir: 'north', x: 0, y: -1 },
     { dir: 'east', x: 1, y: 0 },
@@ -145,17 +131,7 @@ export default class WaveFunction {
     }
   }
 
-  generate() {
-    while (!this.entropyHeap.empty()) {
-      this.step();
-    }
-  }
-
-  step() {
-    const contradictions = this.possibilities.filter((possibilities, loc) => possibilities.size === 0 && this.tileAtLoc(loc) === undefined);
-    if (contradictions.length > 0) {
-      return;
-    }
+  step(): boolean {
     let minEntropy: number | undefined = undefined;
     while (minEntropy === undefined || this.entropy[minEntropy] === undefined) {
       if (this.entropyHeap.empty()) return true;
@@ -163,70 +139,47 @@ export default class WaveFunction {
     }
     const loc = minEntropy as number;
     const selection = this.lottery(this.possibilities[loc]);
-    const trace = this.collapse(loc, selection);
-    this.traces.push(trace);
-    if (trace.contradiction) {
-      this.traces.pop();
-      this.undo(trace);
-    }
+    this.collapse(loc, selection, 0);
+    return false;
   }
 
-  collapse(loc: number, tile: number): Collapse {
-    const trace: Collapse = { loc: loc, tile: tile, possibilities: new Set(this.possibilities[loc]), propagations: [] };
+  collapse(loc: number, tile: number, level: number) {
     this.setTileAtLoc(loc, tile);
     this.possibilities[loc].clear();
     this.entropy[loc] = undefined;
     for (let { loc: neighborLoc, dir: neighborDir } of this.eachNeighbor(loc)) {
-      this.propagate(tile, neighborLoc, neighborDir, trace);
-      if (trace.contradiction) return trace;
+      this.propagate(loc, neighborLoc, neighborDir, 0);
     }
-    return trace;
   }
 
-  propagate(tile: number, neighborLoc: number, neighborDir: string, trace: Collapse) {
-    if (this.possibilities[neighborLoc].size === 0) return false;
-    const removed = new Set<number>();
-    for (let possibleTile of this.possibilities[neighborLoc]) {
-      if (!this.validConnection(tile, neighborDir, possibleTile)) {
-        this.possibilities[neighborLoc].delete(possibleTile);
-        removed.add(possibleTile);
+  propagate(neighborLoc: number, loc: number, dir: string, level: number) {
+    if (this.possibilities[loc].size === 0) return;
+    let neighborPossibilities = this.possibilities[neighborLoc];
+    if (neighborPossibilities.size === 0) {
+      const neighborTile = this.tileAtLoc(neighborLoc);
+      if (neighborTile === undefined) throw new Error(`neighbor ${neighborLoc} has zero possibilities but is not set`);
+      neighborPossibilities = new Set<number>([neighborTile]);
+    }
+    let changed = false;
+    for (let possibleTile of this.possibilities[loc]) {
+      let stillPossible = false;
+      for (let possibleNeighborTile of neighborPossibilities) {
+        stillPossible = stillPossible || this.validConnection(possibleNeighborTile, dir, possibleTile);
+      }
+      if (!stillPossible) {
+        this.possibilities[loc].delete(possibleTile);
+        changed = true;
       }
     }
-    trace.propagations.push({ loc: neighborLoc, removed: removed });
-    if (this.possibilities[neighborLoc].size === 1) {
-      let subTrace = this.collapse(neighborLoc, this.possibilities[neighborLoc].values().next().value);
-      this.traces.push(trace);
-      if (subTrace.contradiction) {
-        this.traces.pop();
-        this.undo(subTrace);
-        trace.contradiction = true;
+    if (!changed) return;
+    if (this.possibilities[loc].size === 1) {
+      this.collapse(loc, this.possibilities[loc].values().next().value, level + 1);
+    } else {
+      for (let { loc: neighborLoc, dir: neighborDir } of this.eachNeighbor(loc)) {
+        this.propagate(loc, neighborLoc, neighborDir, level + 1);
       }
     }
-    if (this.updateEntropy(neighborLoc) === undefined) trace.contradiction = true;
-  }
-
-  undo(collapse: Collapse) {
-    this.possibilities[collapse.loc] = collapse.possibilities;
-    this.possibilities[collapse.loc].delete(collapse.tile);
-    this.setTileAtLoc(collapse.loc, undefined);
-    if (this.possibilities[collapse.loc].size === 0) {
-      this.possibilities[collapse.loc] = collapse.possibilities;
-      const trace = this.traces.pop();
-      if (trace === undefined) throw new Error('ran out of traces trying to backup');
-      this.undo(trace);
-    }
-    let contradiction = this.updateEntropy(collapse.loc) === undefined;
-    for (let propagation of collapse.propagations) {
-      for (let removed of propagation.removed) {
-        this.possibilities[propagation.loc].add(removed);
-      }
-      if (this.updateEntropy(propagation.loc) === undefined) contradiction = true;
-    }
-    if (contradiction) {
-      const trace = this.traces.pop();
-      if (trace === undefined) throw new Error('ran out of traces trying to backup');
-      this.undo(trace);
-    }
+    if (this.updateEntropy(loc) === undefined) throw new Error('contradiction found during propagation');
   }
 
   updateEntropy(loc: number): number | undefined {
