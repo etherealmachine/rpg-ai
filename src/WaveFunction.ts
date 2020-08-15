@@ -1,6 +1,10 @@
 import { Tilemap } from './Tiled';
 import MinHeap from './MinHeap';
 
+class Contradiction extends Error {
+
+}
+
 export default class WaveFunction {
 
   tilemap: Tilemap
@@ -103,12 +107,15 @@ export default class WaveFunction {
   initializePossibilities() {
     const W = this.tilemap.width;
     const H = this.tilemap.height;
+    /*
     this.tilemap.layers.forEach(layer => {
       layer.data = new Array(W * H);
     });
+    */
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         this.possibilities[y * W + x] = new Set<number>();
+        if (this.tileAt(x, y) !== undefined) continue;
         for (let i = 0; i < this.weights.length; i++) {
           this.possibilities[y * W + x].add(i);
         }
@@ -139,12 +146,34 @@ export default class WaveFunction {
     }
     const loc = minEntropy as number;
     const selection = this.lottery(this.possibilities[loc]);
-    this.collapse(loc, selection, 0);
+    this.startTrace();
+    try {
+      this.collapse(loc, selection, 0);
+    } catch (e) {
+      if (e instanceof Contradiction) {
+        const trace = this.traces.pop();
+        if (!trace) throw e;
+        for (let traceLoc in trace) {
+          for (let removed of trace[traceLoc].removed) {
+            this.possibilities[traceLoc].add(removed);
+          }
+          if (trace[traceLoc].collapsed) this.setTileAtLoc(traceLoc as unknown as number, undefined);
+        }
+        this.possibilities[loc].delete(selection);
+        if (this.updateEntropy(loc) === undefined) throw e;
+      } else {
+        throw e;
+      }
+    }
+    while (this.entropyHeap.peek() === undefined) {
+      this.entropyHeap.pop();
+    }
     return false;
   }
 
   collapse(loc: number, tile: number, level: number) {
     this.setTileAtLoc(loc, tile);
+    this.trace(loc, new Set<number>(...this.possibilities), tile);
     this.possibilities[loc].clear();
     this.entropy[loc] = undefined;
     for (let { loc: neighborLoc, dir: neighborDir } of this.eachNeighbor(loc)) {
@@ -157,10 +186,10 @@ export default class WaveFunction {
     let neighborPossibilities = this.possibilities[neighborLoc];
     if (neighborPossibilities.size === 0) {
       const neighborTile = this.tileAtLoc(neighborLoc);
-      if (neighborTile === undefined) throw new Error(`neighbor ${neighborLoc} has zero possibilities but is not set`);
+      if (neighborTile === undefined) throw new Contradiction(`neighbor ${neighborLoc} has zero possibilities but is not set`);
       neighborPossibilities = new Set<number>([neighborTile]);
     }
-    let changed = false;
+    const removed = new Set<number>();
     for (let possibleTile of this.possibilities[loc]) {
       let stillPossible = false;
       for (let possibleNeighborTile of neighborPossibilities) {
@@ -168,10 +197,11 @@ export default class WaveFunction {
       }
       if (!stillPossible) {
         this.possibilities[loc].delete(possibleTile);
-        changed = true;
+        removed.add(possibleTile);
       }
     }
-    if (!changed) return;
+    if (removed.size === 0) return;
+    this.trace(loc, removed);
     if (this.possibilities[loc].size === 1) {
       this.collapse(loc, this.possibilities[loc].values().next().value, level + 1);
     } else {
@@ -179,7 +209,7 @@ export default class WaveFunction {
         this.propagate(loc, neighborLoc, neighborDir, level + 1);
       }
     }
-    if (this.updateEntropy(loc) === undefined) throw new Error('contradiction found during propagation');
+    if (this.updateEntropy(loc) === undefined) throw new Contradiction('contradiction found during propagation');
   }
 
   updateEntropy(loc: number): number | undefined {
@@ -218,6 +248,22 @@ export default class WaveFunction {
     if (this.connections[t] === undefined) return false;
     if (this.connections[t][dir] === undefined) return false;
     return this.connections[t][dir][n] !== undefined;
+  }
+
+  traces: { [key: number]: { removed: Set<number>, collapsed?: number } }[] = []
+  startTrace() {
+    this.traces.push({});
+  }
+
+  trace(loc: number, removed: Set<number>, collapsed?: number) {
+    const trace = this.traces[this.traces.length - 1];
+    if (trace[loc] === undefined) {
+      trace[loc] = { removed, collapsed };
+      return;
+    }
+    for (let tile of removed) {
+      trace[loc].removed.add(tile);
+    }
   }
 
   lottery(tileset: Set<number>): number {
