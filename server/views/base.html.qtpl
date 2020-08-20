@@ -142,12 +142,14 @@ type BasePage struct {
 </head>
 
 <body>
-  {%= p.Navbar() %}
-  {%= p.Content() %}
+  <div style="display: flex; flex-direction: column; height: 100%;">
+    {%= p.Navbar() %}
+    {%= p.Content() %}
 
-  {%= p.BodyScripts() %}
+    {%= p.BodyScripts() %}
 
-  {%= p.Footer() %}
+    {%= p.Footer() %}
+  </div>
 </body>
 
 </html>

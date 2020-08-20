@@ -426,57 +426,59 @@ func StreamPageTemplate(qw422016 *qt422016.Writer, p Page) {
 </head>
 
 <body>
-  `)
-//line views/base.html.qtpl:145
+  <div style="display: flex; flex-direction: column; height: 100%;">
+    `)
+//line views/base.html.qtpl:146
 	p.StreamNavbar(qw422016)
-//line views/base.html.qtpl:145
-	qw422016.N().S(`
-  `)
 //line views/base.html.qtpl:146
+	qw422016.N().S(`
+    `)
+//line views/base.html.qtpl:147
 	p.StreamContent(qw422016)
-//line views/base.html.qtpl:146
+//line views/base.html.qtpl:147
 	qw422016.N().S(`
 
-  `)
-//line views/base.html.qtpl:148
+    `)
+//line views/base.html.qtpl:149
 	p.StreamBodyScripts(qw422016)
-//line views/base.html.qtpl:148
+//line views/base.html.qtpl:149
 	qw422016.N().S(`
 
-  `)
-//line views/base.html.qtpl:150
+    `)
+//line views/base.html.qtpl:151
 	p.StreamFooter(qw422016)
-//line views/base.html.qtpl:150
+//line views/base.html.qtpl:151
 	qw422016.N().S(`
+  </div>
 </body>
 
 </html>
 `)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 }
 
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 func WritePageTemplate(qq422016 qtio422016.Writer, p Page) {
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	StreamPageTemplate(qw422016, p)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	qt422016.ReleaseWriter(qw422016)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 }
 
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 func PageTemplate(p Page) string {
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	qb422016 := qt422016.AcquireByteBuffer()
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	WritePageTemplate(qb422016, p)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	qs422016 := string(qb422016.B)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	qt422016.ReleaseByteBuffer(qb422016)
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 	return qs422016
-//line views/base.html.qtpl:154
+//line views/base.html.qtpl:156
 }

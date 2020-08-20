@@ -5,7 +5,7 @@ import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
 import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import { rasterizeLine } from '../OrthoMath';
-import WaveFunction from '../WaveFunction';
+import TiledPatternParser from '../map_generator/TiledPatternParser';
 
 interface Props {
   Encounter: Encounter
@@ -30,7 +30,7 @@ export default class EncounterUI extends React.Component<Props, State> {
   spritesheetImages: { [key: string]: HTMLImageElement } = {}
   canvasReady = false
   seen: { [key: number]: boolean } = {}
-  waveFunction: WaveFunction
+  parser: TiledPatternParser
 
   constructor(props: Props) {
     super(props);
@@ -42,31 +42,43 @@ export default class EncounterUI extends React.Component<Props, State> {
       fogOfWar: false,
       lineOfSight: false,
     };
+    this.parser = new TiledPatternParser(this.state.tilemap, 3);
     (window as any).encounter = this;
-    this.waveFunction = new WaveFunction(this.state.tilemap);
   }
 
-  handleKeyPress = (event: React.KeyboardEvent) => {
+  handleKeyDown = (event: React.KeyboardEvent) => {
     switch (event.key) {
-      case 'w':
+      case 'ArrowUp':
         if (this.canEnter(this.state.position.x, this.state.position.y - 1)) {
           this.setState(produce(this.state, state => { state.position.y--; }));
         }
         break;
-      case 'a':
-        if (this.canEnter(this.state.position.x - 1, this.state.position.y)) {
-          this.setState(produce(this.state, state => { state.position.x--; }));
-        }
-        break;
-      case 's':
+      case 'ArrowDown':
         if (this.canEnter(this.state.position.x, this.state.position.y + 1)) {
           this.setState(produce(this.state, state => { state.position.y++; }));
         }
         break;
-      case 'd':
+      case 'ArrowLeft':
+        if (this.canEnter(this.state.position.x - 1, this.state.position.y)) {
+          this.setState(produce(this.state, state => { state.position.x--; }));
+        }
+        break;
+      case 'ArrowRight':
         if (this.canEnter(this.state.position.x + 1, this.state.position.y)) {
           this.setState(produce(this.state, state => { state.position.x++; }));
         }
+        break;
+      case 'w':
+        this.setState(produce(this.state, state => { state.camera.y -= this.state.tilemap.tileheight; }));
+        break;
+      case 'a':
+        this.setState(produce(this.state, state => { state.camera.x -= this.state.tilemap.tilewidth; }));
+        break;
+      case 's':
+        this.setState(produce(this.state, state => { state.camera.y += this.state.tilemap.tileheight; }));
+        break;
+      case 'd':
+        this.setState(produce(this.state, state => { state.camera.x += this.state.tilemap.tilewidth; }));
         break;
       case 'q':
         this.setState(produce(this.state, state => { state.scale = Math.max(state.scale - 0.1, 1) }));
@@ -79,10 +91,6 @@ export default class EncounterUI extends React.Component<Props, State> {
           state.camera.x = state.position.x * state.tilemap.tilewidth * state.scale;
           state.camera.y = state.position.y * state.tilemap.tileheight * state.scale;
         }));
-        break;
-      case 'n':
-        this.waveFunction.step();
-        this.updateCanvas();
         break;
     }
   }
@@ -183,65 +191,14 @@ export default class EncounterUI extends React.Component<Props, State> {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
     }
-    const W = this.state.tilemap.width;
-    const H = this.state.tilemap.height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const offset = {
-      x: 100,
-      y: 100,
-    };
-    this.state.tilemap.layers.forEach(layer => {
-      if (!layer.data) return;
-      layer.data.forEach((tileIndex, index) => {
-        if (!layer.width || !layer.height) return;
-        const tileset = this.tilesetForTileID(tileIndex);
-        if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
-        const tileX = index % layer.width;
-        const tileY = Math.floor(index / layer.height);
-
-        const seen = this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX];
-        if (!seen && !this.canSee(tileX, tileY) && this.state.lineOfSight) return;
-
-        const indexInTileset = tileIndex - tileset.firstgid;
-        const tilesetX = indexInTileset % tileset.columns;
-        const tilesetY = Math.floor(indexInTileset / tileset.columns);
-        const spriteX = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
-        const spriteY = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
-        ctx.drawImage(
-          this.spritesheetImages[tileset.spritesheet],
-          spriteX,
-          spriteY,
-          tileset.tilewidth,
-          tileset.tileheight,
-          tileX * tileset.tilewidth * this.state.scale + offset.x - 2,
-          tileY * tileset.tileheight * this.state.scale + offset.y - 2,
-          tileset.tilewidth * this.state.scale + 2,
-          tileset.tileheight * this.state.scale + 2,
-        );
-        this.seen[tileY * (canvas.width / this.state.tilemap.tilewidth) + tileX] = true;
-      });
-    });
-    if (this.state.fogOfWar) {
-      for (let i = 0; i < canvas.width / this.state.tilemap.tilewidth; i++) {
-        for (let j = 0; j < canvas.height / this.state.tilemap.tileheight; j++) {
-          const index = j * (canvas.width / this.state.tilemap.tilewidth) + i;
-          const dx = i - this.state.position.x;
-          const dy = j - this.state.position.y;
-          if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(
-              i * this.state.tilemap.tilewidth * this.state.scale + offset.x,
-              j * this.state.tilemap.tileheight * this.state.scale + offset.y,
-              this.state.tilemap.tilewidth * this.state.scale,
-              this.state.tilemap.tileheight * this.state.scale
-            );
-          }
-        }
-      }
-    }
+    ctx.save();
+    this.drawMap(ctx, canvas.width, canvas.height);
+    ctx.restore();
     if (this.state.mouse) {
+      /*
       const x = Math.floor((this.state.mouse.x - offset.x) / this.state.scale / this.state.tilemap.tilewidth);
       const y = Math.floor((this.state.mouse.y - offset.y) / this.state.scale / this.state.tilemap.tileheight);
       ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
@@ -251,68 +208,87 @@ export default class EncounterUI extends React.Component<Props, State> {
         this.state.tilemap.tilewidth * this.state.scale,
         this.state.tilemap.tileheight * this.state.scale
       );
-      const possibilities = this.waveFunction.possibilities[y * this.state.tilemap.width + x];
-      let i = 0;
-      (possibilities || []).forEach(t => {
-        this.waveFunction.tiles[t].split(',').forEach((ti, j) => {
-          const tileIndex = parseInt(ti);
-          const tileset = this.tilesetForTileID(tileIndex);
-          if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
-          const indexInTileset = tileIndex - tileset.firstgid;
-          const tilesetX = indexInTileset % tileset.columns;
-          const tilesetY = Math.floor(indexInTileset / tileset.columns);
-          const spriteX = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
-          const spriteY = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
-          ctx.drawImage(
-            this.spritesheetImages[tileset.spritesheet],
-            spriteX,
-            spriteY,
-            tileset.tilewidth,
-            tileset.tileheight,
-            i * tileset.tilewidth, 0, tileset.tilewidth, tileset.tileheight,
-          );
-        });
-        i++;
-      });
       ctx.font = "18px Arial";
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillText(`${x}, ${y}, ${y * W + x}`, 12, 2 * this.state.tilemap.tileheight);
+      */
     }
-    const maxEntropy = this.waveFunction.entropy.reduce((max: number, e) => e === undefined ? max : Math.max(e, max), 0);
-    const minEntropy = this.waveFunction.entropy.reduce((min: number, e) => e === undefined ? min : Math.min(e, min), Infinity);
-    const layers = this.waveFunction.tilemap.layers.filter(layer => layer.data).map(layer => layer.data) as number[][];
-    for (let x = 0; x < W; x++) {
-      for (let y = 0; y < H; y++) {
-        const i = y * W + x;
-        if (layers.filter(layer => layer[y * W + x] > 0).length > 0) continue;
-        const e = this.waveFunction.entropy[i];
-        if (this.waveFunction.possibilities[i].size === 0) {
-          ctx.fillStyle = 'red';
-        } else if (i === this.waveFunction.entropyHeap.peek()) {
-          ctx.fillStyle = 'green';
-        } else if (e !== undefined) {
-          ctx.fillStyle = `rgba(0, 0, 0, ${(e - minEntropy) / (maxEntropy - minEntropy)})`;
-        } else {
-          continue;
+    ctx.save();
+    ctx.translate(canvas.width - 200, 0);
+    for (let i = 0; i < this.parser.patterns.length; i++) {
+      const pattern = this.parser.patterns[i];
+      for (let x = 0; x < this.parser.patternSize; x++) {
+        for (let y = 0; y < this.parser.patternSize; y++) {
+          const tileIndex = pattern[y * this.parser.patternSize + x];
+          if (tileIndex === undefined) continue;
+          const tiles = this.parser.tiles[tileIndex].split(',').map(t => parseInt(t));
+          for (let tile of tiles) {
+            this.drawTile(ctx, x, y, tile);
+          }
         }
-        ctx.fillRect(
-          x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
-          y * this.state.tilemap.tileheight * this.state.scale + offset.y,
-          this.state.tilemap.tilewidth * this.state.scale,
-          this.state.tilemap.tileheight * this.state.scale
-        );
+      }
+      ctx.translate(0, this.parser.patternSize * this.state.tilemap.tileheight + 16);
+    }
+    ctx.restore();
+    this.canvasReady = true;
+  }
+
+  drawMap(ctx: CanvasRenderingContext2D, width: number, height: number) {
+    ctx.scale(this.state.scale, this.state.scale);
+    ctx.translate(this.state.camera.x, this.state.camera.y);
+    this.state.tilemap.layers.forEach(layer => {
+      if (!layer.data) return;
+      layer.data.forEach((tileIndex, index) => {
+        if (!layer.width || !layer.height) return;
+        const tileX = index % layer.width;
+        const tileY = Math.floor(index / layer.height);
+
+        const seen = this.seen[tileY * (width / this.state.tilemap.tilewidth) + tileX];
+        if (!seen && !this.canSee(tileX, tileY) && this.state.lineOfSight) return;
+
+        this.drawTile(ctx, tileX, tileY, tileIndex);
+        this.seen[tileY * (width / this.state.tilemap.tilewidth) + tileX] = true;
+      });
+    });
+    if (this.state.fogOfWar) {
+      for (let i = 0; i < width / this.state.tilemap.tilewidth; i++) {
+        for (let j = 0; j < height / this.state.tilemap.tileheight; j++) {
+          const index = j * (width / this.state.tilemap.tilewidth) + i;
+          const dx = i - this.state.position.x;
+          const dy = j - this.state.position.y;
+          if (this.seen[index] && Math.sqrt(dx * dx + dy * dy) > 10) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(
+              i * this.state.tilemap.tilewidth,
+              j * this.state.tilemap.tileheight,
+              this.state.tilemap.tilewidth,
+              this.state.tilemap.tileheight
+            );
+          }
+        }
       }
     }
-    /*
-    ctx.fillStyle = 'red';
-    ctx.fillRect(
-      this.state.position.x * this.state.tilemap.tilewidth * this.state.scale + offset.x,
-      this.state.position.y * this.state.tilemap.tileheight * this.state.scale + offset.y,
-      this.state.tilemap.tilewidth * this.state.scale,
-      this.state.tilemap.tileheight * this.state.scale
+  }
+
+  drawTile(ctx: CanvasRenderingContext2D, tileX: number, tileY: number, tileIndex: number) {
+    const tileset = this.tilesetForTileID(tileIndex);
+    if (!tileset || !tileset.firstgid || !tileset.spritesheet) return;
+    const indexInTileset = tileIndex - tileset.firstgid;
+    const tilesetX = indexInTileset % tileset.columns;
+    const tilesetY = Math.floor(indexInTileset / tileset.columns);
+    const spriteX = tilesetX * (tileset.tilewidth + tileset.spacing + tileset.margin);
+    const spriteY = tilesetY * (tileset.tileheight + tileset.spacing + tileset.margin);
+    ctx.drawImage(
+      this.spritesheetImages[tileset.spritesheet],
+      spriteX,
+      spriteY,
+      tileset.tilewidth,
+      tileset.tileheight,
+      tileX * tileset.tilewidth - 2,
+      tileY * tileset.tileheight - 2,
+      tileset.tilewidth + 2,
+      tileset.tileheight + 2,
     );
-    */
-    this.canvasReady = true;
   }
 
   render() {
@@ -320,7 +296,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       this.updateCanvas();
     }
     return <div
-      onKeyPress={this.handleKeyPress}
+      onKeyDown={this.handleKeyDown}
       onMouseMove={this.handleMouseMove}
       onMouseDown={this.handleMouseDown}
       tabIndex={0} style={{ outline: 'none', height: '100%' }}>

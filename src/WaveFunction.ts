@@ -107,11 +107,9 @@ export default class WaveFunction {
   initializePossibilities() {
     const W = this.tilemap.width;
     const H = this.tilemap.height;
-    /*
     this.tilemap.layers.forEach(layer => {
       layer.data = new Array(W * H);
     });
-    */
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         this.possibilities[y * W + x] = new Set<number>();
