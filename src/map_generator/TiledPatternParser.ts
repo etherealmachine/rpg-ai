@@ -8,6 +8,7 @@ export default class TiledPatternParser {
   map: (number | undefined)[] = []
   patternSize: number
   patterns: Pattern[] = []
+  patternIndex: Map<number, number> = new Map()
   weights: number[] = []
   adjacent: Map<number, Map<Direction, Map<number, boolean>>> = new Map()
   neighbors: Map<Direction, { x: number, y: number }> = new Map([
@@ -54,9 +55,12 @@ export default class TiledPatternParser {
         if (pattern.indexOf(undefined) === -1) {
           if (this.patterns.indexOf(pattern as Pattern) === -1) {
             this.patterns.push(pattern as Pattern);
+            this.patternIndex.set(y * W + x, this.patterns.length - 1);
             this.weights.push(1);
           } else {
-            this.weights[this.patterns.indexOf(pattern as Pattern)]++;
+            const patternIndex = this.patterns.indexOf(pattern as Pattern);
+            this.patternIndex.set(y * W + x, patternIndex);
+            this.weights[patternIndex]++;
           }
         }
       }

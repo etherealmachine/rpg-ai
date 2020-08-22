@@ -41,14 +41,14 @@ export default class EncounterUI extends React.Component<Props, State> {
     this.state = {
       tilemap: ((props.Tilemap.Definition as unknown) as TiledTilemap),
       position: { x: 0, y: 0 },
-      scale: 3,
-      camera: { x: 100, y: -600 },
+      scale: 1,
+      camera: { x: 0, y: 0 },
       fogOfWar: false,
       lineOfSight: false,
       selectedTiles: [],
     };
     this.parser = new TiledPatternParser(this.state.tilemap, 3);
-    this.generator = new Generator(this.parser, 10, 10);
+    this.generator = new Generator(this.parser, 20, 20);
     (window as any).encounter = this;
   }
 
@@ -234,6 +234,13 @@ export default class EncounterUI extends React.Component<Props, State> {
         this.state.tilemap.tileheight
       );
     }
+    if (this.state.selectedTiles.length > 0) {
+      const selected = this.state.selectedTiles[0];
+      ctx.save()
+      ctx.translate(this.state.tilemap.tilewidth * (this.state.tilemap.width + 2), 0);
+      this.drawAdjacent(ctx, selected);
+      ctx.restore();
+    }
     if (this.state.generated) {
       ctx.translate(0, this.state.tilemap.tileheight * this.state.tilemap.height + 16);
       this.drawMap(ctx, this.state.generated);
@@ -243,14 +250,31 @@ export default class EncounterUI extends React.Component<Props, State> {
     this.canvasReady = true;
   }
 
+  drawAdjacent(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
+    const parserTileIndex = this.parser.map[loc.y * this.parser.tilemap.width + loc.x];
+    if (parserTileIndex === undefined) return;
+    const patternIndex = this.parser.patternIndex.get(loc.y * this.parser.tilemap.width + loc.x);
+    if (patternIndex === undefined) return;
+    const pattern = this.parser.patterns[patternIndex];
+    this.drawStack(ctx, 0, 0, this.parser.tiles[parserTileIndex].split(',').map(x => parseInt(x)));
+    ctx.translate(this.state.tilemap.tilewidth + 2, 0);
+    this.drawPattern(ctx, pattern);
+    for (let dir of this.parser.neighbors.keys()) {
+      ctx.translate(0, this.state.tilemap.tileheight * this.parser.patternSize + 8);
+      ctx.fillText(dir, 0, 0);
+      for (let adjPatternIndex of (this.parser.adjacent.get(patternIndex)?.get(dir)?.keys() || [])) {
+        this.drawPattern(ctx, this.parser.patterns[adjPatternIndex]);
+        ctx.translate(0, this.state.tilemap.tileheight * this.parser.patternSize + 2);
+      }
+    }
+  }
+
   drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
     for (let x = 0; x < this.parser.patternSize; x++) {
       for (let y = 0; y < this.parser.patternSize; y++) {
         const tileIndex = pattern[y * this.parser.patternSize + x];
         const tiles = this.parser.tiles[tileIndex].split(',').map(t => parseInt(t));
-        for (let tile of tiles) {
-          this.drawTile(ctx, x, y, tile);
-        }
+        this.drawStack(ctx, x, y, tiles);
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`${tileIndex}`, x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2, y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
@@ -265,9 +289,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         const tile1 = pattern1[(y + dy) * this.parser.patternSize + (x + dx)];
         const tile2 = pattern2[y * this.parser.patternSize + x];
         if (tile1 !== tile2) continue;
-        this.parser.tiles[tile1].split(',').map(t => parseInt(t)).forEach(tile => {
-          this.drawTile(ctx, x, y, tile);
-        });
+        this.drawStack(ctx, x, y, this.parser.tiles[tile1].split(',').map(t => parseInt(t)));
       }
     }
   }
@@ -275,6 +297,7 @@ export default class EncounterUI extends React.Component<Props, State> {
   drawEntropy(ctx: CanvasRenderingContext2D) {
     const maxEntropy = Math.max(...this.generator.entropy);
     const minEntropy = Math.min(...this.generator.entropy);
+    if (maxEntropy === minEntropy) return;
     for (let x = 0; x < this.generator.width; x++) {
       for (let y = 0; y < this.generator.height; y++) {
         const entropy = this.generator.entropy[y * this.generator.width + x];
@@ -329,6 +352,12 @@ export default class EncounterUI extends React.Component<Props, State> {
       }
     }
     */
+  }
+
+  drawStack(ctx: CanvasRenderingContext2D, tileX: number, tileY: number, tiles: number[]) {
+    for (let tile of tiles) {
+      this.drawTile(ctx, tileX, tileY, tile);
+    }
   }
 
   drawTile(ctx: CanvasRenderingContext2D, tileX: number, tileY: number, tileIndex: number) {

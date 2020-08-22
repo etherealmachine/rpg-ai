@@ -130,7 +130,6 @@ export default class Generator {
   propagate(neighborLoc: number, loc: number, dir: Direction) {
     if (this.visited.get(loc)) return;
     this.visited.set(loc, true);
-    if (this.possibilities[loc].size === 1) return;
     let neighborPossibilities = this.possibilities[neighborLoc];
     const removed = new Set<number>();
     for (let possiblePattern of this.possibilities[loc]) {
@@ -145,6 +144,10 @@ export default class Generator {
     }
     if (removed.size === 0) return;
     this.trace(loc, removed);
+    if (this.possibilities[loc].size === 0) {
+      throw new Contradiction('contradiction found during propagation');
+    }
+    this.updateEntropy(loc);
     if (this.possibilities[loc].size === 1) {
       this.collapse(loc, this.possibilities[loc].values().next().value);
     } else {
@@ -152,11 +155,11 @@ export default class Generator {
         this.propagate(loc, neighborLoc, neighborDir);
       }
     }
-    if (this.updateEntropy(loc) === 0) throw new Contradiction('contradiction found during propagation');
   }
 
   updateEntropy(loc: number): number {
     const newEntropy = this.calculateEntropy(loc);
+    if (isNaN(newEntropy)) throw new Error('should have already thrown a contradiction');
     this.entropy[loc] = newEntropy;
     if (newEntropy > 0) {
       this.entropyHeap.insert(newEntropy, loc);
@@ -175,9 +178,6 @@ export default class Generator {
   }
 
   calculateEntropy(loc: number): number {
-    if (this.possibilities[loc].size === 1) {
-      return 0;
-    }
     let sum = 0;
     let sumOfLogs = 0;
     for (let patternIndex of this.possibilities[loc].values()) {
