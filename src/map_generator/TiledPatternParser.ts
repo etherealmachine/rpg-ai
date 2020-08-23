@@ -53,12 +53,13 @@ export default class TiledPatternParser {
           }
         }
         if (pattern.indexOf(undefined) === -1) {
-          if (this.patterns.indexOf(pattern as Pattern) === -1) {
+          const patternString = pattern.join(',');
+          const patternIndex = this.patterns.findIndex(p => p.join(',') === patternString)
+          if (patternIndex === -1) {
             this.patterns.push(pattern as Pattern);
             this.patternIndex.set(y * W + x, this.patterns.length - 1);
             this.weights.push(1);
           } else {
-            const patternIndex = this.patterns.indexOf(pattern as Pattern);
             this.patternIndex.set(y * W + x, patternIndex);
             this.weights[patternIndex]++;
           }
@@ -66,15 +67,34 @@ export default class TiledPatternParser {
       }
     }
 
-    for (let i = 0; i < this.patterns.length; i++) {
-      this.adjacent.set(i, new Map());
-      for (let dir of this.neighbors.keys()) {
-        this.adjacent.get(i)?.set(dir, new Map());
+    if (this.patternSize === 1) {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const currPatternIndex = this.patternIndex.get(y * W + x);
+          if (currPatternIndex === undefined) continue;
+          for (let [dir, delta] of this.neighbors.entries()) {
+            const nx = x + delta.x;
+            const ny = y + delta.y;
+            if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+            const neighborPatternIndex = this.patternIndex.get(ny * W + nx);
+            if (neighborPatternIndex === undefined) continue;
+            if (!this.adjacent.has(currPatternIndex)) this.adjacent.set(currPatternIndex, new Map());
+            if (!this.adjacent.get(currPatternIndex)?.has(dir)) this.adjacent.get(currPatternIndex)?.set(dir, new Map());
+            this.adjacent.get(currPatternIndex)?.get(dir)?.set(neighborPatternIndex, true);
+          }
+        }
       }
-      for (let j = 0; j < this.patterns.length; j++) {
-        for (let [dir, delta] of this.neighbors.entries()) {
-          if (this.canOverlap(this.patterns[i], this.patterns[j], delta.x, delta.y)) {
-            this.adjacent.get(i)?.get(dir)?.set(j, true);
+    } else {
+      for (let i = 0; i < this.patterns.length; i++) {
+        this.adjacent.set(i, new Map());
+        for (let dir of this.neighbors.keys()) {
+          this.adjacent.get(i)?.set(dir, new Map());
+        }
+        for (let j = 0; j < this.patterns.length; j++) {
+          for (let [dir, delta] of this.neighbors.entries()) {
+            if (this.canOverlap(this.patterns[i], this.patterns[j], delta.x, delta.y)) {
+              this.adjacent.get(i)?.get(dir)?.set(j, true);
+            }
           }
         }
       }

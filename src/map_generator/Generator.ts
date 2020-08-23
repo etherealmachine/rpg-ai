@@ -42,8 +42,6 @@ export default class Generator {
   // of a location is still non-zero
   entropyHeap: MinHeap<number> = new MinHeap<number>()
 
-  visited: Map<number, boolean> = new Map()
-
   constructor(parser: PatternParser, width: number, height: number) {
     this.parser = parser;
     this.width = width;
@@ -76,84 +74,97 @@ export default class Generator {
   }
 
   step(): boolean {
-    if (this.entropyHeap.empty()) return true;
+    if (this.entropyHeap.empty()) return false;
     let minEntropy: number;
     do {
       minEntropy = this.entropyHeap.pop();
-      if (this.entropyHeap.empty()) return true;
+      if (this.entropyHeap.empty()) return false;
     } while (this.entropy[minEntropy] === 0 || this.possibilities[minEntropy].size < 2);
     const selection = this.lottery(this.possibilities[minEntropy]);
-    this.startTrace();
-    this.visited.clear();
     try {
       this.collapse(minEntropy, selection);
     } catch (e) {
       if (e instanceof Contradiction) {
-        console.log('contradiction');
-        const trace = this.traces.pop();
-        if (!trace) {
-          console.log("can't handle contradiction, no trace");
-          throw e;
-        }
-        for (let traceLoc in trace) {
-          for (let removed of trace[traceLoc].removed) {
-            this.possibilities[traceLoc].add(removed);
-          }
-        }
-        this.possibilities[minEntropy].delete(selection);
-        if (this.possibilities[minEntropy].size === 0) {
-          console.log("contradiction removed last possibility");
-          throw e;
-        }
-        this.updateEntropy(minEntropy);
-      } else {
-        console.log("non-contradiction exception during collapse");
-        throw e;
+        this.undo(minEntropy, selection);
+      }
+      return true;
+    }
+    return true;
+  }
+
+  undo(loc: number, selectedPatternIndex: number) {
+    const trace = this.traces.pop();
+    if (trace === undefined) throw new Error('ran out of traces trying to undo');
+    for (let traceLoc in trace) {
+      for (let removed of trace[traceLoc].removed) {
+        this.possibilities[traceLoc].add(removed);
       }
     }
-    return false;
+    this.possibilities[loc].delete(selectedPatternIndex);
+    if (this.possibilities[loc].size === 0) {
+      throw new Contradiction('removed last possibility during undo');
+    }
+    this.updateEntropy(loc);
   }
 
   collapse(loc: number, pattern: number) {
-    this.visited.set(loc, true);
-    const removed = this.possibilities[loc];
+    const removed = new Set([...this.possibilities[loc]]);
     removed.delete(pattern);
-    this.trace(loc, new Set<number>(removed), pattern);
     this.possibilities[loc].clear();
     this.possibilities[loc].add(pattern);
     this.entropy[loc] = 0;
-    for (let { loc: neighborLoc, dir: neighborDir } of this.eachNeighbor(loc)) {
-      this.propagate(loc, neighborLoc, neighborDir);
-    }
+    const stack: { loc: number, removed: Set<number> }[] = [];
+    stack.push({ loc, removed });
+    this.startTrace(loc, removed);
+    this.propagate(stack);
   }
 
-  propagate(neighborLoc: number, loc: number, dir: Direction) {
-    if (this.visited.get(loc)) return;
-    this.visited.set(loc, true);
-    let neighborPossibilities = this.possibilities[neighborLoc];
-    const removed = new Set<number>();
-    for (let possiblePattern of this.possibilities[loc]) {
-      let stillPossible = false;
-      for (let possibleNeighborPattern of neighborPossibilities) {
-        stillPossible = stillPossible || this.validConnection(possibleNeighborPattern, dir, possiblePattern);
+  propagate(stack: { loc: number, removed: Set<number> }[]) {
+    do {
+      console.log(this.possibilities.reduce((sum, p) => sum + p.size, 0));
+      const curr = stack.shift();
+      if (curr === undefined) return;
+      const newPossibilities = this.possibilities[curr.loc];
+      for (let { loc: neighborLoc, dir: neighborDir } of this.neighbors(curr.loc)) {
+        let neighborPossibilities = this.possibilities[neighborLoc];
+        const removed = new Set<number>();
+        for (let p1 of neighborPossibilities) {
+          let stillPossible = false;
+          for (let p2 of newPossibilities) {
+            stillPossible = stillPossible || this.validConnection(p2, neighborDir, p1);
+            if (stillPossible) break;
+          }
+          if (!stillPossible) {
+            neighborPossibilities.delete(p1);
+            removed.add(p1);
+          }
+        }
+        if (removed.size > 0) {
+          this.trace(neighborLoc, removed);
+          if (neighborPossibilities.size === 0) {
+            throw new Contradiction('contradiction found during propagation');
+          }
+          stack.push({ loc: neighborLoc, removed: removed });
+          this.updateEntropy(neighborLoc);
+        }
       }
-      if (!stillPossible) {
-        this.possibilities[loc].delete(possiblePattern);
-        removed.add(possiblePattern);
-      }
-    }
-    if (removed.size === 0) return;
+    } while (stack.length > 0);
+  }
+
+  traces: { [key: number]: { removed: Set<number>, collapsed?: number } }[] = []
+  startTrace(loc: number, removed: Set<number>) {
+    this.traces.push({});
     this.trace(loc, removed);
-    if (this.possibilities[loc].size === 0) {
-      throw new Contradiction('contradiction found during propagation');
+  }
+
+  trace(loc: number, removed: Set<number>) {
+    const trace = this.traces[this.traces.length - 1];
+    if (trace[loc] === undefined) {
+      trace[loc] = { removed };
+      return;
     }
-    this.updateEntropy(loc);
-    if (this.possibilities[loc].size === 1) {
-      this.collapse(loc, this.possibilities[loc].values().next().value);
-    } else {
-      for (let { loc: neighborLoc, dir: neighborDir } of this.eachNeighbor(loc)) {
-        this.propagate(loc, neighborLoc, neighborDir);
-      }
+    for (let pattern of removed) {
+      trace[loc].removed.add(pattern);
     }
   }
 
@@ -167,7 +178,7 @@ export default class Generator {
     return newEntropy;
   }
 
-  *eachNeighbor(loc: number) {
+  *neighbors(loc: number) {
     const [x, y] = [loc % this.width, Math.floor(loc / this.height)];
     for (let [direction, offset] of this.parser.neighbors.entries()) {
       const nx = x + offset.x;
@@ -189,22 +200,6 @@ export default class Generator {
 
   validConnection(fromPattern: number, dir: Direction, toPattern: number): boolean {
     return this.parser.adjacent.get(fromPattern)?.get(dir)?.get(toPattern) || false;
-  }
-
-  traces: { [key: number]: { removed: Set<number>, collapsed?: number } }[] = []
-  startTrace() {
-    this.traces.push({});
-  }
-
-  trace(loc: number, removed: Set<number>, collapsed?: number) {
-    const trace = this.traces[this.traces.length - 1];
-    if (trace[loc] === undefined) {
-      trace[loc] = { removed, collapsed };
-      return;
-    }
-    for (let pattern of removed) {
-      trace[loc].removed.add(pattern);
-    }
   }
 
   lottery(possibilities: Set<number>): number {

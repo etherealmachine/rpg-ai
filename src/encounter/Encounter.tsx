@@ -7,6 +7,7 @@ import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import { rasterizeLine } from '../OrthoMath';
 import TiledPatternParser from '../map_generator/TiledPatternParser';
 import Generator from '../map_generator/Generator';
+import { generateTilemap } from '../map_generator/wfc';
 
 interface Props {
   Encounter: Encounter
@@ -47,8 +48,9 @@ export default class EncounterUI extends React.Component<Props, State> {
       lineOfSight: false,
       selectedTiles: [],
     };
-    this.parser = new TiledPatternParser(this.state.tilemap, 3);
-    this.generator = new Generator(this.parser, 20, 20);
+    this.parser = new TiledPatternParser(this.state.tilemap, 2);
+    this.generator = new Generator(this.parser, 10, 10);
+    generateTilemap(this.state.tilemap);
     (window as any).encounter = this;
   }
 
@@ -99,7 +101,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         }));
         break;
       case 'n':
-        console.log(this.generator.step());
+        while (this.generator.step());
         this.setState(produce(this.state, state => {
           state.generated = this.generator.tilemap();
         }));
@@ -295,9 +297,9 @@ export default class EncounterUI extends React.Component<Props, State> {
   }
 
   drawEntropy(ctx: CanvasRenderingContext2D) {
+    if (this.generator.possibilities.reduce((sum, p) => sum + p.size, 0) === this.generator.possibilities.length) return;
     const maxEntropy = Math.max(...this.generator.entropy);
     const minEntropy = Math.min(...this.generator.entropy);
-    if (maxEntropy === minEntropy) return;
     for (let x = 0; x < this.generator.width; x++) {
       for (let y = 0; y < this.generator.height; y++) {
         const entropy = this.generator.entropy[y * this.generator.width + x];
@@ -308,13 +310,15 @@ export default class EncounterUI extends React.Component<Props, State> {
           this.state.tilemap.tilewidth,
           this.state.tilemap.tileheight,
         );
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgb(1, 1, 1)';
-        ctx.fillText(
-          `${this.generator.possibilities[y * this.generator.width + x].size}`,
-          x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2,
-          y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
+        if (this.generator.possibilities[y * this.generator.width + x].size > 1) {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgb(1, 1, 1)';
+          ctx.fillText(
+            `${this.generator.possibilities[y * this.generator.width + x].size}`,
+            x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2,
+            y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
+        }
       }
     }
   }
