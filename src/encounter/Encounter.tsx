@@ -5,9 +5,7 @@ import { Tilemap, ListSpritesheetsForTilemapRow } from '../AssetService';
 import { Character, Encounter } from '../CampaignService';
 import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import { rasterizeLine } from '../OrthoMath';
-import TiledPatternParser from '../map_generator/TiledPatternParser';
-import Generator from '../map_generator/Generator';
-import { generateTilemap } from '../map_generator/wfc';
+import Generator from './Generator';
 
 interface Props {
   Encounter: Encounter
@@ -34,7 +32,6 @@ export default class EncounterUI extends React.Component<Props, State> {
   spritesheetImages: { [key: string]: HTMLImageElement } = {}
   canvasReady = false
   seen: { [key: number]: boolean } = {}
-  parser: TiledPatternParser
   generator: Generator
 
   constructor(props: Props) {
@@ -48,10 +45,8 @@ export default class EncounterUI extends React.Component<Props, State> {
       lineOfSight: false,
       selectedTiles: [],
     };
-    this.parser = new TiledPatternParser(this.state.tilemap, 2);
-    this.generator = new Generator(this.parser, 10, 10);
-    generateTilemap(this.state.tilemap);
     (window as any).encounter = this;
+    this.generator = new Generator(this.state.tilemap, 1, 15, 25);
   }
 
   handleKeyDown = (event: React.KeyboardEvent) => {
@@ -101,10 +96,11 @@ export default class EncounterUI extends React.Component<Props, State> {
         }));
         break;
       case 'n':
-        while (this.generator.step());
-        this.setState(produce(this.state, state => {
-          state.generated = this.generator.tilemap();
-        }));
+        this.generator.generate().then(tilemap => {
+          this.setState(produce(this.state, state => {
+            state.generated = tilemap;
+          }));
+        });
         break;
     }
   }
@@ -253,6 +249,7 @@ export default class EncounterUI extends React.Component<Props, State> {
   }
 
   drawAdjacent(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
+    /*
     const parserTileIndex = this.parser.map[loc.y * this.parser.tilemap.width + loc.x];
     if (parserTileIndex === undefined) return;
     const patternIndex = this.parser.patternIndex.get(loc.y * this.parser.tilemap.width + loc.x);
@@ -269,9 +266,11 @@ export default class EncounterUI extends React.Component<Props, State> {
         ctx.translate(0, this.state.tilemap.tileheight * this.parser.patternSize + 2);
       }
     }
+    */
   }
 
   drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
+    /*
     for (let x = 0; x < this.parser.patternSize; x++) {
       for (let y = 0; y < this.parser.patternSize; y++) {
         const tileIndex = pattern[y * this.parser.patternSize + x];
@@ -282,9 +281,11 @@ export default class EncounterUI extends React.Component<Props, State> {
         ctx.fillText(`${tileIndex}`, x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2, y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
       }
     }
+    */
   }
 
   drawOverlap(ctx: CanvasRenderingContext2D, pattern1: number[], pattern2: number[], dx: number, dy: number) {
+    /*
     for (let x = 0; x < this.parser.patternSize; x++) {
       for (let y = 0; y < this.parser.patternSize; y++) {
         if (x + dx < 0 || x + dx >= this.parser.patternSize || y + dy < 0 || y + dy >= this.parser.patternSize) continue;
@@ -294,9 +295,11 @@ export default class EncounterUI extends React.Component<Props, State> {
         this.drawStack(ctx, x, y, this.parser.tiles[tile1].split(',').map(t => parseInt(t)));
       }
     }
+    */
   }
 
   drawEntropy(ctx: CanvasRenderingContext2D) {
+    /*
     if (this.generator.possibilities.reduce((sum, p) => sum + p.size, 0) === this.generator.possibilities.length) return;
     const maxEntropy = Math.max(...this.generator.entropy);
     const minEntropy = Math.min(...this.generator.entropy);
@@ -321,6 +324,7 @@ export default class EncounterUI extends React.Component<Props, State> {
         }
       }
     }
+    */
   }
 
   drawMap(ctx: CanvasRenderingContext2D, map: TiledTilemap) {
@@ -329,7 +333,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       layer.data.forEach((tileIndex, index) => {
         if (!layer.width || !layer.height) return;
         const tileX = index % layer.width;
-        const tileY = Math.floor(index / layer.height);
+        const tileY = Math.floor(index / layer.width);
         this.drawTile(ctx, tileX, tileY, tileIndex);
         //const seen = this.seen[tileY * (width / this.state.tilemap.tilewidth) + tileX];
         //if (!seen && !this.canSee(tileX, tileY) && this.state.lineOfSight) return;

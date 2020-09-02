@@ -2,8 +2,19 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
+
+func LogRequest(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		route := mux.CurrentRoute(r)
+		log.Println(route.GetName(), r.URL, r.Header)
+		h.ServeHTTP(w, r)
+	})
+}
 
 func RedirectToHTTPS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

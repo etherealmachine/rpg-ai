@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -79,7 +82,7 @@ func (p *WebpackProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				if v, ok := msg["type"].(string); ok && v == "invalid" {
-					loadAssets()
+					loadDevAssets()
 				}
 				remoteChan <- &websocketMsg{t, data}
 			}
@@ -122,32 +125,63 @@ func detectNodes(n *html.Node) {
 	}
 }
 
-func loadAssets() error {
+func loadAssetsFromIndex(r io.Reader) error {
 	assetLock.Lock()
 	defer assetLock.Unlock()
 	scripts = nil
 	links = nil
 	styles = nil
-	var r io.Reader
-	if Dev {
-		resp, err := http.Get("http://localhost:3000")
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		r = resp.Body
-	} else {
-		f, err := os.Open("build/index.html")
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		r = f
-	}
 	doc, err := html.Parse(r)
 	if err != nil {
 		return err
 	}
 	detectNodes(doc)
 	return nil
+}
+
+func loadProductionAssets() error {
+	f, err := os.Open("build/index.html")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return loadAssetsFromIndex(f)
+}
+
+func loadDevAssets() error {
+	resp, err := http.Get("http://localhost:3000")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return loadAssetsFromIndex(resp.Body)
+}
+
+func runWebpack() error {
+	cmd := exec.Command("yarn", "start")
+	yarnBin := fmt.Sprintf("%s/.yarn/bin", os.Getenv("HOME"))
+	nodeBin := fmt.Sprintf("%s/.nvm/versions/node/v10.15.3/bin", os.Getenv("HOME"))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s;%s;%s", yarnBin, nodeBin, os.Getenv("PATH")))
+	cmd.Env = append(cmd.Env, "BROWSER=none")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("REACT_APP_GOOGLE_CLIENT_ID=%s", os.Getenv("GOOGLE_CLIENT_ID")))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("REACT_APP_FACEBOOK_APP_ID=%s", os.Getenv("FACEBOOK_APP_ID")))
+	cmd.Stdout = log.Writer()
+	cmd.Stderr = log.Writer()
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		cmd.Process.Kill()
+		os.Exit(0)
+	}()
+	return cmd.Run()
+}
+
+func CacheBuster(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Cache-Control") == "no-cache" {
+			loadDevAssets()
+		}
+		h.ServeHTTP(w, r)
+	})
 }
