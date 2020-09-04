@@ -266,6 +266,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       const adjacentByDir = this.generator.adjacent.get(patternIndex);
       if (adjacentByDir === undefined) continue;
       for (let [dir, adjacencies] of adjacentByDir?.entries()) {
+        if (dir !== 'Below') continue;
         ctx.fillText(`${dir}`, 64, 0);
         for (let adjacent of adjacencies) {
           const neighborPattern = this.generator.patterns[adjacent];

@@ -102,6 +102,7 @@ export default class Generator {
         for (let [dir, delta] of this.neighbors.entries()) {
           if (this.canOverlap(this.patterns[i], this.patterns[j], delta.x, delta.y, delta.z)) {
             this.addAdjacency(i, dir, j);
+            this.addAdjacency(j, this.inverse(dir), i);
           }
         }
       }
@@ -114,6 +115,17 @@ export default class Generator {
 
   indexPattern(x: number, y: number, z: number): number {
     return z + y * this.patternSize + x * this.patternSize * this.patternSize;
+  }
+
+  inverse(d: Direction): Direction {
+    switch (d) {
+      case Direction.Left: return Direction.Right;
+      case Direction.Right: return Direction.Left;
+      case Direction.Up: return Direction.Down;
+      case Direction.Down: return Direction.Up;
+      case Direction.Above: return Direction.Below;
+      case Direction.Below: return Direction.Above;
+    }
   }
 
   addAdjacency(from: number, dir: Direction, to: number) {
@@ -131,6 +143,7 @@ export default class Generator {
   }
 
   canOverlap(pattern1: number[], pattern2: number[], dx: number, dy: number, dz: number): boolean {
+    let sharedTile = false;
     for (let x = 0; x < this.patternSize; x++) {
       for (let y = 0; y < this.patternSize; y++) {
         for (let z = 0; z < this.patternSize; z++) {
@@ -139,10 +152,11 @@ export default class Generator {
           const i = this.indexPattern(x, y, z);
           const j = this.indexPattern(nx, ny, nz);
           if (pattern1[i] !== pattern2[j]) return false;
+          else if (pattern1[i] !== 0 && pattern2[j] !== 0) sharedTile = true;
         }
       }
     }
-    return true;
+    return sharedTile;
   }
 
   async generate(): Promise<Tilemap> {
