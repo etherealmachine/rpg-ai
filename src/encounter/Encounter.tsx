@@ -46,7 +46,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       selectedTiles: [],
     };
     (window as any).encounter = this;
-    this.generator = new Generator(this.state.tilemap, 1, 15, 25);
+    this.generator = new Generator(this.state.tilemap, 2, 10, 10);
   }
 
   handleKeyDown = (event: React.KeyboardEvent) => {
@@ -236,95 +236,57 @@ export default class EncounterUI extends React.Component<Props, State> {
       const selected = this.state.selectedTiles[0];
       ctx.save()
       ctx.translate(this.state.tilemap.tilewidth * (this.state.tilemap.width + 2), 0);
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${selected.x}, ${selected.y}`, 0, 0);
+      ctx.translate(0, 16);
       this.drawAdjacent(ctx, selected);
       ctx.restore();
     }
     if (this.state.generated) {
       ctx.translate(0, this.state.tilemap.tileheight * this.state.tilemap.height + 16);
       this.drawMap(ctx, this.state.generated);
-      this.drawEntropy(ctx);
     }
     ctx.restore();
     this.canvasReady = true;
   }
 
   drawAdjacent(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
-    /*
-    const parserTileIndex = this.parser.map[loc.y * this.parser.tilemap.width + loc.x];
-    if (parserTileIndex === undefined) return;
-    const patternIndex = this.parser.patternIndex.get(loc.y * this.parser.tilemap.width + loc.x);
-    if (patternIndex === undefined) return;
-    const pattern = this.parser.patterns[patternIndex];
-    this.drawStack(ctx, 0, 0, this.parser.tiles[parserTileIndex].split(',').map(x => parseInt(x)));
-    ctx.translate(this.state.tilemap.tilewidth + 2, 0);
-    this.drawPattern(ctx, pattern);
-    for (let dir of this.parser.neighbors.keys()) {
-      ctx.translate(0, this.state.tilemap.tileheight * this.parser.patternSize + 8);
-      ctx.fillText(dir, 0, 0);
-      for (let adjPatternIndex of (this.parser.adjacent.get(patternIndex)?.get(dir)?.keys() || [])) {
-        this.drawPattern(ctx, this.parser.patterns[adjPatternIndex]);
-        ctx.translate(0, this.state.tilemap.tileheight * this.parser.patternSize + 2);
-      }
+    for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
+      const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
+      if (patternIndex === undefined) continue;
+      const pattern = this.generator.patterns[patternIndex];
+      ctx.translate(0, this.state.tilemap.tileheight * this.generator.patternSize);
+      ctx.textBaseline = 'top';
+      ctx.fillText(`${patternIndex}`, 32, 0);
+      this.drawPattern(ctx, pattern);
     }
-    */
-  }
-
-  drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
-    /*
-    for (let x = 0; x < this.parser.patternSize; x++) {
-      for (let y = 0; y < this.parser.patternSize; y++) {
-        const tileIndex = pattern[y * this.parser.patternSize + x];
-        const tiles = this.parser.tiles[tileIndex].split(',').map(t => parseInt(t));
-        this.drawStack(ctx, x, y, tiles);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${tileIndex}`, x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2, y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
-      }
-    }
-    */
-  }
-
-  drawOverlap(ctx: CanvasRenderingContext2D, pattern1: number[], pattern2: number[], dx: number, dy: number) {
-    /*
-    for (let x = 0; x < this.parser.patternSize; x++) {
-      for (let y = 0; y < this.parser.patternSize; y++) {
-        if (x + dx < 0 || x + dx >= this.parser.patternSize || y + dy < 0 || y + dy >= this.parser.patternSize) continue;
-        const tile1 = pattern1[(y + dy) * this.parser.patternSize + (x + dx)];
-        const tile2 = pattern2[y * this.parser.patternSize + x];
-        if (tile1 !== tile2) continue;
-        this.drawStack(ctx, x, y, this.parser.tiles[tile1].split(',').map(t => parseInt(t)));
-      }
-    }
-    */
-  }
-
-  drawEntropy(ctx: CanvasRenderingContext2D) {
-    /*
-    if (this.generator.possibilities.reduce((sum, p) => sum + p.size, 0) === this.generator.possibilities.length) return;
-    const maxEntropy = Math.max(...this.generator.entropy);
-    const minEntropy = Math.min(...this.generator.entropy);
-    for (let x = 0; x < this.generator.width; x++) {
-      for (let y = 0; y < this.generator.height; y++) {
-        const entropy = this.generator.entropy[y * this.generator.width + x];
-        ctx.fillStyle = `rgba(0, 0, 0, ${(entropy - minEntropy) / (maxEntropy - minEntropy)})`;
-        ctx.fillRect(
-          x * this.state.tilemap.tilewidth,
-          y * this.state.tilemap.tileheight,
-          this.state.tilemap.tilewidth,
-          this.state.tilemap.tileheight,
-        );
-        if (this.generator.possibilities[y * this.generator.width + x].size > 1) {
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgb(1, 1, 1)';
-          ctx.fillText(
-            `${this.generator.possibilities[y * this.generator.width + x].size}`,
-            x * this.state.tilemap.tilewidth + this.state.tilemap.tilewidth / 2,
-            y * this.state.tilemap.tileheight + this.state.tilemap.tileheight / 2);
+    for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
+      const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
+      if (patternIndex === undefined) continue;
+      const adjacentByDir = this.generator.adjacent.get(patternIndex);
+      if (adjacentByDir === undefined) continue;
+      for (let [dir, adjacencies] of adjacentByDir?.entries()) {
+        ctx.fillText(`${dir}`, 64, 0);
+        for (let adjacent of adjacencies) {
+          const neighborPattern = this.generator.patterns[adjacent];
+          ctx.translate(0, this.state.tilemap.tileheight * this.generator.patternSize);
+          ctx.textBaseline = 'top';
+          ctx.fillText(`${adjacent}`, 32, 0);
+          this.drawPattern(ctx, neighborPattern);
         }
       }
     }
-    */
+  }
+
+  drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
+    for (let x = 0; x < this.generator.patternSize; x++) {
+      for (let y = 0; y < this.generator.patternSize; y++) {
+        for (let z = 0; z < this.generator.patternSize; z++) {
+          const tile = pattern[this.generator.indexPattern(x, y, z)];
+          this.drawTile(ctx, x, y, tile);
+        }
+      }
+    }
   }
 
   drawMap(ctx: CanvasRenderingContext2D, map: TiledTilemap) {
