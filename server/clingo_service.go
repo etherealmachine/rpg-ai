@@ -47,7 +47,7 @@ func (s *ClingoService) RunProgram(r *http.Request, arg *RunProgramRequest, repl
 		os.Remove(f.Name())
 	}()
 	seed := rand.Intn(2147483647)
-	cmd := exec.Command("clingo", f.Name(), fmt.Sprintf("--seed=%d", seed))
+	cmd := exec.Command("clingo", f.Name(), "--rand-freq=1.0", fmt.Sprintf("--seed=%d", seed))
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

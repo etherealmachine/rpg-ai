@@ -15,8 +15,8 @@ interface Props {
 }
 
 interface State {
-  tilemap: TiledTilemap,
-  generated?: TiledTilemap,
+  baseTilemap: TiledTilemap,
+  tilemaps: Map<{ x: number, y: number }, TiledTilemap>,
   position: { x: number, y: number },
   scale: number,
   camera: { x: number, y: number },
@@ -36,8 +36,10 @@ export default class EncounterUI extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
+    const tilemap = ((props.Tilemap.Definition as unknown) as TiledTilemap);
     this.state = {
-      tilemap: ((props.Tilemap.Definition as unknown) as TiledTilemap),
+      baseTilemap: tilemap,
+      tilemaps: new Map([[{ x: 0, y: 0 }, tilemap]]),
       position: { x: 0, y: 0 },
       scale: 1,
       camera: { x: 0, y: 0 },
@@ -46,11 +48,12 @@ export default class EncounterUI extends React.Component<Props, State> {
       selectedTiles: [],
     };
     (window as any).encounter = this;
-    this.generator = new Generator(this.state.tilemap, 2, 10, 10);
+    this.generator = new Generator(tilemap, 5, 39, 0, 50, 10);
   }
 
   handleKeyDown = (event: React.KeyboardEvent) => {
     switch (event.key) {
+      /*
       case 'ArrowUp':
         if (this.canEnter(this.state.position.x, this.state.position.y - 1)) {
           this.setState(produce(this.state, state => { state.position.y--; }));
@@ -71,17 +74,18 @@ export default class EncounterUI extends React.Component<Props, State> {
           this.setState(produce(this.state, state => { state.position.x++; }));
         }
         break;
+      */
       case 'w':
-        this.setState(produce(this.state, state => { state.camera.y -= this.state.tilemap.tileheight; }));
+        this.setState(produce(this.state, state => { state.camera.y -= this.state.baseTilemap.tileheight; }));
         break;
       case 'a':
-        this.setState(produce(this.state, state => { state.camera.x -= this.state.tilemap.tilewidth; }));
+        this.setState(produce(this.state, state => { state.camera.x -= this.state.baseTilemap.tilewidth; }));
         break;
       case 's':
-        this.setState(produce(this.state, state => { state.camera.y += this.state.tilemap.tileheight; }));
+        this.setState(produce(this.state, state => { state.camera.y += this.state.baseTilemap.tileheight; }));
         break;
       case 'd':
-        this.setState(produce(this.state, state => { state.camera.x += this.state.tilemap.tilewidth; }));
+        this.setState(produce(this.state, state => { state.camera.x += this.state.baseTilemap.tilewidth; }));
         break;
       case 'q':
         this.setState(produce(this.state, state => { state.scale = Math.max(state.scale - 0.1, 1) }));
@@ -91,16 +95,18 @@ export default class EncounterUI extends React.Component<Props, State> {
         break;
       case 'c':
         this.setState(produce(this.state, state => {
-          state.camera.x = state.position.x * state.tilemap.tilewidth * state.scale;
-          state.camera.y = state.position.y * state.tilemap.tileheight * state.scale;
+          state.camera.x = state.position.x * state.baseTilemap.tilewidth * state.scale;
+          state.camera.y = state.position.y * state.baseTilemap.tileheight * state.scale;
         }));
         break;
       case 'n':
+        /*
         this.generator.generate().then(tilemap => {
           this.setState(produce(this.state, state => {
-            state.generated = tilemap;
+            state.tilemap = tilemap;
           }));
         });
+        */
         break;
     }
   }
@@ -119,7 +125,7 @@ export default class EncounterUI extends React.Component<Props, State> {
     const tile = this.canvasPosToTilePos(x, y);
     this.setState(produce(this.state, state => {
       state.mouse = { x: x, y: y, buttons: event.buttons };
-      if (tile.x < 0 || tile.x >= state.tilemap.width || tile.y < 0 || tile.y >= state.tilemap.height) {
+      if (tile.x < 0 || tile.x >= state.baseTilemap.width || tile.y < 0 || tile.y >= state.baseTilemap.height) {
         state.selectedTiles = [];
       } else if (event.altKey) {
         state.selectedTiles.push(tile);
@@ -129,6 +135,7 @@ export default class EncounterUI extends React.Component<Props, State> {
     }));
   }
 
+  /*
   canEnter(x: number, y: number): boolean {
     if (x < 0) return false;
     if (x >= this.state.tilemap.width) return false;
@@ -174,9 +181,10 @@ export default class EncounterUI extends React.Component<Props, State> {
     }
     return false;
   }
+  */
 
   componentDidMount() {
-    Promise.all(this.state.tilemap.tilesets.map(tileset => {
+    Promise.all(this.state.baseTilemap.tilesets.map(tileset => {
       if ((tileset as TilesetSource).source === undefined) return null;
       const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
       if (!spritesheet) return null;
@@ -190,8 +198,8 @@ export default class EncounterUI extends React.Component<Props, State> {
   }
 
   tilesetForTileID(index: number) {
-    const tilesetIndex = this.state.tilemap.tilesets.filter(tileset => tileset.firstgid).findIndex(tileset => index <= tileset.firstgid!) - 1;
-    const tileset = this.state.tilemap.tilesets[tilesetIndex];
+    const tilesetIndex = this.state.baseTilemap.tilesets.filter(tileset => tileset.firstgid).findIndex(tileset => index <= tileset.firstgid!) - 1;
+    const tileset = this.state.baseTilemap.tilesets[tilesetIndex];
     if (tileset === undefined) return null;
     if ((tileset as TilesetSource).source === undefined) return null;
     const spritesheet = this.props.Spritesheets.find(spritesheet => spritesheet.SpritesheetName === (tileset as TilesetSource).source);
@@ -204,8 +212,8 @@ export default class EncounterUI extends React.Component<Props, State> {
 
   canvasPosToTilePos(x: number, y: number): { x: number, y: number } {
     return {
-      x: Math.floor((x - this.state.camera.x) / this.state.scale / this.state.tilemap.tilewidth),
-      y: Math.floor((y - this.state.camera.y) / this.state.scale / this.state.tilemap.tileheight),
+      x: Math.floor((x - this.state.camera.x) / this.state.scale / this.state.baseTilemap.tilewidth),
+      y: Math.floor((y - this.state.camera.y) / this.state.scale / this.state.baseTilemap.tileheight),
     };
   }
 
@@ -222,59 +230,53 @@ export default class EncounterUI extends React.Component<Props, State> {
     ctx.save();
     ctx.scale(this.state.scale, this.state.scale);
     ctx.translate(this.state.camera.x, this.state.camera.y);
-    this.drawMap(ctx, this.state.tilemap);
+    for (let [offset, tilemap] of this.state.tilemaps.entries()) {
+      ctx.save();
+      ctx.translate(offset.x * this.state.baseTilemap.tilewidth, offset.y * this.state.baseTilemap.tileheight);
+      this.drawMap(ctx, tilemap);
+      ctx.restore();
+    }
     for (let tile of this.state.selectedTiles) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(
-        tile.x * this.state.tilemap.tilewidth,
-        tile.y * this.state.tilemap.tileheight,
-        this.state.tilemap.tilewidth,
-        this.state.tilemap.tileheight
+        tile.x * this.state.baseTilemap.tilewidth,
+        tile.y * this.state.baseTilemap.tileheight,
+        this.state.baseTilemap.tilewidth,
+        this.state.baseTilemap.tileheight
       );
     }
     if (this.state.selectedTiles.length > 0) {
       const selected = this.state.selectedTiles[0];
       ctx.save()
-      ctx.translate(this.state.tilemap.tilewidth * (this.state.tilemap.width + 2), 0);
+      ctx.translate(this.state.baseTilemap.tilewidth * (this.state.baseTilemap.width + 2), 0);
       ctx.textBaseline = 'top';
       ctx.fillText(`${selected.x}, ${selected.y}`, 0, 0);
       ctx.translate(0, 16);
       this.drawCompatible(ctx, selected);
       ctx.restore();
     }
-    if (this.state.generated) {
-      ctx.translate(0, this.state.tilemap.tileheight * this.state.tilemap.height + 16);
-      this.drawMap(ctx, this.state.generated);
-    }
     ctx.restore();
     this.canvasReady = true;
   }
 
   drawCompatible(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
-    for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
-      const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
-      if (patternIndex === undefined) continue;
-      const pattern = this.generator.patterns[patternIndex];
-      ctx.translate(0, this.state.tilemap.tileheight * this.generator.patternSize);
-      ctx.textBaseline = 'top';
-      ctx.fillText(`${patternIndex}`, 32, 0);
-      this.drawPattern(ctx, pattern);
-    }
-    for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
-      const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
-      if (patternIndex === undefined) continue;
-      const compatibleByDir = this.generator.compatible.get(patternIndex);
-      if (compatibleByDir === undefined) continue;
-      for (let [dir, compatibilities] of compatibleByDir?.entries()) {
-        if (dir !== 'Below') continue;
-        ctx.fillText(`${dir}`, 64, 0);
-        for (let compatible of compatibilities) {
-          const neighborPattern = this.generator.patterns[compatible];
-          ctx.translate(0, this.state.tilemap.tileheight * this.generator.patternSize);
-          ctx.textBaseline = 'top';
-          ctx.fillText(`${compatible}`, 32, 0);
-          this.drawPattern(ctx, neighborPattern);
-        }
+    const patternIndex = this.generator.patternIndex[this.generator.index(loc.x, loc.y)];
+    if (patternIndex === undefined) return;
+    const pattern = this.generator.patterns[patternIndex];
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${patternIndex}`, 32, 0);
+    this.drawPattern(ctx, pattern);
+    const compatibleByDir = this.generator.compatible.get(patternIndex);
+    if (compatibleByDir === undefined) return;
+    for (let [dir, compatibilities] of compatibleByDir?.entries()) {
+      ctx.translate(0, this.state.baseTilemap.tileheight * this.generator.patternSize);
+      ctx.fillText(`${dir}`, 64, 0);
+      for (let compatible of compatibilities) {
+        const neighborPattern = this.generator.patterns[compatible];
+        ctx.translate(0, this.state.baseTilemap.tileheight * this.generator.patternSize);
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${compatible}`, 32, 0);
+        this.drawPattern(ctx, neighborPattern);
       }
     }
   }
@@ -282,8 +284,8 @@ export default class EncounterUI extends React.Component<Props, State> {
   drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
     for (let x = 0; x < this.generator.patternSize; x++) {
       for (let y = 0; y < this.generator.patternSize; y++) {
-        for (let z = 0; z < this.generator.patternSize; z++) {
-          const tile = pattern[this.generator.indexPattern(x, y, z)];
+        const tileIndex = pattern[this.generator.indexPattern(x, y)];
+        for (let tile of this.generator.tiles[tileIndex].split(',').map(x => parseInt(x))) {
           this.drawTile(ctx, x, y, tile);
         }
       }

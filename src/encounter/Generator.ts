@@ -3,12 +3,12 @@ import ClingoService from '../ClingoService';
 import { Tilemap } from '../Tiled';
 
 const Program = `
-1 { assign(X,Y,Z,P):pattern(P) } 1 :- cell(X,Y,Z).
-:- adj(X1,Y1,Z1,X2,Y2,Z1,DX,DY,DZ),
-assign(X1,Y1,Z1,P1),
-not 1 { assign(X2,Y2,Z2,P2):legal(DX,DY,DZ,P1,P2) }.
+1 { assign(X,Y,P):pattern(P) } 1 :- cell(X,Y).
+:- adj(X1,Y1,X2,Y2,DX,DY),
+assign(X1,Y1,P1),
+not 1 { assign(X2,Y2,P2):legal(DX,DY,P1,P2) }.
 
-#show assign/4.
+#show assign/3.
 `;
 
 type Pattern = number[]
@@ -18,88 +18,89 @@ enum Direction {
   Right = 'Right',
   Up = 'Up',
   Down = 'Down',
-  Above = 'Above',
-  Below = 'Below',
 }
 
 export default class Generator {
 
   tilemap: Tilemap
-  tiles: number[] = []
+  tiles: string[] = []
+  tileIndex: number[]
   patternSize: number
   patterns: Pattern[] = []
-  patternIndex: Map<number, number> = new Map()
-  weights: number[] = []
+  patternIndex: number[]
+  patternWeights: number[] = []
   adjacent: Map<number, Map<Direction, Set<number>>> = new Map()
   compatible: Map<number, Map<Direction, Set<number>>> = new Map()
-  neighbors: Map<Direction, { x: number, y: number, z: number }> = new Map([
-    [Direction.Left, { x: -1, y: 0, z: 0 }],
-    [Direction.Right, { x: 1, y: 0, z: 0 }],
-    [Direction.Up, { x: 0, y: -1, z: 0 }],
-    [Direction.Down, { x: 0, y: 1, z: 0 }],
-    [Direction.Above, { x: 0, y: 0, z: 1 }],
-    [Direction.Below, { x: 0, y: 0, z: -1 }],
+  neighbors: Map<Direction, { x: number, y: number }> = new Map([
+    [Direction.Left, { x: -1, y: 0 }],
+    [Direction.Right, { x: 1, y: 0 }],
+    [Direction.Up, { x: 0, y: -1 }],
+    [Direction.Down, { x: 0, y: 1 }],
   ])
+  constraints: Map<number, number> = new Map()
   targetWidth: number
   targetHeight: number
 
-  constructor(tilemap: Tilemap, patternSize: number, width: number, height: number) {
+  constructor(tilemap: Tilemap, patternSize: number, x1: number, y1: number, x2: number, y2: number) {
     this.tilemap = tilemap;
     this.patternSize = patternSize;
-    this.targetWidth = width;
-    this.targetHeight = height;
+    this.targetWidth = x2 - x1;
+    this.targetHeight = y2 - y1;
+    this.tileIndex = new Array(this.tilemap.width * this.tilemap.height);
+    this.patternIndex = new Array(this.tilemap.width * this.tilemap.height);
 
-    const tileset = new Set<number>();
-    for (let z = 0; z < this.tilemap.layers.length; z++) {
-      for (let y = 0; y < this.tilemap.height; y++) {
-        for (let x = 0; x < this.tilemap.width; x++) {
-          const tile = this.tileAt(x, y, z);
-          if (tile) tileset.add(tile);
-        }
+    const tileset = new Set<string>();
+    for (let y = 0; y < this.tilemap.height; y++) {
+      for (let x = 0; x < this.tilemap.width; x++) {
+        const tile = this.tileStringAt(x, y);
+        if (tile) tileset.add(tile);
       }
     }
     this.tiles = new Array(...tileset);
-    for (let x = 0; x < this.tilemap.width; x++) {
-      for (let y = 0; y < this.tilemap.height; y++) {
-        for (let z = 0; z < this.tilemap.layers.length; z++) {
-          const pattern = [];
+    for (let y = 0; y < this.tilemap.height; y++) {
+      for (let x = 0; x < this.tilemap.width; x++) {
+        const tile = this.tileStringAt(x, y);
+        if (tile === undefined) throw new Error(`undefined tile at ${x}, ${y}`);
+        const tileIndex = this.tiles.indexOf(tile);
+        if (tileIndex === -1) throw new Error(`can't find tile index for ${tile} at ${x}, ${y}`);
+        this.tileIndex[y * this.tilemap.width + x] = tileIndex;
+      }
+    }
+    for (let y = 0; y < this.tilemap.height; y++) {
+      for (let x = 0; x < this.tilemap.width; x++) {
+        const pattern = [];
+        for (let dy = 0; dy < patternSize; dy++) {
           for (let dx = 0; dx < patternSize; dx++) {
-            for (let dy = 0; dy < patternSize; dy++) {
-              for (let dz = 0; dz < patternSize; dz++) {
-                const [nx, ny, nz] = [x + dx, y + dy, z + dz];
-                const tile = this.tileAt(nx, ny, nz);
-                pattern.push(tile);
-              }
-            }
+            const [nx, ny] = [x + dx, y + dy];
+            const tile = this.tileStringAt(nx, ny);
+            if (tile === undefined) continue;
+            const tileIndex = this.tiles.indexOf(tile);
+            pattern.push(tileIndex);
           }
-          if (pattern.indexOf(undefined) !== -1) continue;
-          if (pattern.reduce((sum, x) => (sum || 0) + (x || 0), 0) === 0) continue;
-          const patternString = pattern.join(',');
-          let patternIndex = this.patterns.findIndex(p => p.join(',') === patternString);
-          const mapIndex = this.index(x, y, z);
-          if (patternIndex === -1) {
-            this.patterns.push(pattern as Pattern);
-            this.weights.push(1);
-            patternIndex = this.patterns.length - 1;
-          } else {
-            this.patternIndex.set(mapIndex, patternIndex);
-            this.weights[patternIndex]++;
-          }
-          this.patternIndex.set(mapIndex, patternIndex);
         }
+        if (pattern.length !== patternSize * patternSize) continue;
+        const patternString = pattern.join(',');
+        let patternIndex = this.patterns.findIndex(p => p.join(',') === patternString);
+        const mapIndex = this.index(x, y);
+        if (patternIndex === -1) {
+          this.patterns.push(pattern as Pattern);
+          this.patternWeights.push(1);
+          patternIndex = this.patterns.length - 1;
+        } else {
+          this.patternWeights[patternIndex]++;
+        }
+        this.patternIndex[mapIndex] = patternIndex;
       }
     }
     for (let x = 0; x < this.tilemap.width; x++) {
       for (let y = 0; y < this.tilemap.height; y++) {
-        for (let z = 0; z < this.tilemap.layers.length; z++) {
-          const tile = this.tileAt(x, y, z);
-          for (let [dir, delta] of this.neighbors.entries()) {
-            const [nx, ny, nz] = [x + delta.x, y + delta.y, z + delta.z];
-            const neighbor = this.tileAt(nx, ny, nz);
-            if (tile !== undefined && neighbor !== undefined && tile !== 0 && neighbor !== 0) {
-              this.addAdjacency(tile, dir, neighbor);
-              this.addAdjacency(neighbor, this.inverse(dir), tile);
-            }
+        const tileIndex = this.tileIndexAt(x, y);
+        for (let [dir, delta] of this.neighbors.entries()) {
+          const [nx, ny] = [x + delta.x, y + delta.y];
+          const neighborIndex = this.tileIndexAt(nx, ny);
+          if (tileIndex !== undefined && neighborIndex !== undefined) {
+            this.addAdjacency(tileIndex, dir, neighborIndex);
+            this.addAdjacency(neighborIndex, this.inverse(dir), tileIndex);
           }
         }
       }
@@ -107,21 +108,22 @@ export default class Generator {
     for (let i = 0; i < this.patterns.length; i++) {
       for (let j = 0; j < this.patterns.length; j++) {
         for (let [dir, delta] of this.neighbors.entries()) {
-          if (this.canOverlap(i, j, delta.x, delta.y, delta.z)) {
+          if (this.canOverlap(i, j, delta.x, delta.y)) {
             this.addCompatible(i, dir, j);
             this.addCompatible(j, this.inverse(dir), i);
           }
         }
       }
     }
+
   }
 
-  index(x: number, y: number, z: number): number {
-    return z + y * this.tilemap.height + x * this.tilemap.width * this.tilemap.height;
+  index(x: number, y: number): number {
+    return x + y * this.tilemap.width;
   }
 
-  indexPattern(x: number, y: number, z: number): number {
-    return z + y * this.patternSize + x * this.patternSize * this.patternSize;
+  indexPattern(x: number, y: number): number {
+    return x + y * this.patternSize;
   }
 
   inverse(d: Direction): Direction {
@@ -130,16 +132,29 @@ export default class Generator {
       case Direction.Right: return Direction.Left;
       case Direction.Up: return Direction.Down;
       case Direction.Down: return Direction.Up;
-      case Direction.Above: return Direction.Below;
-      case Direction.Below: return Direction.Above;
     }
   }
 
-  tileAt(x: number, y: number, z: number): number | undefined {
-    if (x < 0 || x >= this.tilemap.width || y < 0 || y >= this.tilemap.height || z < 0 || z >= this.tilemap.layers.length) return undefined;
-    const data = this.tilemap.layers[z].data;
-    if (data) return data[y * this.tilemap.width + x];
-    return undefined;
+  tileAt(x: number, y: number): number[] | undefined {
+    if (x < 0 || x >= this.tilemap.width || y < 0 || y >= this.tilemap.height) return undefined;
+    return this.tilemap.layers.map(layer => {
+      const data = layer.data;
+      if (!data) return 0;
+      return data[y * this.tilemap.width + x];
+    });
+  }
+
+  tileStringAt(x: number, y: number): string | undefined {
+    if (x < 0 || x >= this.tilemap.width || y < 0 || y >= this.tilemap.height) return undefined;
+    return this.tilemap.layers.map(layer => {
+      const data = layer.data;
+      if (!data) return 0;
+      return data[y * this.tilemap.width + x];
+    }).join(',');
+  }
+
+  tileIndexAt(x: number, y: number): number | undefined {
+    return this.tileIndex[y * this.tilemap.width + x];
   }
 
   addAdjacency(from: number, dir: Direction, to: number) {
@@ -174,59 +189,51 @@ export default class Generator {
     dirCompat.add(to);
   }
 
-  canOverlap(pattern1: number, pattern2: number, dx: number, dy: number, dz: number): boolean {
+  canOverlap(pattern1: number, pattern2: number, dx: number, dy: number): boolean {
     const p1 = this.patterns[pattern1];
     const p2 = this.patterns[pattern2];
     for (let x = 0; x < this.patternSize; x++) {
       for (let y = 0; y < this.patternSize; y++) {
-        for (let z = 0; z < this.patternSize; z++) {
-          const [nx, ny, nz] = [x + dx, y + dy, z + dz];
-          if (nx < 0 || nx >= this.patternSize || ny < 0 || ny >= this.patternSize || nz < 0 || nz >= this.patternSize) continue;
-          const i = this.indexPattern(x, y, z);
-          const j = this.indexPattern(nx, ny, nz);
-          for (let [dir, delta] of this.neighbors.entries()) {
-            if (delta.x === dx && delta.y === dy && delta.x === dz) {
-              if (!this.isAdjacent(i, dir, j)) return false;
-            }
-          }
-          if (p1[i] !== p2[j]) return false;
-        }
+        const [nx, ny] = [x + dx, y + dy];
+        if (nx < 0 || nx >= this.patternSize || ny < 0 || ny >= this.patternSize) continue;
+        const i = this.indexPattern(x, y);
+        const j = this.indexPattern(nx, ny);
+        if (p1[i] !== p2[j]) return false;
       }
     }
     return true;
   }
 
   async generate(): Promise<Tilemap> {
-    const patterns = `pattern(0..${this.patterns.length - 1}).`;
-    const cells = `cell(0..${this.targetWidth - 1},0..${this.targetHeight - 1},0..${this.tilemap.layers.length - 1}).`;
+    const cells = `cell(0..${this.targetWidth - 1},0..${this.targetHeight - 1}).`;
     const adj: string[] = [];
     for (let x = 0; x < this.targetWidth; x++) {
       for (let y = 0; y < this.targetHeight; y++) {
-        for (let z = 0; z < this.tilemap.layers.length; z++) {
-          for (let delta of this.neighbors.values()) {
-            const [nx, ny, nz] = [x + delta.x, y + delta.y, z + delta.z];
-            if (nx < 0 || nx >= this.targetWidth || ny < 0 || ny >= this.targetHeight || nz < 0 || nz >= this.tilemap.layers.length) continue;
-            adj.push(`adj(${x}, ${y}, ${z}, ${nx}, ${ny}, ${nz}, ${delta.x}, ${delta.y}, ${delta.z}).`);
-          }
+        for (let delta of this.neighbors.values()) {
+          const [nx, ny] = [x + delta.x, y + delta.y];
+          if (nx < 0 || nx >= this.targetWidth || ny < 0 || ny >= this.targetHeight) continue;
+          adj.push(`adj(${x},${y},${nx},${ny},${delta.x},${delta.y}).`);
         }
       }
     }
+
+    const patterns = `pattern(0..${this.patterns.length}).`;
     const legal: string[] = [];
     for (let [p1, directions] of this.adjacent.entries()) {
       for (let [direction, patterns] of directions.entries()) {
         const delta = this.neighbors.get(direction);
         if (delta === undefined) throw Error(`No delta found for direction ${direction}`);
         for (let p2 of patterns) {
-          legal.push(`legal(${delta.x}, ${delta.y}, ${delta.z}, ${p1}, ${p2}).`)
+          legal.push(`legal(${delta.x},${delta.y},${p1},${p2}).`);
         }
       }
     }
 
     const resp = await ClingoService.RunProgram({
       Program: [
-        patterns,
         cells,
         ...adj,
+        patterns,
         ...legal,
         Program,
       ].join('\n')
@@ -246,12 +253,15 @@ export default class Generator {
         }
 
         for (let atom of atoms) {
-          const match = atom.match(/assign\((\d+),\W*(\d+),\W*(\d+),\W*(\d+)\)/);
+          const match = atom.match(/assign\((\d+),\W*(\d+),\W*(\d+)\)/);
           if (match === null) throw new Error(`No match found for ${atom}`);
-          const [x, y, z, p] = match.slice(1).map(x => parseInt(x));
-          const data = newTilemap.layers[z].data;
-          if (!data) continue;
-          data[y * this.targetWidth + x] = this.tiles[p];
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const [x, y, p, _] = match.slice(1).map(x => parseInt(x));
+          this.tiles[p].split(',').map(x => parseInt(x)).forEach((tile, layer) => {
+            const data = newTilemap.layers[layer].data;
+            if (!data) return;
+            data[y * this.targetWidth + x] = tile;
+          });
         }
 
         resolve(newTilemap);
