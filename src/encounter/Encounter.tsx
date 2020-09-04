@@ -239,7 +239,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       ctx.textBaseline = 'top';
       ctx.fillText(`${selected.x}, ${selected.y}`, 0, 0);
       ctx.translate(0, 16);
-      this.drawAdjacent(ctx, selected);
+      this.drawCompatible(ctx, selected);
       ctx.restore();
     }
     if (this.state.generated) {
@@ -250,7 +250,7 @@ export default class EncounterUI extends React.Component<Props, State> {
     this.canvasReady = true;
   }
 
-  drawAdjacent(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
+  drawCompatible(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
     for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
       const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
       if (patternIndex === undefined) continue;
@@ -263,16 +263,16 @@ export default class EncounterUI extends React.Component<Props, State> {
     for (let layer = 0; layer < this.generator.tilemap.layers.length; layer++) {
       const patternIndex = this.generator.patternIndex.get(this.generator.index(loc.x, loc.y, layer));
       if (patternIndex === undefined) continue;
-      const adjacentByDir = this.generator.adjacent.get(patternIndex);
-      if (adjacentByDir === undefined) continue;
-      for (let [dir, adjacencies] of adjacentByDir?.entries()) {
+      const compatibleByDir = this.generator.compatible.get(patternIndex);
+      if (compatibleByDir === undefined) continue;
+      for (let [dir, compatibilities] of compatibleByDir?.entries()) {
         if (dir !== 'Below') continue;
         ctx.fillText(`${dir}`, 64, 0);
-        for (let adjacent of adjacencies) {
-          const neighborPattern = this.generator.patterns[adjacent];
+        for (let compatible of compatibilities) {
+          const neighborPattern = this.generator.patterns[compatible];
           ctx.translate(0, this.state.tilemap.tileheight * this.generator.patternSize);
           ctx.textBaseline = 'top';
-          ctx.fillText(`${adjacent}`, 32, 0);
+          ctx.fillText(`${compatible}`, 32, 0);
           this.drawPattern(ctx, neighborPattern);
         }
       }

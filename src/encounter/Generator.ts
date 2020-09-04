@@ -31,6 +31,7 @@ export default class Generator {
   patternIndex: Map<number, number> = new Map()
   weights: number[] = []
   adjacent: Map<number, Map<Direction, Set<number>>> = new Map()
+  compatible: Map<number, Map<Direction, Set<number>>> = new Map()
   neighbors: Map<Direction, { x: number, y: number, z: number }> = new Map([
     [Direction.Left, { x: -1, y: 0, z: 0 }],
     [Direction.Right, { x: 1, y: 0, z: 0 }],
@@ -47,35 +48,26 @@ export default class Generator {
     this.patternSize = patternSize;
     this.targetWidth = width;
     this.targetHeight = height;
-    const W = tilemap.width;
-    const H = tilemap.height;
-    const D = tilemap.layers.length;
 
     const tileset = new Set<number>();
-    for (let z = 0; z < D; z++) {
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          const data = tilemap.layers[z].data;
-          if (!data) continue;
-          const tile = data[y * W + x];
-          tileset.add(tile);
+    for (let z = 0; z < this.tilemap.layers.length; z++) {
+      for (let y = 0; y < this.tilemap.height; y++) {
+        for (let x = 0; x < this.tilemap.width; x++) {
+          const tile = this.tileAt(x, y, z);
+          if (tile) tileset.add(tile);
         }
       }
     }
     this.tiles = new Array(...tileset);
-    for (let x = 0; x < W; x++) {
-      for (let y = 0; y < H; y++) {
-        for (let z = 0; z < D; z++) {
+    for (let x = 0; x < this.tilemap.width; x++) {
+      for (let y = 0; y < this.tilemap.height; y++) {
+        for (let z = 0; z < this.tilemap.layers.length; z++) {
           const pattern = [];
           for (let dx = 0; dx < patternSize; dx++) {
             for (let dy = 0; dy < patternSize; dy++) {
               for (let dz = 0; dz < patternSize; dz++) {
                 const [nx, ny, nz] = [x + dx, y + dy, z + dz];
-                let tile: number | undefined;
-                if (!(nx < 0 || nx >= W || ny < 0 || ny >= H || nz < 0 || nz >= D)) {
-                  const data = tilemap.layers[nz].data;
-                  if (data) tile = data[ny * W + nx];
-                }
+                const tile = this.tileAt(nx, ny, nz);
                 pattern.push(tile);
               }
             }
@@ -97,12 +89,27 @@ export default class Generator {
         }
       }
     }
+    for (let x = 0; x < this.tilemap.width; x++) {
+      for (let y = 0; y < this.tilemap.height; y++) {
+        for (let z = 0; z < this.tilemap.layers.length; z++) {
+          const tile = this.tileAt(x, y, z);
+          for (let [dir, delta] of this.neighbors.entries()) {
+            const [nx, ny, nz] = [x + delta.x, y + delta.y, z + delta.z];
+            const neighbor = this.tileAt(nx, ny, nz);
+            if (tile !== undefined && neighbor !== undefined && tile !== 0 && neighbor !== 0) {
+              this.addAdjacency(tile, dir, neighbor);
+              this.addAdjacency(neighbor, this.inverse(dir), tile);
+            }
+          }
+        }
+      }
+    }
     for (let i = 0; i < this.patterns.length; i++) {
       for (let j = 0; j < this.patterns.length; j++) {
         for (let [dir, delta] of this.neighbors.entries()) {
-          if (this.canOverlap(this.patterns[i], this.patterns[j], delta.x, delta.y, delta.z)) {
-            this.addAdjacency(i, dir, j);
-            this.addAdjacency(j, this.inverse(dir), i);
+          if (this.canOverlap(i, j, delta.x, delta.y, delta.z)) {
+            this.addCompatible(i, dir, j);
+            this.addCompatible(j, this.inverse(dir), i);
           }
         }
       }
@@ -128,6 +135,13 @@ export default class Generator {
     }
   }
 
+  tileAt(x: number, y: number, z: number): number | undefined {
+    if (x < 0 || x >= this.tilemap.width || y < 0 || y >= this.tilemap.height || z < 0 || z >= this.tilemap.layers.length) return undefined;
+    const data = this.tilemap.layers[z].data;
+    if (data) return data[y * this.tilemap.width + x];
+    return undefined;
+  }
+
   addAdjacency(from: number, dir: Direction, to: number) {
     let fromMap = this.adjacent.get(from);
     if (!fromMap) {
@@ -142,8 +156,27 @@ export default class Generator {
     dirAdj.add(to);
   }
 
-  canOverlap(pattern1: number[], pattern2: number[], dx: number, dy: number, dz: number): boolean {
-    let sharedTile = false;
+  isAdjacent(t1: number, dir: Direction, t2: number): boolean {
+    return this.adjacent.get(t1)?.get(dir)?.has(t2) || false;
+  }
+
+  addCompatible(from: number, dir: Direction, to: number) {
+    let fromMap = this.compatible.get(from);
+    if (!fromMap) {
+      fromMap = new Map();
+      this.compatible.set(from, fromMap);
+    }
+    let dirCompat = fromMap.get(dir);
+    if (!dirCompat) {
+      dirCompat = new Set();
+      fromMap.set(dir, dirCompat);
+    }
+    dirCompat.add(to);
+  }
+
+  canOverlap(pattern1: number, pattern2: number, dx: number, dy: number, dz: number): boolean {
+    const p1 = this.patterns[pattern1];
+    const p2 = this.patterns[pattern2];
     for (let x = 0; x < this.patternSize; x++) {
       for (let y = 0; y < this.patternSize; y++) {
         for (let z = 0; z < this.patternSize; z++) {
@@ -151,12 +184,16 @@ export default class Generator {
           if (nx < 0 || nx >= this.patternSize || ny < 0 || ny >= this.patternSize || nz < 0 || nz >= this.patternSize) continue;
           const i = this.indexPattern(x, y, z);
           const j = this.indexPattern(nx, ny, nz);
-          if (pattern1[i] !== pattern2[j]) return false;
-          else if (pattern1[i] !== 0 && pattern2[j] !== 0) sharedTile = true;
+          for (let [dir, delta] of this.neighbors.entries()) {
+            if (delta.x === dx && delta.y === dy && delta.x === dz) {
+              if (!this.isAdjacent(i, dir, j)) return false;
+            }
+          }
+          if (p1[i] !== p2[j]) return false;
         }
       }
     }
-    return sharedTile;
+    return true;
   }
 
   async generate(): Promise<Tilemap> {
