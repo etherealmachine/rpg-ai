@@ -22,6 +22,10 @@ export interface Tileset {
   tiles?: TileDefinition[]
 }
 
+export interface TilesetWithImage extends Tileset {
+  imageSource?: CanvasImageSource
+}
+
 export interface TileDefinition {
   id: number
   type: string

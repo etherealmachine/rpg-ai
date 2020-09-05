@@ -1,15 +1,5 @@
-import ClingoService from '../ClingoService';
-
 import { Tilemap } from '../Tiled';
-
-const Program = `
-1 { assign(X,Y,P):pattern(P) } 1 :- cell(X,Y).
-:- adj(X1,Y1,X2,Y2,DX,DY),
-assign(X1,Y1,P1),
-not 1 { assign(X2,Y2,P2):legal(DX,DY,P1,P2) }.
-
-#show assign/3.
-`;
+import TileHelper from './TileHelper';
 
 type Pattern = number[]
 
@@ -20,9 +10,10 @@ enum Direction {
   Down = 'Down',
 }
 
-export default class Generator {
+export default class Parser {
 
   tilemap: Tilemap
+  tileHelper: TileHelper
   tiles: string[] = []
   tileIndex: number[]
   patternSize: number
@@ -37,15 +28,11 @@ export default class Generator {
     [Direction.Up, { x: 0, y: -1 }],
     [Direction.Down, { x: 0, y: 1 }],
   ])
-  constraints: Map<number, number> = new Map()
-  targetWidth: number
-  targetHeight: number
 
-  constructor(tilemap: Tilemap, patternSize: number, x1: number, y1: number, x2: number, y2: number) {
+  constructor(tilemap: Tilemap, tileHelper: TileHelper, patternSize: number) {
     this.tilemap = tilemap;
+    this.tileHelper = tileHelper;
     this.patternSize = patternSize;
-    this.targetWidth = x2 - x1;
-    this.targetHeight = y2 - y1;
     this.tileIndex = new Array(this.tilemap.width * this.tilemap.height);
     this.patternIndex = new Array(this.tilemap.width * this.tilemap.height);
 
@@ -73,12 +60,13 @@ export default class Generator {
           for (let dx = 0; dx < patternSize; dx++) {
             const [nx, ny] = [x + dx, y + dy];
             const tile = this.tileStringAt(nx, ny);
-            if (tile === undefined) continue;
-            const tileIndex = this.tiles.indexOf(tile);
+            let tileIndex = 0;
+            if (tile !== undefined) {
+              tileIndex = this.tiles.indexOf(tile);
+            }
             pattern.push(tileIndex);
           }
         }
-        if (pattern.length !== patternSize * patternSize) continue;
         const patternString = pattern.join(',');
         let patternIndex = this.patterns.findIndex(p => p.join(',') === patternString);
         const mapIndex = this.index(x, y);
@@ -109,13 +97,12 @@ export default class Generator {
       for (let j = 0; j < this.patterns.length; j++) {
         for (let [dir, delta] of this.neighbors.entries()) {
           if (this.canOverlap(i, j, delta.x, delta.y)) {
-            this.addCompatible(i, dir, j);
-            this.addCompatible(j, this.inverse(dir), i);
+            this.addCompatible(j, dir, i);
+            this.addCompatible(i, this.inverse(dir), j);
           }
         }
       }
     }
-
   }
 
   index(x: number, y: number): number {
@@ -204,72 +191,37 @@ export default class Generator {
     return true;
   }
 
-  async generate(): Promise<Tilemap> {
-    const cells = `cell(0..${this.targetWidth - 1},0..${this.targetHeight - 1}).`;
-    const adj: string[] = [];
-    for (let x = 0; x < this.targetWidth; x++) {
-      for (let y = 0; y < this.targetHeight; y++) {
-        for (let delta of this.neighbors.values()) {
-          const [nx, ny] = [x + delta.x, y + delta.y];
-          if (nx < 0 || nx >= this.targetWidth || ny < 0 || ny >= this.targetHeight) continue;
-          adj.push(`adj(${x},${y},${nx},${ny},${delta.x},${delta.y}).`);
+  drawCompatible(ctx: CanvasRenderingContext2D, loc: { x: number, y: number }) {
+    const patternIndex = this.patternIndex[this.index(loc.x, loc.y)];
+    if (patternIndex === undefined) return;
+    const pattern = this.patterns[patternIndex];
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${patternIndex}`, 32, 0);
+    this.drawPattern(ctx, pattern);
+    const compatibleByDir = this.compatible.get(patternIndex);
+    if (compatibleByDir === undefined) return;
+    for (let [dir, compatibilities] of compatibleByDir?.entries()) {
+      ctx.translate(0, this.tilemap.tileheight * this.patternSize);
+      ctx.fillText(`${dir}`, 64, 0);
+      for (let compatible of compatibilities) {
+        const neighborPattern = this.patterns[compatible];
+        ctx.translate(0, this.tilemap.tileheight * this.patternSize);
+        ctx.textBaseline = 'top';
+        ctx.fillText(`${compatible}`, 32, 0);
+        this.drawPattern(ctx, neighborPattern);
+      }
+    }
+  }
+
+  drawPattern(ctx: CanvasRenderingContext2D, pattern: number[]) {
+    for (let x = 0; x < this.patternSize; x++) {
+      for (let y = 0; y < this.patternSize; y++) {
+        const tileIndex = pattern[this.indexPattern(x, y)];
+        for (let tile of this.tiles[tileIndex].split(',').map(x => parseInt(x))) {
+          this.tileHelper.drawTile(ctx, x, y, tile);
         }
       }
     }
-
-    const patterns = `pattern(0..${this.patterns.length}).`;
-    const legal: string[] = [];
-    for (let [p1, directions] of this.adjacent.entries()) {
-      for (let [direction, patterns] of directions.entries()) {
-        const delta = this.neighbors.get(direction);
-        if (delta === undefined) throw Error(`No delta found for direction ${direction}`);
-        for (let p2 of patterns) {
-          legal.push(`legal(${delta.x},${delta.y},${p1},${p2}).`);
-        }
-      }
-    }
-
-    const resp = await ClingoService.RunProgram({
-      Program: [
-        cells,
-        ...adj,
-        patterns,
-        ...legal,
-        Program,
-      ].join('\n')
-    });
-
-    return new Promise((resolve, reject) => {
-      const match = resp.Stdout.match(/Answer:\W+1\W+(.*)\W+SATISFIABLE/);
-      if (match !== null && match.length === 2) {
-        const atoms = match[1].split(' ');
-        const newTilemap = JSON.parse(JSON.stringify(this.tilemap)) as Tilemap;
-        newTilemap.width = this.targetWidth;
-        newTilemap.height = this.targetHeight;
-        for (let layer of newTilemap.layers) {
-          layer.data = new Array(this.targetWidth * this.targetHeight);
-          layer.width = this.targetWidth;
-          layer.height = this.targetHeight;
-        }
-
-        for (let atom of atoms) {
-          const match = atom.match(/assign\((\d+),\W*(\d+),\W*(\d+)\)/);
-          if (match === null) throw new Error(`No match found for ${atom}`);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const [x, y, p, _] = match.slice(1).map(x => parseInt(x));
-          this.tiles[p].split(',').map(x => parseInt(x)).forEach((tile, layer) => {
-            const data = newTilemap.layers[layer].data;
-            if (!data) return;
-            data[y * this.targetWidth + x] = tile;
-          });
-        }
-
-        resolve(newTilemap);
-      } else {
-        console.log(match);
-        reject(resp.Stderr);
-      }
-    });
   }
 
 }
