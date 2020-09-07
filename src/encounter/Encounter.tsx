@@ -7,7 +7,7 @@ import { Character, Encounter } from '../CampaignService';
 import { Tilemap as TiledTilemap, TilesetSource, Tileset } from '../Tiled';
 import TileHelper from './TileHelper';
 import Parser from './Parser';
-import Generator from './ClingoGenerator';
+import Generator from './WFCGenerator';
 
 enableMapSet();
 
@@ -52,7 +52,7 @@ export default class EncounterUI extends React.Component<Props, State> {
       selectedTiles: [],
     };
     (window as any).encounter = this;
-    this.generator = new Generator(new Parser(tilemap, this.tileHelper, 2), 10, 10);
+    this.generator = new Generator(new Parser(tilemap, this.tileHelper, 1), 100, 100);
   }
 
   handleKeyDown = (event: React.KeyboardEvent) => {
@@ -103,15 +103,18 @@ export default class EncounterUI extends React.Component<Props, State> {
           state.camera.y = state.position.y * state.baseTilemap.tileheight * state.scale;
         }));
         break;
-      case 'n':
-        /*
+      case 'g':
+        this.generator = new Generator(new Parser(this.state.baseTilemap, this.tileHelper, 1), 100, 100);
         this.generator.generate().then(generated => {
           this.setState(produce(this.state, state => {
             if (state.tilemaps.get(state.baseTilemap.width) === undefined) state.tilemaps.set(state.baseTilemap.width, new Map());
             state.tilemaps.get(state.baseTilemap.width)?.set(0, generated);
           }));
         });
-        */
+        break;
+      case 'n':
+        this.generator.step();
+        this.updateCanvas();
         break;
     }
   }
@@ -252,6 +255,10 @@ export default class EncounterUI extends React.Component<Props, State> {
       this.generator.parser.drawCompatible(ctx, selected);
       ctx.restore();
     }
+    ctx.save();
+    ctx.translate(0, this.state.baseTilemap.height * this.state.baseTilemap.tileheight);
+    this.generator.drawEntropy(ctx);
+    ctx.restore();
     ctx.restore();
     this.canvasReady = true;
   }

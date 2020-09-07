@@ -3,7 +3,7 @@ import TileHelper from './TileHelper';
 
 type Pattern = number[]
 
-enum Direction {
+export enum Direction {
   Left = 'Left',
   Right = 'Right',
   Up = 'Up',
@@ -53,6 +53,19 @@ export default class Parser {
         this.tileIndex[y * this.tilemap.width + x] = tileIndex;
       }
     }
+    for (let x = 0; x < this.tilemap.width; x++) {
+      for (let y = 0; y < this.tilemap.height; y++) {
+        const tileIndex = this.tileIndexAt(x, y);
+        for (let [dir, delta] of this.neighbors.entries()) {
+          const [nx, ny] = [x + delta.x, y + delta.y];
+          const neighborIndex = this.tileIndexAt(nx, ny);
+          if (tileIndex !== undefined && neighborIndex !== undefined) {
+            this.addAdjacency(tileIndex, dir, neighborIndex);
+            this.addAdjacency(neighborIndex, this.inverse(dir), tileIndex);
+          }
+        }
+      }
+    }
     for (let y = 0; y < this.tilemap.height; y++) {
       for (let x = 0; x < this.tilemap.width; x++) {
         const pattern = [];
@@ -80,25 +93,25 @@ export default class Parser {
         this.patternIndex[mapIndex] = patternIndex;
       }
     }
-    for (let x = 0; x < this.tilemap.width; x++) {
-      for (let y = 0; y < this.tilemap.height; y++) {
-        const tileIndex = this.tileIndexAt(x, y);
-        for (let [dir, delta] of this.neighbors.entries()) {
-          const [nx, ny] = [x + delta.x, y + delta.y];
-          const neighborIndex = this.tileIndexAt(nx, ny);
-          if (tileIndex !== undefined && neighborIndex !== undefined) {
-            this.addAdjacency(tileIndex, dir, neighborIndex);
-            this.addAdjacency(neighborIndex, this.inverse(dir), tileIndex);
+    if (patternSize === 1) {
+      for (let i = 0; i < this.patterns.length; i++) {
+        for (let j = 0; j < this.patterns.length; j++) {
+          for (let dir of this.neighbors.keys()) {
+            if (this.isAdjacent(this.patterns[i][0], dir, this.patterns[j][0])) {
+              this.addCompatible(i, dir, j);
+              this.addCompatible(j, this.inverse(dir), i);
+            }
           }
         }
       }
-    }
-    for (let i = 0; i < this.patterns.length; i++) {
-      for (let j = 0; j < this.patterns.length; j++) {
-        for (let [dir, delta] of this.neighbors.entries()) {
-          if (this.canOverlap(i, j, delta.x, delta.y)) {
-            this.addCompatible(j, dir, i);
-            this.addCompatible(i, this.inverse(dir), j);
+    } else {
+      for (let i = 0; i < this.patterns.length; i++) {
+        for (let j = 0; j < this.patterns.length; j++) {
+          for (let [dir, delta] of this.neighbors.entries()) {
+            if (this.canOverlap(i, j, delta.x, delta.y)) {
+              this.addCompatible(j, dir, i);
+              this.addCompatible(i, this.inverse(dir), j);
+            }
           }
         }
       }
