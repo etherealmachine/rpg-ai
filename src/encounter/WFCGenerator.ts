@@ -11,7 +11,7 @@ const Directions = [
 
 const Opposite = [1, 0, 3, 2];
 
-export default class Generator {
+export class Generator {
 
   parser: Parser
   targetWidth: number
@@ -34,7 +34,6 @@ export default class Generator {
   propagator: number[][][]
 
   stack: number[][] = []
-  undoStack: { key: string, index: number[], value: any }[] = []
 
   constructor(parser: Parser, targetWidth: number, targetHeight: number) {
     this.parser = parser;
@@ -50,7 +49,7 @@ export default class Generator {
       for (let t = 0; t < this.parser.patterns.length; t++) {
         const list = [];
         for (let t2 = 0; t2 < this.parser.patterns.length; t2++) {
-          if (this.parser.compatible.get(t)?.get(dir)?.has(t2)) {
+          if (this.parser.compatible[t] && this.parser.compatible[t][dir] && this.parser.compatible[t][dir][t2]) {
             list.push(t2);
           }
         }
@@ -96,14 +95,6 @@ export default class Generator {
     }
   }
 
-  async generate(): Promise<Tilemap> {
-    let result = this.step();
-    while (!result) {
-      result = this.step();
-    }
-    return this.parser.tilemap;
-  }
-
   step() {
     try {
       const result = this.observe();
@@ -114,29 +105,10 @@ export default class Generator {
       return false;
     } catch (e) {
       try {
-        this.undo();
       } catch {
-        return true;
+        return undefined;
       }
     }
-  }
-
-  undo() {
-    console.log(`undoing ${this.undoStack.length} operations that resulted in a contradiction`);
-    const observation = this.undoStack.shift();
-    if (observation === undefined) throw new Error('impossible');
-    while (this.undoStack.length > 0) {
-      const undo = this.undoStack.pop();
-      if (undo === undefined) continue;
-      let v = (this as any)[undo.key] as any;
-      for (let i of undo.index.slice(0, undo.index.length - 1)) {
-        v = v[i];
-      }
-      v[undo.index[undo.index.length - 1]] = undo.value;
-    }
-    console.log(`banning ${observation.value} from ${observation.index[0]}`);
-    this.ban(observation.index[0], observation.value);
-    this.propagate();
   }
 
   observe() {
@@ -161,7 +133,6 @@ export default class Generator {
     }
 
     const r = this.lottery(this.wave[argmin]);
-    this.undoStack = [{ key: 'observe', index: [argmin], value: r }];
 
     const w = this.wave[argmin];
     for (let t = 0; t < w.length; t++) {
@@ -181,7 +152,7 @@ export default class Generator {
       const y1 = i1 / this.targetWidth | 0;
 
       for (let d = 0; d < 4; d++) {
-        const delta = this.parser.neighbors.get(Directions[d]);
+        const delta = this.parser.neighbors[Directions[d]];
         if (delta === undefined) throw new Error(`no direction found for ${d}`);
         const dx = delta.x;
         const dy = delta.y;
@@ -198,7 +169,6 @@ export default class Generator {
         for (let l = 0; l < p.length; l++) {
           const t2 = p[l];
           const comp = compat[t2];
-          this.undoStack.push({ key: 'compatible', index: [i2, t2, d], value: comp[d] });
           comp[d]--;
           if (comp[d] === 0) this.ban(i2, t2);
         }
@@ -208,11 +178,6 @@ export default class Generator {
 
   ban(i: number, t: number) {
     const comp = this.compatible[i][t];
-    this.undoStack.push({ key: 'wave', index: [i, t], value: this.wave[i][t] });
-    this.undoStack.push({ key: 'sumsOfOnes', index: [i], value: this.sumsOfOnes[i] });
-    this.undoStack.push({ key: 'sumsOfWeights', index: [i], value: this.sumsOfWeights[i] });
-    this.undoStack.push({ key: 'sumsOfWeightLogWeights', index: [i], value: this.sumsOfWeightLogWeights[i] });
-    this.undoStack.push({ key: 'entropies', index: [i], value: this.entropies[i] });
     for (let d = 0; d < 4; d++) {
       comp[d] = 0;
     }
@@ -268,4 +233,56 @@ export default class Generator {
     }
   }
 
+  generated(): Tilemap {
+    const generated = JSON.parse(JSON.stringify(this.parser.tilemap)) as Tilemap;
+    generated.width = this.targetWidth;
+    generated.height = this.targetHeight;
+    for (let i in generated.layers) {
+      const layer = generated.layers[i];
+      layer.width = this.targetWidth;
+      layer.height = this.targetHeight;
+      layer.data = new Array(this.targetWidth * this.targetHeight);
+    }
+    for (let x = 0; x < generated.width; x++) {
+      for (let y = 0; y < generated.height; y++) {
+        const patternIndex = this.wave[y * generated.width + x].findIndex(p => p);
+        const pattern = this.parser.patterns[patternIndex];
+        const tileIndex = pattern[0];
+        const tile = this.parser.tiles[tileIndex];
+        const tiles = tile.split(',').map(x => parseInt(x));
+        for (let i in tiles) {
+          const data = generated.layers[i].data;
+          if (data) {
+            data[y * generated.width + x] = tiles[i];
+          }
+        }
+      }
+    }
+    return generated;
+  }
+
 }
+
+const ctx: Worker = self as any; // eslint-disable-line no-restricted-globals
+ctx.addEventListener('message', event => {
+  const generator = new Generator(event.data.parser, event.data.targetWidth, event.data.targetHeight);
+  let done = generator.step();
+  let i = 0;
+  while (done === false) {
+    done = generator.step();
+    ctx.postMessage({
+      iteration: i,
+      entropy: generator.entropies,
+    });
+    i++;
+  }
+  if (done) {
+    ctx.postMessage({
+      generated: generator.generated(),
+    });
+  } else {
+    ctx.postMessage({
+      error: 'contradiction',
+    });
+  }
+});

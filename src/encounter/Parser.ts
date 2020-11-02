@@ -20,14 +20,14 @@ export default class Parser {
   patterns: Pattern[] = []
   patternIndex: number[]
   patternWeights: number[] = []
-  adjacent: Map<number, Map<Direction, Set<number>>> = new Map()
-  compatible: Map<number, Map<Direction, Set<number>>> = new Map()
-  neighbors: Map<Direction, { x: number, y: number }> = new Map([
-    [Direction.Left, { x: -1, y: 0 }],
-    [Direction.Right, { x: 1, y: 0 }],
-    [Direction.Up, { x: 0, y: -1 }],
-    [Direction.Down, { x: 0, y: 1 }],
-  ])
+  adjacent: { [key: number]: { [key: string]: { [key: number]: boolean } } } = {}
+  compatible: { [key: number]: { [key: string]: { [key: number]: boolean } } } = {}
+  neighbors: { [key: string]: { x: number, y: number } } = {
+    [Direction.Left]: { x: -1, y: 0 },
+    [Direction.Right]: { x: 1, y: 0 },
+    [Direction.Up]: { x: 0, y: -1 },
+    [Direction.Down]: { x: 0, y: 1 },
+  }
 
   constructor(tilemap: Tilemap, tileHelper: TileHelper, patternSize: number) {
     this.tilemap = tilemap;
@@ -56,12 +56,12 @@ export default class Parser {
     for (let x = 0; x < this.tilemap.width; x++) {
       for (let y = 0; y < this.tilemap.height; y++) {
         const tileIndex = this.tileIndexAt(x, y);
-        for (let [dir, delta] of this.neighbors.entries()) {
+        for (let [dir, delta] of Object.entries(this.neighbors)) {
           const [nx, ny] = [x + delta.x, y + delta.y];
           const neighborIndex = this.tileIndexAt(nx, ny);
           if (tileIndex !== undefined && neighborIndex !== undefined) {
-            this.addAdjacency(tileIndex, dir, neighborIndex);
-            this.addAdjacency(neighborIndex, this.inverse(dir), tileIndex);
+            this.addAdjacency(tileIndex, dir as Direction, neighborIndex);
+            this.addAdjacency(neighborIndex, this.inverse(dir as Direction), tileIndex);
           }
         }
       }
@@ -96,10 +96,10 @@ export default class Parser {
     if (patternSize === 1) {
       for (let i = 0; i < this.patterns.length; i++) {
         for (let j = 0; j < this.patterns.length; j++) {
-          for (let dir of this.neighbors.keys()) {
-            if (this.isAdjacent(this.patterns[i][0], dir, this.patterns[j][0])) {
-              this.addCompatible(i, dir, j);
-              this.addCompatible(j, this.inverse(dir), i);
+          for (let dir of Object.keys(this.neighbors)) {
+            if (this.isAdjacent(this.patterns[i][0], dir as Direction, this.patterns[j][0])) {
+              this.addCompatible(i, dir as Direction, j);
+              this.addCompatible(j, this.inverse(dir as Direction), i);
             }
           }
         }
@@ -107,10 +107,10 @@ export default class Parser {
     } else {
       for (let i = 0; i < this.patterns.length; i++) {
         for (let j = 0; j < this.patterns.length; j++) {
-          for (let [dir, delta] of this.neighbors.entries()) {
+          for (let [dir, delta] of Object.entries(this.neighbors)) {
             if (this.canOverlap(i, j, delta.x, delta.y)) {
-              this.addCompatible(j, dir, i);
-              this.addCompatible(i, this.inverse(dir), j);
+              this.addCompatible(j, dir as Direction, i);
+              this.addCompatible(i, this.inverse(dir as Direction), j);
             }
           }
         }
@@ -158,35 +158,35 @@ export default class Parser {
   }
 
   addAdjacency(from: number, dir: Direction, to: number) {
-    let fromMap = this.adjacent.get(from);
+    let fromMap = this.adjacent[from];
     if (!fromMap) {
-      fromMap = new Map();
-      this.adjacent.set(from, fromMap);
+      fromMap = {};
+      this.adjacent[from] = fromMap;
     }
-    let dirAdj = fromMap.get(dir);
+    let dirAdj = fromMap[dir];
     if (!dirAdj) {
-      dirAdj = new Set();
-      fromMap.set(dir, dirAdj);
+      dirAdj = []
+      fromMap[dir] = dirAdj;
     }
-    dirAdj.add(to);
+    dirAdj[to] = true;
   }
 
   isAdjacent(t1: number, dir: Direction, t2: number): boolean {
-    return this.adjacent.get(t1)?.get(dir)?.has(t2) || false;
+    return this.adjacent[t1][dir][t2] || false;
   }
 
   addCompatible(from: number, dir: Direction, to: number) {
-    let fromMap = this.compatible.get(from);
+    let fromMap = this.compatible[from];
     if (!fromMap) {
-      fromMap = new Map();
-      this.compatible.set(from, fromMap);
+      fromMap = {};
+      this.compatible[from] = fromMap;
     }
-    let dirCompat = fromMap.get(dir);
+    let dirCompat = fromMap[dir];
     if (!dirCompat) {
-      dirCompat = new Set();
-      fromMap.set(dir, dirCompat);
+      dirCompat = [];
+      fromMap[dir] = dirCompat;
     }
-    dirCompat.add(to);
+    dirCompat[to] = true;
   }
 
   canOverlap(pattern1: number, pattern2: number, dx: number, dy: number): boolean {
@@ -211,13 +211,13 @@ export default class Parser {
     ctx.textBaseline = 'top';
     ctx.fillText(`${patternIndex}`, 32, 0);
     this.drawPattern(ctx, pattern);
-    const compatibleByDir = this.compatible.get(patternIndex);
+    const compatibleByDir = this.compatible[patternIndex];
     if (compatibleByDir === undefined) return;
-    for (let [dir, compatibilities] of compatibleByDir?.entries()) {
+    for (let [dir, compatibilities] of Object.entries(compatibleByDir)) {
       ctx.translate(0, this.tilemap.tileheight * this.patternSize);
       ctx.fillText(`${dir}`, 64, 0);
-      for (let compatible of compatibilities) {
-        const neighborPattern = this.patterns[compatible];
+      for (let compatible of Object.keys(compatibilities)) {
+        const neighborPattern = this.patterns[parseInt(compatible)];
         ctx.translate(0, this.tilemap.tileheight * this.patternSize);
         ctx.textBaseline = 'top';
         ctx.fillText(`${compatible}`, 32, 0);
