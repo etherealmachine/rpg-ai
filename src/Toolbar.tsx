@@ -21,6 +21,9 @@ const classes = css`
     color: white;
     font-size: 24px;
   }
+  .toolbar .selected svg {
+    color: black;
+  }
   .toolbar button {
     background: transparent;
     width: 50px;
@@ -37,7 +40,8 @@ const classes = css`
     border: none;
     scale: 0.9;
   }
-  .selected {
+  .toolbar button.selected {
+    background: #bbb;
     box-shadow: -1px -1px 8px rgba(255, 255, 255, 0.5), 1px 1px 8px rgba(255, 255, 255, 0.5);
   }
 `;

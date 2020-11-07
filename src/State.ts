@@ -8,6 +8,11 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { produce } from 'immer';
 
+export interface Pos {
+  x: number
+  y: number
+}
+
 export const initialState = {
   tools: {
     'pointer': {
@@ -31,10 +36,15 @@ export const initialState = {
       selected: false,
     },
   },
+  map: {},
   setState: (state: any) => { },
 };
 
-export type State = typeof initialState;
+type InitialState = typeof initialState;
+
+export interface State extends InitialState {
+  map: { [key: number]: { [key: number]: boolean } }
+}
 
 export function setSelectedTool(state: State, tool: string) {
   state.setState(produce(state, state => {
@@ -43,4 +53,13 @@ export function setSelectedTool(state: State, tool: string) {
   }));
 }
 
-export const Context = React.createContext(initialState);
+export function setTile(state: State, loc: Pos) {
+  state.setState(produce(state, state => {
+    if (state.map[loc.x] === undefined) {
+      state.map[loc.x] = {};
+    }
+    state.map[loc.x][loc.y] = true;
+  }));
+}
+
+export const Context = React.createContext(initialState as State);
