@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-  faMousePointer,
-  faVectorSquare,
-  faDrawPolygon,
-  faCircle,
-  faBrush
-} from '@fortawesome/free-solid-svg-icons'
 import { produce } from 'immer';
 
 export interface Pos {
@@ -13,37 +6,56 @@ export interface Pos {
   y: number
 }
 
+class TileMap<TileType> {
+  map: { [key: number]: { [key: number]: TileType } } = {}
+
+  get(x: number, y: number): TileType | undefined {
+    if (this.map[x] && this.map[x][y] !== undefined) {
+      return this.map[x][y];
+    }
+    return undefined;
+  }
+
+  set(x: number, y: number, value: TileType) {
+    if (this.map[x] === undefined) this.map[x] = {};
+    this.map[x][y] = value;
+  }
+
+  forEach(callback: (currentValue: TileType, index: Pos, array: TileMap<TileType>) => void) {
+    Object.entries(this.map).forEach(([x, col]) => Object.entries(col).forEach(([y, value]) => {
+      callback(value, { x: parseInt(x), y: parseInt(y) }, this);
+    }));
+  }
+}
+
 export const initialState = {
   tools: {
     'pointer': {
-      icon: faMousePointer,
       selected: true,
     },
     'brush': {
-      icon: faBrush,
+      selected: false,
+    },
+    'eraser': {
       selected: false,
     },
     'box': {
-      icon: faVectorSquare,
       selected: false,
     },
     'polygon': {
-      icon: faDrawPolygon,
       selected: false,
     },
     'circle': {
-      icon: faCircle,
       selected: false,
     },
   },
-  map: {},
+  map: new TileMap<boolean>(),
   setState: (state: any) => { },
 };
 
 type InitialState = typeof initialState;
 
 export interface State extends InitialState {
-  map: { [key: number]: { [key: number]: boolean } }
 }
 
 export function setSelectedTool(state: State, tool: string) {
@@ -55,10 +67,13 @@ export function setSelectedTool(state: State, tool: string) {
 
 export function setTile(state: State, loc: Pos) {
   state.setState(produce(state, state => {
-    if (state.map[loc.x] === undefined) {
-      state.map[loc.x] = {};
-    }
-    state.map[loc.x][loc.y] = true;
+    state.map.set(loc.x, loc.y, true);
+  }));
+}
+
+export function clearTile(state: State, loc: Pos) {
+  state.setState(produce(state, state => {
+    state.map.set(loc.x, loc.y, false);
   }));
 }
 

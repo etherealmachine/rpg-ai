@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { Context, initialState, Pos, setTile, State } from './State';
+
+import { clearTile, Context, initialState, Pos, setTile, State } from './State';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -56,8 +57,14 @@ class CanvasRenderer {
     if (this.appState.tools.brush.selected && this.mouse && this.mouseDown) {
       const x = Math.floor(this.mouse.x / this.size);
       const y = Math.floor(this.mouse.y / this.size);
-      if (!this.appState.map[x] || !this.appState.map[x][y]) {
+      if (!this.appState.map.get(x, y)) {
         setTile(this.appState, { x, y });
+      }
+    } else if (this.appState.tools.eraser.selected && this.mouse && this.mouseDown) {
+      const x = Math.floor(this.mouse.x / this.size);
+      const y = Math.floor(this.mouse.y / this.size);
+      if (this.appState.map.get(x, y)) {
+        clearTile(this.appState, { x, y });
       }
     }
   }
@@ -140,33 +147,55 @@ class CanvasRenderer {
     }
   }
 
-  drawTile() {
+  drawTile(style?: string) {
     const { ctx } = this;
     ctx.beginPath();
-    ctx.fillStyle = '#F1ECE0';
+    ctx.fillStyle = style || '#F1ECE0';
     ctx.fillRect(0, 0, this.size, this.size);
   }
 
-  drawHoverTile() {
+  drawHoverTile(style?: string) {
     const { ctx } = this;
     if (this.mouse) {
       ctx.translate(
         Math.floor(this.mouse.x / this.size) * this.size,
         Math.floor(this.mouse.y / this.size) * this.size);
-      this.drawTile();
+      this.drawTile(style);
     }
+  }
+
+  drawLine(x1: number, y1: number, x2: number, y2: number, width: number, style: string) {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.lineWidth = width;
+    ctx.strokeStyle = style;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  drawWalls(x: number, y: number) {
+    const { appState } = this;
+    if (!appState.map.get(x + 1, y)) this.drawLine(this.size, 0, this.size, this.size, 1, '#000');
+    if (!appState.map.get(x - 1, y)) this.drawLine(0, 0, 0, this.size, 1, '#000');
+    if (!appState.map.get(x, y - 1)) this.drawLine(0, 0, this.size, 0, 1, '#000');
+    if (!appState.map.get(x, y + 1)) this.drawLine(0, this.size, this.size, this.size, 1, '#000');
+    // TODO: shadows
+    // if (!appState.map.get(x - 1, y)) this.drawLine(2, 2, 2, this.size, 2, '#000');
+    // if (!appState.map.get(x, y - 1)) this.drawLine(2, 2, this.size, 2, 2, '#000');
   }
 
   drawMap() {
     const { ctx, appState } = this;
-    Object.entries(appState.map).forEach(([x, col]) => Object.entries(col).forEach(([y, occupied]) => {
+    appState.map.forEach((occupied, pos) => {
       if (occupied) {
         ctx.save();
-        ctx.translate(parseInt(x) * this.size, parseInt(y) * this.size);
+        ctx.translate(pos.x * this.size, pos.y * this.size);
         this.drawTile();
+        this.drawWalls(pos.x, pos.y);
         ctx.restore();
       }
-    }));
+    });
   }
 
   render = (time: number) => {
@@ -188,7 +217,7 @@ class CanvasRenderer {
       ctx.save();
       this.drawHoverTile();
       ctx.restore();
-    } else {
+    } else if (!appState.tools.eraser.selected) {
       ctx.save();
       this.drawMousePos();
       ctx.restore();
@@ -203,6 +232,12 @@ class CanvasRenderer {
     ctx.save();
     this.drawMap();
     ctx.restore();
+
+    if (appState.tools.eraser.selected) {
+      ctx.save();
+      this.drawHoverTile("rgba(220, 53, 68, 0.2)");
+      ctx.restore();
+    }
 
     this.lastTime = time;
     this.requestID = requestAnimationFrame(this.render);

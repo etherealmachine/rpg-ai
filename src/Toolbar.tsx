@@ -1,6 +1,15 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useContext } from 'react';
 import { css } from 'astroturf';
+import {
+  faMousePointer,
+  faVectorSquare,
+  faDrawPolygon,
+  faCircle,
+  faBrush,
+  faEraser,
+  IconDefinition
+} from '@fortawesome/free-solid-svg-icons'
 
 import { Context, setSelectedTool } from './State';
 
@@ -16,6 +25,7 @@ const classes = css`
     margin-top: 50px;
     margin-left: 24px;
     padding: 8px;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.2);
   }
   .toolbar svg {
     color: white;
@@ -46,6 +56,15 @@ const classes = css`
   }
 `;
 
+const icons: { [key: string]: IconDefinition } = {
+  'pointer': faMousePointer,
+  'brush': faBrush,
+  'box': faVectorSquare,
+  'polygon': faDrawPolygon,
+  'circle': faCircle,
+  'eraser': faEraser,
+};
+
 export default function Toolbar() {
   const state = useContext(Context);
   const handleButtonClick = (tool: string) => () => {
@@ -56,7 +75,7 @@ export default function Toolbar() {
       key={name}
       className={spec.selected ? classes.selected : ''}
       onClick={handleButtonClick(name)}>
-      <FontAwesomeIcon icon={spec.icon} />
+      <FontAwesomeIcon icon={icons[name]} />
     </button>)}
   </div>;
 }
