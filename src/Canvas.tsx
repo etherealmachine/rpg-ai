@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef } from 'react';
+import { sqDist } from './lib';
 
 import { clearTile, Context, initialState, Pos, setTile, State } from './State';
 
@@ -118,10 +119,15 @@ class CanvasRenderer {
   drawDrag() {
     const { ctx } = this;
     if (this.drag) {
-      const x1 = Math.round(this.drag.start.x / this.size) * this.size;
-      const y1 = Math.round(this.drag.start.y / this.size) * this.size;
-      const x2 = Math.round(this.drag.end.x / this.size) * this.size;
-      const y2 = Math.round(this.drag.end.y / this.size) * this.size;
+      let x1 = Math.round(this.drag.start.x / this.size) * this.size;
+      let y1 = Math.round(this.drag.start.y / this.size) * this.size;
+      let x2 = Math.round(this.drag.end.x / this.size) * this.size;
+      let y2 = Math.round(this.drag.end.y / this.size) * this.size;
+      if (sqDist(0, 0, x2, y2) < sqDist(0, 0, x1, y1)) {
+        let tmp = [x1, y1];
+        [x1, y1] = [x2, y2];
+        [x2, y2] = tmp;
+      }
       ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.arc(x1, y1, 2, 0, 2 * Math.PI);
@@ -180,34 +186,39 @@ class CanvasRenderer {
     const down = appState.map.get(x, y + 1);
     const left = appState.map.get(x - 1, y);
     const right = appState.map.get(x + 1, y);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#777";
+    const shadowWidth = Math.round(this.size * 0.25);
+    const halfShadowWidth = Math.round(shadowWidth / 2);
+    ctx.lineWidth = shadowWidth;
+    ctx.strokeStyle = "#999";
     if (!up && !left && right) {
       ctx.beginPath();
-      ctx.moveTo(1, this.size);
-      ctx.lineTo(1, 1);
-      ctx.lineTo(this.size + 3, 1);
+      ctx.moveTo(halfShadowWidth, this.size);
+      ctx.lineTo(halfShadowWidth, halfShadowWidth);
+      ctx.lineTo(this.size + shadowWidth, halfShadowWidth);
       ctx.stroke();
     } else if (!up && !left && !right) {
       ctx.beginPath();
-      ctx.moveTo(1, this.size);
-      ctx.lineTo(1, 1);
-      ctx.lineTo(this.size, 1);
+      ctx.moveTo(halfShadowWidth, this.size);
+      ctx.lineTo(halfShadowWidth, halfShadowWidth);
+      ctx.lineTo(this.size, halfShadowWidth);
       ctx.stroke();
     } else if (!up && !right) {
+      // TODO: miter left if no left
       ctx.beginPath();
-      ctx.moveTo(0, 1);
-      ctx.lineTo(this.size, 1);
+      ctx.moveTo(0, halfShadowWidth);
+      ctx.lineTo(this.size, halfShadowWidth);
       ctx.stroke();
     } else if (!up && right) {
+      // TODO: miter left if no left
       ctx.beginPath();
-      ctx.moveTo(0, 1);
-      ctx.lineTo(this.size + 3, 1);
+      ctx.moveTo(0, halfShadowWidth);
+      ctx.lineTo(this.size + shadowWidth, halfShadowWidth);
       ctx.stroke();
     } else if (!left) {
+      // TODO: miter top
       ctx.beginPath();
-      ctx.moveTo(1, 0);
-      ctx.lineTo(1, this.size);
+      ctx.moveTo(halfShadowWidth, 0);
+      ctx.lineTo(halfShadowWidth, this.size);
       ctx.stroke();
     }
     if (!up) this.drawLine(0, 0, this.size, 0, 2, '#000');
@@ -272,16 +283,15 @@ class CanvasRenderer {
       ctx.restore();
     }
 
+    ctx.save();
+    this.drawMap();
+    ctx.restore();
+
     if (appState.tools.box.selected || appState.tools.circle.selected) {
       ctx.save();
       this.drawDrag();
       ctx.restore();
     }
-
-    ctx.save();
-    this.drawMap();
-    ctx.restore();
-
     if (appState.tools.eraser.selected) {
       ctx.save();
       this.drawHoverTile("rgba(220, 53, 68, 0.2)");
@@ -299,12 +309,19 @@ export default function Canvas() {
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
-    canvas.width = canvas.parentElement?.offsetWidth || canvas.width;
-    canvas.height = canvas.parentElement?.offsetHeight || canvas.height;
+    const syncSize = () => {
+      canvas.width = canvas.parentElement?.offsetWidth || canvas.width;
+      canvas.height = canvas.parentElement?.offsetHeight || canvas.height;
+    };
+    syncSize();
+    window.addEventListener('resize', syncSize);
     if ((canvas as any).renderer === undefined) {
       (canvas as any).renderer = new CanvasRenderer(canvas);
     }
     (canvas as any).renderer.appState = appState;
+    return () => {
+      window.removeEventListener('resize', syncSize);
+    }
   }, [canvasRef, appState]);
   return <canvas ref={canvasRef} />;
 }

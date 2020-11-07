@@ -1,5 +1,35 @@
 /*
-  Features:
+  RPG.ai brings Table Top Role Playing Games to the next level
+
+  RPG.ai lets you easily draw beautiful maps full of NPCs, object, and areas for players to explore.
+
+  TODO:
+    [ ] After drag end, apply selected rect with brush or eraser, or keep as selection for later.
+    [ ] Zoom
+    [ ] Scroll
+    [ ] Set name
+    [ ] Save
+    [ ] Load
+    [ ] Text boxes
+    [ ] Stairs
+    [ ] Doors
+    [ ] Annotate areas
+    [ ] Tokens
+    [ ] Objects
+    [ ] Secret doors
+    [ ] Isometric view
+    [ ] Multi-Level maps
+    [ ] Invisible creatures
+    [ ] Paintable terrain
+    [ ] Token movement
+    [ ] Line of sight
+    [ ] NPC database
+    [ ] Character sheets
+    [ ] NPC interactions
+    [ ] Combat mechanics
+    [ ] NPC AI
+    [ ] Particle effects
+    [ ] Print to PDF
 */
 import React from 'react';
 import { css } from 'astroturf';

@@ -14,3 +14,11 @@ export function line(x0: number, y0: number, x1: number, y1: number): { x: numbe
   }
   return points;
 }
+
+export function sqDist(x0: number, y0: number, x1: number, y1: number): number {
+  return (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+}
+
+export function dist(x0: number, y0: number, x1: number, y1: number): number {
+  return Math.sqrt(sqDist(x0, y0, x1, y1));
+}
