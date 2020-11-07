@@ -9,7 +9,7 @@ class CanvasRenderer {
     start: Pos
     end: Pos
   }
-  size: number = 25
+  size: number = 30
   lastTime: number = 0
   requestID?: number
   appState: State = initialState
@@ -105,8 +105,8 @@ class CanvasRenderer {
   drawMousePos() {
     const { ctx } = this;
     if (this.mouse) {
-      ctx.beginPath();
       ctx.fillStyle = '#000';
+      ctx.beginPath();
       ctx.arc(
         Math.round(this.mouse.x / this.size) * this.size,
         Math.round(this.mouse.y / this.size) * this.size,
@@ -122,17 +122,17 @@ class CanvasRenderer {
       const y1 = Math.round(this.drag.start.y / this.size) * this.size;
       const x2 = Math.round(this.drag.end.x / this.size) * this.size;
       const y2 = Math.round(this.drag.end.y / this.size) * this.size;
-      ctx.beginPath();
       ctx.fillStyle = '#000';
+      ctx.beginPath();
       ctx.arc(x1, y1, 2, 0, 2 * Math.PI);
       ctx.fill();
       ctx.beginPath();
       ctx.arc(x2, y2, 2, 0, 2 * Math.PI);
       ctx.fill();
 
-      ctx.beginPath();
       ctx.strokeStyle = '#2f5574';
       ctx.lineWidth = 2;
+      ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x1, y2);
       ctx.lineTo(x2, y2);
@@ -149,8 +149,8 @@ class CanvasRenderer {
 
   drawTile(style?: string) {
     const { ctx } = this;
-    ctx.beginPath();
     ctx.fillStyle = style || '#F1ECE0';
+    ctx.beginPath();
     ctx.fillRect(0, 0, this.size, this.size);
   }
 
@@ -166,23 +166,54 @@ class CanvasRenderer {
 
   drawLine(x1: number, y1: number, x2: number, y2: number, width: number, style: string) {
     const { ctx } = this;
-    ctx.beginPath();
     ctx.lineWidth = width;
     ctx.strokeStyle = style;
+    ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
   }
 
   drawWalls(x: number, y: number) {
-    const { appState } = this;
-    if (!appState.map.get(x + 1, y)) this.drawLine(this.size, 0, this.size, this.size, 1, '#000');
-    if (!appState.map.get(x - 1, y)) this.drawLine(0, 0, 0, this.size, 1, '#000');
-    if (!appState.map.get(x, y - 1)) this.drawLine(0, 0, this.size, 0, 1, '#000');
-    if (!appState.map.get(x, y + 1)) this.drawLine(0, this.size, this.size, this.size, 1, '#000');
-    // TODO: shadows
-    // if (!appState.map.get(x - 1, y)) this.drawLine(2, 2, 2, this.size, 2, '#000');
-    // if (!appState.map.get(x, y - 1)) this.drawLine(2, 2, this.size, 2, 2, '#000');
+    const { ctx, appState } = this;
+    const up = appState.map.get(x, y - 1);
+    const down = appState.map.get(x, y + 1);
+    const left = appState.map.get(x - 1, y);
+    const right = appState.map.get(x + 1, y);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#777";
+    if (!up && !left && right) {
+      ctx.beginPath();
+      ctx.moveTo(1, this.size);
+      ctx.lineTo(1, 1);
+      ctx.lineTo(this.size + 3, 1);
+      ctx.stroke();
+    } else if (!up && !left && !right) {
+      ctx.beginPath();
+      ctx.moveTo(1, this.size);
+      ctx.lineTo(1, 1);
+      ctx.lineTo(this.size, 1);
+      ctx.stroke();
+    } else if (!up && !right) {
+      ctx.beginPath();
+      ctx.moveTo(0, 1);
+      ctx.lineTo(this.size, 1);
+      ctx.stroke();
+    } else if (!up && right) {
+      ctx.beginPath();
+      ctx.moveTo(0, 1);
+      ctx.lineTo(this.size + 3, 1);
+      ctx.stroke();
+    } else if (!left) {
+      ctx.beginPath();
+      ctx.moveTo(1, 0);
+      ctx.lineTo(1, this.size);
+      ctx.stroke();
+    }
+    if (!up) this.drawLine(0, 0, this.size, 0, 2, '#000');
+    if (!down) this.drawLine(0, this.size, this.size, this.size, 2, '#000');
+    if (!left) this.drawLine(0, 0, 0, this.size, 2, '#000');
+    if (!right) this.drawLine(this.size, 0, this.size, this.size, 2, '#000');
   }
 
   drawMap() {
@@ -192,7 +223,25 @@ class CanvasRenderer {
         ctx.save();
         ctx.translate(pos.x * this.size, pos.y * this.size);
         this.drawTile();
+        ctx.restore();
+      }
+    });
+    appState.map.forEach((occupied, pos) => {
+      if (occupied) {
+        ctx.save();
+        ctx.translate(pos.x * this.size, pos.y * this.size);
         this.drawWalls(pos.x, pos.y);
+        ctx.restore();
+      }
+    });
+    appState.map.forEach((occupied, pos) => {
+      if (occupied) {
+        ctx.save();
+        ctx.translate(pos.x * this.size, pos.y * this.size);
+        this.drawLine(0, 0, this.size, 0, 1, 'rgba(0, 0, 0, 0.2)');
+        this.drawLine(0, 0, 0, this.size, 1, 'rgba(0, 0, 0, 0.2)');
+        this.drawLine(this.size, 0, this.size, this.size, 0.1, '#000');
+        this.drawLine(0, this.size, this.size, this.size, 0.1, '#000');
         ctx.restore();
       }
     });
