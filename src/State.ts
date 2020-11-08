@@ -56,7 +56,7 @@ export const initialState = {
     },
   },
   scale: 1,
-  center: { x: 0, y: 0 },
+  offset: { x: 0, y: 0 },
   map: new TileMap<boolean>(),
   setState: (state: any) => { },
 };
@@ -101,15 +101,16 @@ export function setSelection(state: State, selection: undefined | Shape) {
   }));
 }
 
-export function setScale(state: State, scale: number) {
+export function setOffset(state: State, offset: Pos) {
   state.setState(produce(state, state => {
-    state.scale = scale;
+    state.offset = offset;
   }));
 }
 
-export function setCenter(state: State, pos: Pos) {
+export function setZoom(state: State, scale: number, offset: Pos) {
   state.setState(produce(state, state => {
-    state.center = pos;
+    state.scale = scale;
+    state.offset = offset;
   }));
 }
 

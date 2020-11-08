@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { sqDist } from './lib';
+import { dist, sqDist } from './lib';
 
-import { clearTile, Context, initialState, Pos, setCenter, setScale, setSelection, setTile, State } from './State';
+import { clearTile, Context, initialState, Pos, setZoom, setSelection, setTile, State, setOffset } from './State';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -45,28 +45,25 @@ class CanvasRenderer {
   onMouseUp = () => {
     this.mouseDown = false;
     const { tools } = this.appState;
+    setSelection(this.appState, undefined);
     if (this.drag) {
       if (tools.rect.selected) {
-        let x1 = Math.round(this.drag.start.x / this.size);
-        let y1 = Math.round(this.drag.start.y / this.size);
-        let x2 = Math.round(this.drag.end.x / this.size);
-        let y2 = Math.round(this.drag.end.y / this.size);
-        if (sqDist(0, 0, x2, y2) < sqDist(0, 0, x1, y1)) {
-          let tmp = [x1, y1];
-          [x1, y1] = [x2, y2];
-          [x2, y2] = tmp;
-        }
+        const [from, to] = this.getBoundingRect(
+          this.inverseTransform(this.drag.start),
+          this.inverseTransform(this.drag.end));
+        from.x = Math.round(from.x / this.size);
+        from.y = Math.round(from.y / this.size);
+        to.x = Math.round(to.x / this.size);
+        to.y = Math.round(to.y / this.size);
         if (tools.brush.selected || tools.eraser.selected) {
-          for (let x = x1; x < x2; x++) {
-            for (let y = y1; y < y2; y++) {
+          for (let x = from.x; x < to.x; x++) {
+            for (let y = from.y; y < to.y; y++) {
               if (tools.brush.selected) setTile(this.appState, { x, y });
               if (tools.eraser.selected) clearTile(this.appState, { x, y });
             }
           }
-        } else if (x1 === x2 && y1 === y2) {
-          setSelection(this.appState, undefined);
-        } else {
-          setSelection(this.appState, { type: 'rect', from: { x: x1, y: y1 }, to: { x: x2, y: y2 } });
+        } else if (from.x !== to.x && from.y !== to.y) {
+          setSelection(this.appState, { type: 'rect', from: from, to: to });
         }
       }
       this.drag = undefined;
@@ -103,17 +100,50 @@ class CanvasRenderer {
   }
 
   onWheel = (event: WheelEvent) => {
+    if (!this.mouse) return;
     const max = 4;
     const min = 0.5;
-    setScale(this.appState, Math.max(Math.min(this.appState.scale - event.deltaY / 100, max), min));
+    const scale = Math.max(Math.min(this.appState.scale - event.deltaY / 100, max), min);
+    const dx = 0;
+    const dy = 0;
+    console.log(scale);
+    setZoom(this.appState, scale, { x: this.appState.offset.x - dx, y: this.appState.offset.y - dy });
   }
 
   onKeyDown = (event: KeyboardEvent) => {
     const { appState } = this;
-    if (event.key === 'w') setCenter(appState, { x: appState.center.x, y: appState.center.y + 1 });
-    if (event.key === 'a') setCenter(appState, { x: appState.center.x + 1, y: appState.center.y });
-    if (event.key === 's') setCenter(appState, { x: appState.center.x, y: appState.center.y - 1 });
-    if (event.key === 'd') setCenter(appState, { x: appState.center.x - 1, y: appState.center.y });
+    const S = this.size * this.appState.scale;
+    if (event.key === 'w') setOffset(appState, { x: appState.offset.x, y: appState.offset.y + S });
+    if (event.key === 'a') setOffset(appState, { x: appState.offset.x + S, y: appState.offset.y });
+    if (event.key === 's') setOffset(appState, { x: appState.offset.x, y: appState.offset.y - S });
+    if (event.key === 'd') setOffset(appState, { x: appState.offset.x - S, y: appState.offset.y });
+  }
+
+  // canvas coordinates to world coordinates
+  inverseTransform(p: Pos): Pos {
+    const { offset, scale } = this.appState;
+    return { x: p.x / scale - offset.x, y: p.y / scale - offset.y };
+  }
+
+  tileToWorld(p: Pos): Pos {
+    return { x: Math.floor(p.x / this.size), y: Math.floor(p.y / this.size) };
+  }
+
+  getBoundingRect(from: Pos, to: Pos) {
+    let x1 = from.x;
+    let y1 = from.y;
+    let x2 = to.x;
+    let y2 = to.y;
+    if (sqDist(0, 0, x2, y2) < sqDist(0, 0, x1, y1)) {
+      let tmp = [x1, y1];
+      [x1, y1] = [x2, y2];
+      [x2, y2] = tmp;
+    }
+    x1 = Math.round(x1 / this.size) * this.size;
+    y1 = Math.round(y1 / this.size) * this.size;
+    x2 = Math.round(x2 / this.size) * this.size;
+    y2 = Math.round(y2 / this.size) * this.size;
+    return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
   }
 
   renderTextCenter(text: string, font: string) {
@@ -152,11 +182,12 @@ class CanvasRenderer {
   drawMousePos() {
     const { ctx } = this;
     if (this.mouse) {
+      const p = this.inverseTransform(this.mouse);
       ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.arc(
-        Math.round(this.mouse.x / this.size) * this.size,
-        Math.round(this.mouse.y / this.size) * this.size,
+        Math.round(p.x / this.size) * this.size,
+        Math.round(p.y / this.size) * this.size,
         2, 0, 2 * Math.PI);
       ctx.fill();
     }
@@ -164,42 +195,38 @@ class CanvasRenderer {
 
   drawRectSelection(from: Pos, to: Pos) {
     const { ctx } = this;
-    let x1 = Math.round(from.x / this.size) * this.size;
-    let y1 = Math.round(from.y / this.size) * this.size;
-    let x2 = Math.round(to.x / this.size) * this.size;
-    let y2 = Math.round(to.y / this.size) * this.size;
-    if (sqDist(0, 0, x2, y2) < sqDist(0, 0, x1, y1)) {
-      let tmp = [x1, y1];
-      [x1, y1] = [x2, y2];
-      [x2, y2] = tmp;
-    }
+    const [a, b] = this.getBoundingRect(from, to);
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(x1, y1, 2, 0, 2 * Math.PI);
+    ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(x2, y2, 2, 0, 2 * Math.PI);
+    ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
     ctx.fill();
 
     ctx.strokeStyle = '#2f5574';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1, y2);
-    ctx.lineTo(x2, y2);
-    ctx.lineTo(x2, y1);
-    ctx.lineTo(x1, y1);
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(a.x, b.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, a.y);
+    ctx.lineTo(a.x, a.y);
     ctx.stroke();
 
-    const w = Math.abs(x1 - x2) / this.size;
-    const h = Math.abs(y1 - y2) / this.size;
-    ctx.translate(x1 + (x2 - x1) / 2, y1 - 14);
+    const w = Math.abs(a.x - b.x) / this.size;
+    const h = Math.abs(a.y - b.y) / this.size;
+    ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
   drawDrag() {
     if (this.drag) {
-      this.drawRectSelection(this.drag.start, this.drag.end);
+      const start = this.inverseTransform(this.drag.start);
+      const end = this.inverseTransform(this.drag.end);
+      if (dist(start.x, start.y, end.x, end.y) > this.size) {
+        this.drawRectSelection(start, end);
+      }
     }
   }
 
@@ -213,9 +240,10 @@ class CanvasRenderer {
   drawHoverTile(style?: string) {
     const { ctx } = this;
     if (this.mouse) {
+      const p = this.inverseTransform(this.mouse);
       ctx.translate(
-        Math.floor(this.mouse.x / this.size) * this.size,
-        Math.floor(this.mouse.y / this.size) * this.size);
+        Math.floor(p.x / this.size) * this.size,
+        Math.floor(p.y / this.size) * this.size);
       this.drawTile(style);
     }
   }
@@ -321,7 +349,7 @@ class CanvasRenderer {
 
     ctx.save();
     ctx.scale(appState.scale, appState.scale);
-    ctx.translate(appState.center.x * this.size * appState.scale, appState.center.y * this.size * appState.scale);
+    ctx.translate(appState.offset.x, appState.offset.y);
 
     ctx.save();
     this.drawGrid();
@@ -349,7 +377,7 @@ class CanvasRenderer {
       ctx.save();
       this.drawRectSelection(
         { x: appState.selection.from.x * this.size, y: appState.selection.from.y * this.size },
-        { x: appState.selection.to.x * this.size, y: appState.selection.to.y * this.size })
+        { x: appState.selection.to.x * this.size, y: appState.selection.to.y * this.size });
       ctx.restore();
     }
     if (appState.tools.eraser.selected) {
