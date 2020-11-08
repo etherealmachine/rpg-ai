@@ -67,10 +67,10 @@ class CanvasRenderer {
         }
       }
       this.drag = undefined;
-    } else if (tools.brush.selected && this.mouse) {
-      setTile(this.appState, { x: Math.round(this.mouse.x / this.size), y: Math.round(this.mouse.y / this.size) });
-    } else if (tools.eraser.selected && this.mouse) {
-      clearTile(this.appState, { x: Math.round(this.mouse.x / this.size), y: Math.round(this.mouse.y / this.size) });
+    } else if (this.mouse && (tools.brush.selected || tools.eraser.selected)) {
+      const mouseTilePos = this.mouseToTile(this.mouse);
+      if (tools.brush.selected) setTile(this.appState, mouseTilePos);
+      if (tools.eraser.selected) clearTile(this.appState, mouseTilePos);
     }
   }
 
@@ -84,30 +84,32 @@ class CanvasRenderer {
     }
     const { tools } = this.appState;
     const dragTool = tools.rect.selected || tools.polygon.selected || tools.circle.selected;
-    if (this.appState.tools.brush.selected && !dragTool && this.mouse && this.mouseDown) {
-      const x = Math.floor(this.mouse.x / this.size);
-      const y = Math.floor(this.mouse.y / this.size);
-      if (!this.appState.map.get(x, y)) {
-        setTile(this.appState, { x, y });
+    const mouseTilePos = this.mouseToTile(this.mouse);
+    if (!dragTool && this.mouse && this.mouseDown) {
+      const tileState = this.appState.map.get(mouseTilePos.x, mouseTilePos.y);
+      if (this.appState.tools.brush.selected && !tileState) {
+        setTile(this.appState, mouseTilePos);
       }
-    } else if (this.appState.tools.eraser.selected && !dragTool && this.mouse && this.mouseDown) {
-      const x = Math.floor(this.mouse.x / this.size);
-      const y = Math.floor(this.mouse.y / this.size);
-      if (this.appState.map.get(x, y)) {
-        clearTile(this.appState, { x, y });
+      if (this.appState.tools.eraser.selected && tileState) {
+        clearTile(this.appState, mouseTilePos);
       }
     }
   }
 
   onWheel = (event: WheelEvent) => {
-    if (!this.mouse) return;
+    const { mouse } = this;
+    const { scale, offset } = this.appState;
+    if (!mouse) return;
     const max = 4;
-    const min = 0.5;
-    const scale = Math.max(Math.min(this.appState.scale - event.deltaY / 100, max), min);
-    const dx = 0;
-    const dy = 0;
-    console.log(scale);
-    setZoom(this.appState, scale, { x: this.appState.offset.x - dx, y: this.appState.offset.y - dy });
+    const min = 0.2;
+    const newScale = Math.max(Math.min(scale - event.deltaY / 100, max), min);
+    const mouseWorldPos = this.inverseTransform(mouse);
+    const newMouseWorldPos = { x: mouse.x / newScale - offset.x, y: mouse.y / newScale - offset.y };
+    const newOffset = {
+      x: offset.x - (mouseWorldPos.x - newMouseWorldPos.x),
+      y: offset.y - (mouseWorldPos.y - newMouseWorldPos.y)
+    }
+    setZoom(this.appState, newScale, newOffset);
   }
 
   onKeyDown = (event: KeyboardEvent) => {
@@ -125,8 +127,21 @@ class CanvasRenderer {
     return { x: p.x / scale - offset.x, y: p.y / scale - offset.y };
   }
 
+  // world coordinates to canvas coordinates
+  transform(p: Pos): Pos {
+    const { offset, scale } = this.appState;
+    return { x: (p.x + offset.x) * scale, y: (p.y + offset.y) * scale };
+  }
+
   tileToWorld(p: Pos): Pos {
     return { x: Math.floor(p.x / this.size), y: Math.floor(p.y / this.size) };
+  }
+
+  mouseToTile(mouse: Pos) {
+    const p = this.inverseTransform(mouse);
+    p.x = Math.floor(p.x / this.size);
+    p.y = Math.floor(p.y / this.size);
+    return p;
   }
 
   getBoundingRect(from: Pos, to: Pos) {
@@ -179,18 +194,24 @@ class CanvasRenderer {
     }
   }
 
-  drawMousePos() {
+  drawMousePos(mouse: Pos) {
     const { ctx } = this;
-    if (this.mouse) {
-      const p = this.inverseTransform(this.mouse);
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(
-        Math.round(p.x / this.size) * this.size,
-        Math.round(p.y / this.size) * this.size,
-        2, 0, 2 * Math.PI);
-      ctx.fill();
+    const p = this.inverseTransform(mouse);
+    const closestGridPoint = {
+      x: Math.round(p.x / this.size) * this.size,
+      y: Math.round(p.y / this.size) * this.size,
     }
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(closestGridPoint.x, closestGridPoint.y, 2, 0, 2 * Math.PI);
+    ctx.fill();
+    const font = "14px Roboto, sans-serif";
+    ctx.translate(p.x, p.y - 16);
+    this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
+    ctx.translate(0, -16);
+    this.renderTextCenter(`World: ${p.x.toFixed(0)},${p.y.toFixed(0)}`, font);
+    ctx.translate(0, -16);
+    this.renderTextCenter(`Tile: ${Math.floor(p.x / this.size).toFixed(0)},${Math.floor(p.y / this.size).toFixed(0)}`, font);
   }
 
   drawRectSelection(from: Pos, to: Pos) {
@@ -339,6 +360,8 @@ class CanvasRenderer {
   render = (time: number) => {
     const { ctx, appState } = this;
 
+    ctx.resetTransform();
+
     ctx.save();
     this.clearScreen();
     ctx.restore();
@@ -355,19 +378,19 @@ class CanvasRenderer {
     this.drawGrid();
     ctx.restore();
 
+    ctx.save();
+    this.drawMap();
+    ctx.restore();
+
     if (appState.tools.brush.selected) {
       ctx.save();
       this.drawHoverTile();
       ctx.restore();
-    } else if (!appState.tools.eraser.selected) {
+    } else if (!appState.tools.eraser.selected && this.mouse) {
       ctx.save();
-      this.drawMousePos();
+      this.drawMousePos(this.mouse);
       ctx.restore();
     }
-
-    ctx.save();
-    this.drawMap();
-    ctx.restore();
 
     if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected)) {
       ctx.save();

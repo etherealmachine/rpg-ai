@@ -7,8 +7,8 @@
     [x] After drag end, apply selected rect with brush or eraser, or keep as selection for later.
     [ ] Polygons
     [ ] Ovals
-    [ ] Zoom
-    [ ] Scroll
+    [x] Zoom
+    [x] Scroll
     [ ] Set name
     [ ] Save
     [ ] Load

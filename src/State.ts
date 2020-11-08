@@ -61,11 +61,11 @@ export const initialState = {
   setState: (state: any) => { },
 };
 
-type InitialState = typeof initialState;
+type InitialStateType = typeof initialState;
 
 type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
 
-export interface State extends InitialState {
+export interface State extends InitialStateType {
   selection?: Shape
 }
 

@@ -43,5 +43,6 @@ export default function Menubar() {
     <button>Load</button>
     <button>Undo</button>
     <button>Redo</button>
+    <button onClick={() => { window.localStorage.removeItem('AppState') }}>Clear</button>
   </div>;
 }
