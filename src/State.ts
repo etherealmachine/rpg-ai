@@ -32,36 +32,54 @@ export const initialState = {
   tools: {
     'pointer': {
       selected: true,
+      group: 1,
     },
     'brush': {
       selected: false,
+      group: 1,
     },
     'eraser': {
       selected: false,
+      group: 1,
     },
-    'box': {
+    'rect': {
       selected: false,
+      group: 2,
     },
     'polygon': {
       selected: false,
+      group: 2,
     },
     'circle': {
       selected: false,
+      group: 2,
     },
   },
+  scale: 1,
+  center: { x: 0, y: 0 },
   map: new TileMap<boolean>(),
   setState: (state: any) => { },
 };
 
 type InitialState = typeof initialState;
 
+type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
+
 export interface State extends InitialState {
+  selection?: Shape
 }
 
-export function setSelectedTool(state: State, tool: string) {
+export function setSelectedTool(state: State, name: string) {
   state.setState(produce(state, state => {
-    Object.values(state.tools).forEach(tool => { tool.selected = false; });
-    (state.tools as any)[tool].selected = true;
+    const tool = (state.tools as any)[name];
+    if (tool.selected) {
+      tool.selected = false;
+      return;
+    }
+    Object.values(state.tools).forEach(t => {
+      if (t.group === tool.group) t.selected = false;
+    });
+    tool.selected = true;
   }));
 }
 
@@ -74,6 +92,24 @@ export function setTile(state: State, loc: Pos) {
 export function clearTile(state: State, loc: Pos) {
   state.setState(produce(state, state => {
     state.map.set(loc.x, loc.y, false);
+  }));
+}
+
+export function setSelection(state: State, selection: undefined | Shape) {
+  state.setState(produce(state, state => {
+    state.selection = selection;
+  }));
+}
+
+export function setScale(state: State, scale: number) {
+  state.setState(produce(state, state => {
+    state.scale = scale;
+  }));
+}
+
+export function setCenter(state: State, pos: Pos) {
+  state.setState(produce(state, state => {
+    state.center = pos;
   }));
 }
 

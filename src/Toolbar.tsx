@@ -59,7 +59,7 @@ const classes = css`
 const icons: { [key: string]: IconDefinition } = {
   'pointer': faMousePointer,
   'brush': faBrush,
-  'box': faVectorSquare,
+  'rect': faVectorSquare,
   'polygon': faDrawPolygon,
   'circle': faCircle,
   'eraser': faEraser,

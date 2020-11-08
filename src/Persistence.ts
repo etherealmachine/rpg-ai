@@ -12,12 +12,29 @@ function inflate(target: any, ...objs: any[]): any {
       if (isObject(obj[key])) {
         if (!target[key]) Object.assign(target, { [key]: {} });
         inflate(target[key], obj[key]);
-      } else if (!Object.isFrozen(target)) {
+      } else {
+        if (Object.isFrozen(target)) {
+          target = unfreeze(target);
+        }
         Object.assign(target, { [key]: obj[key] });
       }
     }
   }
   return inflate(target, ...objs);
+}
+
+function unfreeze(o: any) {
+  let oo: any = undefined;
+  if (o instanceof Array) {
+    oo = []; const clone = (v: any) => { oo.push(v) };
+    o.forEach(clone);
+  } else if (o instanceof String) {
+    oo = o;
+  } else if (typeof o == 'object') {
+    oo = {};
+    for (var property in o) { oo[property] = o[property]; }
+  }
+  return oo;
 }
 
 export function useLocalStorageState<T>(key: string, initial: T): [T, Dispatch<SetStateAction<T>>] {

@@ -4,7 +4,9 @@
   RPG.ai lets you easily draw beautiful maps full of NPCs, object, and areas for players to explore.
 
   TODO:
-    [ ] After drag end, apply selected rect with brush or eraser, or keep as selection for later.
+    [x] After drag end, apply selected rect with brush or eraser, or keep as selection for later.
+    [ ] Polygons
+    [ ] Ovals
     [ ] Zoom
     [ ] Scroll
     [ ] Set name

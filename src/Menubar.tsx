@@ -1,7 +1,5 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { css } from 'astroturf';
-
-import { Context } from './State';
 
 const classes = css`
   .menubar {
@@ -39,7 +37,6 @@ const classes = css`
 `;
 
 export default function Menubar() {
-  const state = useContext(Context);
   return <div className={classes.menubar}>
     <span className={classes.title}>RPG.ai</span>
     <button>Save</button>
