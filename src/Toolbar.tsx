@@ -8,10 +8,13 @@ import {
   faCircle,
   faBrush,
   faEraser,
-  IconDefinition
+  IconDefinition,
+  faExclamation,
+  faDoorClosed
 } from '@fortawesome/free-solid-svg-icons'
 
 import { Context, setSelectedTool } from './State';
+import { textIcon } from './icons/custom_icons';
 
 const classes = css`
   .toolbar {
@@ -63,6 +66,9 @@ const icons: { [key: string]: IconDefinition } = {
   'polygon': faDrawPolygon,
   'circle': faCircle,
   'eraser': faEraser,
+  'text': textIcon,
+  'stairs': faExclamation,
+  'doors': faDoorClosed,
 };
 
 export default function Toolbar() {

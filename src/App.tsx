@@ -5,16 +5,18 @@
 
   TODO:
     [x] After drag end, apply selected rect with brush or eraser, or keep as selection for later.
-    [ ] Polygons
-    [ ] Ovals
+    [.] Polygons
+    [.] Ovals
     [x] Zoom
     [x] Scroll
-    [ ] Set name
-    [ ] Save
-    [ ] Load
-    [ ] Text boxes
-    [ ] Stairs
-    [ ] Doors
+    [.] Set name
+    [.] Save
+    [.] Load
+    [.] Undo
+    [.] Redo
+    [.] Text boxes
+    [.] Stairs
+    [.] Doors
     [ ] Annotate areas
     [ ] Tokens
     [ ] Objects

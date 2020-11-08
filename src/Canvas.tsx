@@ -187,13 +187,13 @@ class CanvasRenderer {
     const max = ctx.getTransform().inverse().transformPoint({ x: canvas.width, y: canvas.height });
     ctx.lineWidth = 0.5;
     ctx.strokeStyle = '#000';
-    for (let x = min.x; x <= max.x; x += this.size) {
+    for (let x = Math.floor(min.x / this.size) * this.size; x <= max.x; x += this.size) {
       ctx.beginPath();
       ctx.moveTo(x, min.y);
       ctx.lineTo(x, max.y);
       ctx.stroke();
     }
-    for (let y = min.y; y <= max.y; y += this.size) {
+    for (let y = Math.floor(min.y / this.size) * this.size; y <= max.y; y += this.size) {
       ctx.beginPath();
       ctx.moveTo(min.x, y);
       ctx.lineTo(max.x, y);

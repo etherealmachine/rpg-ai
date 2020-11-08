@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { css } from 'astroturf';
 
 const classes = css`
@@ -34,8 +34,13 @@ const classes = css`
 `;
 
 export default function Menubar() {
+  const [name, setName] = useState('');
+  const updateName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setName(event.target.value);
+  }
   return <div className={classes.menubar}>
     <span className={classes.title}>RPG.ai</span>
+    <input value={name} onChange={updateName} />
     <button>Save</button>
     <button>Load</button>
     <button>Undo</button>

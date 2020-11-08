@@ -54,6 +54,18 @@ export const initialState = {
       selected: false,
       group: 2,
     },
+    'text': {
+      selected: false,
+      group: 2,
+    },
+    'stairs': {
+      selected: false,
+      group: 2,
+    },
+    'doors': {
+      selected: false,
+      group: 2,
+    }
   },
   scale: 1,
   offset: { x: 0, y: 0 },
