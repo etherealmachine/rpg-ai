@@ -6,9 +6,6 @@ const classes = css`
     display: flex;
     flex-direction: row;
     align-items: center;
-    position: absolute;
-    top: 0;
-    left: 0;
     background: #373737;
     padding: 2px;
     width: 100%;

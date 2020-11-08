@@ -76,8 +76,8 @@ class CanvasRenderer {
 
   onMouseMove = (event: MouseEvent) => {
     this.mouse = {
-      x: event.clientX,
-      y: event.clientY,
+      x: event.offsetX,
+      y: event.offsetY,
     };
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = { ...this.mouse };
@@ -183,14 +183,21 @@ class CanvasRenderer {
 
   drawGrid() {
     const { canvas, ctx } = this;
-    for (let x = 0; x < canvas.width / this.appState.scale; x += this.size) {
-      for (let y = 0; y < canvas.height / this.appState.scale; y += this.size) {
-        ctx.lineWidth = 0.1;
-        ctx.strokeStyle = '#000';
-        ctx.beginPath();
-        ctx.rect(x, y, this.size, this.size);
-        ctx.stroke();
-      }
+    const min = ctx.getTransform().inverse().transformPoint({ x: 0, y: 0 });
+    const max = ctx.getTransform().inverse().transformPoint({ x: canvas.width, y: canvas.height });
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#000';
+    for (let x = min.x; x <= max.x; x += this.size) {
+      ctx.beginPath();
+      ctx.moveTo(x, min.y);
+      ctx.lineTo(x, max.y);
+      ctx.stroke();
+    }
+    for (let y = min.y; y <= max.y; y += this.size) {
+      ctx.beginPath();
+      ctx.moveTo(min.x, y);
+      ctx.lineTo(max.x, y);
+      ctx.stroke();
     }
   }
 
@@ -423,8 +430,8 @@ export default function Canvas() {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
     const syncSize = () => {
-      canvas.width = canvas.parentElement?.offsetWidth || canvas.width;
-      canvas.height = canvas.parentElement?.offsetHeight || canvas.height;
+      canvas.width = canvas.offsetWidth || canvas.width;
+      canvas.height = canvas.offsetHeight || canvas.height;
     };
     syncSize();
     window.addEventListener('resize', syncSize);
@@ -436,5 +443,5 @@ export default function Canvas() {
       window.removeEventListener('resize', syncSize);
     }
   }, [canvasRef, appState]);
-  return <canvas ref={canvasRef} />;
+  return <canvas ref={canvasRef} style={{ flex: '1 1 auto' }} />;
 }
