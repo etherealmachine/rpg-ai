@@ -212,6 +212,7 @@ class CanvasRenderer {
     ctx.beginPath();
     ctx.arc(closestGridPoint.x, closestGridPoint.y, 2, 0, 2 * Math.PI);
     ctx.fill();
+    /*
     const font = "14px Roboto, sans-serif";
     ctx.translate(p.x, p.y - 16);
     this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
@@ -219,6 +220,7 @@ class CanvasRenderer {
     this.renderTextCenter(`World: ${p.x.toFixed(0)},${p.y.toFixed(0)}`, font);
     ctx.translate(0, -16);
     this.renderTextCenter(`Tile: ${Math.floor(p.x / this.size).toFixed(0)},${Math.floor(p.y / this.size).toFixed(0)}`, font);
+    */
   }
 
   drawRectSelection(from: Pos, to: Pos) {
