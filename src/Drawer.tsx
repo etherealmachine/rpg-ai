@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { sanitize } from 'dompurify';
 import marked from 'marked';
+import { addRoomDescription, Context } from './State';
 
 const classes = css`
   .drawer {
@@ -43,10 +44,23 @@ const classes = css`
 `;
 
 export default function Drawer() {
+  const appState = useContext(Context);
   const [open, setOpen] = useState(true);
   const [text, setText] = useState('');
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(event.target.value);
+  }
+  const onSaveClicked = () => {
+    if (appState.selection) {
+      addRoomDescription(appState, {
+        name: 'untitled',
+        description: text,
+        shape: appState.selection,
+      });
+    }
+  }
+  const onDeleteClicked = () => {
+
   }
   return <div className={classNames(classes.drawer, open && classes.open)}>
     <button
@@ -63,5 +77,7 @@ export default function Drawer() {
         className={classes.formattedText}
         dangerouslySetInnerHTML={{ __html: sanitize(marked(text)) }} />
     </div>
+    <button onClick={onSaveClicked}>Save</button>
+    <button onClick={onDeleteClicked}>Delete</button>
   </div >;
 }

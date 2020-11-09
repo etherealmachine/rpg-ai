@@ -406,6 +406,20 @@ class CanvasRenderer {
       ctx.restore();
     }
 
+    appState.roomDescriptions.forEach((desc, index) => {
+      if (desc.shape.type === 'rect') {
+        ctx.save();
+        const from = { x: desc.shape.from.x * this.size, y: desc.shape.from.y * this.size };
+        const to = { x: desc.shape.to.x * this.size, y: desc.shape.to.y * this.size };
+        this.drawRectSelection(from, to);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(from.x + (to.x - from.x) / 2, from.y + (to.y - from.y) / 2 - 12);
+        this.renderTextCenter(`${index + 1}`, '24px Helvetica serif')
+        ctx.restore();
+      }
+    });
+
     if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected)) {
       ctx.save();
       this.drawDrag();

@@ -70,12 +70,19 @@ export const initialState = {
   scale: 1,
   offset: { x: 0, y: 0 },
   map: new TileMap<boolean>(),
+  roomDescriptions: [] as RoomDescription[],
   setState: (state: any) => { },
 };
 
 type InitialStateType = typeof initialState;
 
 type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
+
+interface RoomDescription {
+  name: string
+  description: string
+  shape: Shape
+}
 
 export interface State extends InitialStateType {
   selection?: Shape
@@ -123,6 +130,12 @@ export function setZoom(state: State, scale: number, offset: Pos) {
   state.setState(produce(state, state => {
     state.scale = scale;
     state.offset = offset;
+  }));
+}
+
+export function addRoomDescription(state: State, desc: RoomDescription) {
+  state.setState(produce(state, state => {
+    state.roomDescriptions.push(desc);
   }));
 }
 
