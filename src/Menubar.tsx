@@ -31,6 +31,21 @@ const classes = css`
     color: white;
     margin: 8px 24px 8px 24px;
   }
+  .input {
+    font-size: 18px;
+    background: transparent;
+    color: white;
+    border: none;
+    border-bottom: 1px solid white;
+    padding: 4px;
+    margin: 4px;
+    margin-bottom: 1px;
+  }
+  .input:focus {
+    outline: none;
+    border-bottom: 2px solid white;
+    margin-bottom: 0px;
+  }
 `;
 
 export default function Menubar() {
@@ -40,7 +55,7 @@ export default function Menubar() {
   }
   return <div className={classes.menubar}>
     <span className={classes.title}>RPG.ai</span>
-    <input value={name} onChange={updateName} />
+    <input className={classes.input} value={name} onChange={updateName} />
     <button>Save</button>
     <button>Load</button>
     <button>Undo</button>

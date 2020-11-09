@@ -39,6 +39,7 @@ import React from 'react';
 import { css } from 'astroturf';
 
 import Canvas from './Canvas';
+import Drawer from './Drawer';
 import Toolbar from './Toolbar';
 import Menubar from './Menubar';
 import { Context, initialState } from './State';
@@ -52,6 +53,13 @@ const classes = css`
     display: flex;
     flex-direction: column;
   }
+  .canvasWrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 export default function App() {
@@ -60,8 +68,11 @@ export default function App() {
     <div className={classes.app}>
       <Context.Provider value={{ ...state, setState: setState }}>
         <Menubar />
-        <Canvas />
-        <Toolbar />
+        <div className={classes.canvasWrapper}>
+          <Canvas />
+          <Drawer />
+          <Toolbar />
+        </div>
       </Context.Provider>
     </div>
   );

@@ -9,12 +9,12 @@ import {
   faBrush,
   faEraser,
   IconDefinition,
-  faExclamation,
   faDoorClosed
 } from '@fortawesome/free-solid-svg-icons'
 
 import { Context, setSelectedTool } from './State';
-import { textIcon } from './icons/custom_icons';
+import Tooltip from './Tooltip';
+import { stairsIcon, textIcon } from './icons/custom_icons';
 
 const classes = css`
   .toolbar {
@@ -59,16 +59,21 @@ const classes = css`
   }
 `;
 
-const icons: { [key: string]: IconDefinition } = {
-  'pointer': faMousePointer,
-  'brush': faBrush,
-  'rect': faVectorSquare,
-  'polygon': faDrawPolygon,
-  'circle': faCircle,
-  'eraser': faEraser,
-  'text': textIcon,
-  'stairs': faExclamation,
-  'doors': faDoorClosed,
+interface Button {
+  icon: IconDefinition
+  tooltip: string
+}
+
+const buttons: { [key: string]: Button } = {
+  'pointer': { icon: faMousePointer, tooltip: 'Select' },
+  'brush': { icon: faBrush, tooltip: 'Paint' },
+  'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
+  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
+  'circle': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
+  'eraser': { icon: faEraser, tooltip: 'Erase' },
+  'text': { icon: textIcon, tooltip: 'Text (TODO)' },
+  'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
+  'doors': { icon: faDoorClosed, tooltip: 'Doors (TODO)' },
 };
 
 export default function Toolbar() {
@@ -77,11 +82,12 @@ export default function Toolbar() {
     setSelectedTool(state, tool);
   };
   return <div className={classes.toolbar}>
-    {Object.entries(state.tools).map(([name, spec]) => <button
-      key={name}
-      className={spec.selected ? classes.selected : ''}
-      onClick={handleButtonClick(name)}>
-      <FontAwesomeIcon icon={icons[name]} />
-    </button>)}
+    {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name].tooltip}>
+      <button
+        className={spec.selected ? classes.selected : ''}
+        onClick={handleButtonClick(name)}>
+        <FontAwesomeIcon icon={buttons[name].icon} />
+      </button>
+    </Tooltip>)}
   </div>;
 }

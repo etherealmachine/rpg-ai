@@ -113,12 +113,17 @@ class CanvasRenderer {
   }
 
   onKeyDown = (event: KeyboardEvent) => {
+    if (document.activeElement !== document.body) return;
     const { appState } = this;
     const S = this.size * this.appState.scale;
-    if (event.key === 'w') setOffset(appState, { x: appState.offset.x, y: appState.offset.y + S });
-    if (event.key === 'a') setOffset(appState, { x: appState.offset.x + S, y: appState.offset.y });
-    if (event.key === 's') setOffset(appState, { x: appState.offset.x, y: appState.offset.y - S });
-    if (event.key === 'd') setOffset(appState, { x: appState.offset.x - S, y: appState.offset.y });
+    let newOffset = appState.offset;
+    if (event.key === 'w') newOffset = { x: appState.offset.x, y: appState.offset.y + S };
+    if (event.key === 'a') newOffset = { x: appState.offset.x + S, y: appState.offset.y };
+    if (event.key === 's') newOffset = { x: appState.offset.x, y: appState.offset.y - S };
+    if (event.key === 'd') newOffset = { x: appState.offset.x - S, y: appState.offset.y };
+    if (newOffset !== appState.offset) {
+      setOffset(appState, newOffset);
+    }
   }
 
   // canvas coordinates to world coordinates
