@@ -17,7 +17,7 @@
     [.] Text boxes
     [.] Stairs
     [.] Doors
-    [ ] Annotate areas
+    [.] Annotate areas
     [ ] Tokens
     [ ] Objects
     [ ] Secret doors
