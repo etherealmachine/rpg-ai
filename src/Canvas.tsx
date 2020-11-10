@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { dist, sqDist } from './lib';
+import { dist } from './lib';
 
-import { clearTile, Context, initialState, Pos, setZoom, setSelection, setTile, State, setOffset } from './State';
+import { clearTile, Context, initialState, Pos, setZoom, setSelection, setTile, State, setOffset, selectRoom } from './State';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -34,11 +34,27 @@ class CanvasRenderer {
 
   onMouseDown = () => {
     this.mouseDown = true;
-    if (this.mouse) {
+    const { mouse } = this;
+    if (mouse) {
       this.drag = {
-        start: { ...this.mouse },
-        end: { ...this.mouse },
+        start: { ...mouse },
+        end: { ...mouse },
       }
+      const selectedIndex = this.appState.roomDescriptions.findIndex(desc => {
+        if (desc.shape.type === 'rect') {
+          const p = this.canvasToWorld(mouse);
+          if (
+            p.x >= desc.shape.from.x * this.size &&
+            p.x <= desc.shape.to.x * this.size &&
+            p.y >= desc.shape.from.y * this.size &&
+            p.y <= desc.shape.to.y * this.size) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (selectedIndex !== undefined) selectRoom(this.appState, selectedIndex);
+      else selectRoom(this.appState, -1);
     }
   }
 
@@ -49,8 +65,8 @@ class CanvasRenderer {
     if (this.drag) {
       if (tools.rect.selected) {
         const [from, to] = this.getBoundingRect(
-          this.inverseTransform(this.drag.start),
-          this.inverseTransform(this.drag.end));
+          this.canvasToWorld(this.drag.start),
+          this.canvasToWorld(this.drag.end));
         from.x = Math.round(from.x / this.size);
         from.y = Math.round(from.y / this.size);
         to.x = Math.round(to.x / this.size);
@@ -103,7 +119,7 @@ class CanvasRenderer {
     const max = 4;
     const min = 0.2;
     const newScale = Math.max(Math.min(scale - event.deltaY / 100, max), min);
-    const mouseWorldPos = this.inverseTransform(mouse);
+    const mouseWorldPos = this.canvasToWorld(mouse);
     const newMouseWorldPos = { x: mouse.x / newScale - offset.x, y: mouse.y / newScale - offset.y };
     const newOffset = {
       x: offset.x - (mouseWorldPos.x - newMouseWorldPos.x),
@@ -127,13 +143,13 @@ class CanvasRenderer {
   }
 
   // canvas coordinates to world coordinates
-  inverseTransform(p: Pos): Pos {
+  canvasToWorld(p: Pos): Pos {
     const { offset, scale } = this.appState;
     return { x: p.x / scale - offset.x, y: p.y / scale - offset.y };
   }
 
   // world coordinates to canvas coordinates
-  transform(p: Pos): Pos {
+  worldToCanvas(p: Pos): Pos {
     const { offset, scale } = this.appState;
     return { x: (p.x + offset.x) * scale, y: (p.y + offset.y) * scale };
   }
@@ -143,22 +159,17 @@ class CanvasRenderer {
   }
 
   mouseToTile(mouse: Pos) {
-    const p = this.inverseTransform(mouse);
+    const p = this.canvasToWorld(mouse);
     p.x = Math.floor(p.x / this.size);
     p.y = Math.floor(p.y / this.size);
     return p;
   }
 
   getBoundingRect(from: Pos, to: Pos) {
-    let x1 = from.x;
-    let y1 = from.y;
-    let x2 = to.x;
-    let y2 = to.y;
-    if (sqDist(0, 0, x2, y2) < sqDist(0, 0, x1, y1)) {
-      let tmp = [x1, y1];
-      [x1, y1] = [x2, y2];
-      [x2, y2] = tmp;
-    }
+    let x1 = Math.min(from.x, to.x);
+    let y1 = Math.min(from.y, to.y);
+    let x2 = Math.max(from.x, to.x);
+    let y2 = Math.max(from.y, to.y);
     x1 = Math.round(x1 / this.size) * this.size;
     y1 = Math.round(y1 / this.size) * this.size;
     x2 = Math.round(x2 / this.size) * this.size;
@@ -208,7 +219,7 @@ class CanvasRenderer {
 
   drawMousePos(mouse: Pos) {
     const { ctx } = this;
-    const p = this.inverseTransform(mouse);
+    const p = this.canvasToWorld(mouse);
     const closestGridPoint = {
       x: Math.round(p.x / this.size) * this.size,
       y: Math.round(p.y / this.size) * this.size,
@@ -228,7 +239,7 @@ class CanvasRenderer {
     */
   }
 
-  drawRectSelection(from: Pos, to: Pos) {
+  drawRectSelection(from: Pos, to: Pos, overlay: boolean = false) {
     const { ctx } = this;
     const [a, b] = this.getBoundingRect(from, to);
     ctx.fillStyle = '#000';
@@ -249,16 +260,28 @@ class CanvasRenderer {
     ctx.lineTo(a.x, a.y);
     ctx.stroke();
 
+    if (this.mouse) {
+      const mousePos = this.canvasToWorld(this.mouse);
+      if (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y) {
+        overlay = true;
+      }
+    }
+    if (overlay) {
+      ctx.fillStyle = 'rgb(47, 85, 116, 0.1)';
+      ctx.fillRect(a.x, a.y, (b.x - a.x), (b.y - a.y));
+    }
+
     const w = Math.abs(a.x - b.x) / this.size;
     const h = Math.abs(a.y - b.y) / this.size;
     ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
+    ctx.fillStyle = '#000';
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
   drawDrag() {
     if (this.drag) {
-      const start = this.inverseTransform(this.drag.start);
-      const end = this.inverseTransform(this.drag.end);
+      const start = this.canvasToWorld(this.drag.start);
+      const end = this.canvasToWorld(this.drag.end);
       if (dist(start.x, start.y, end.x, end.y) > this.size) {
         this.drawRectSelection(start, end);
       }
@@ -275,7 +298,7 @@ class CanvasRenderer {
   drawHoverTile(style?: string) {
     const { ctx } = this;
     if (this.mouse) {
-      const p = this.inverseTransform(this.mouse);
+      const p = this.canvasToWorld(this.mouse);
       ctx.translate(
         Math.floor(p.x / this.size) * this.size,
         Math.floor(p.y / this.size) * this.size);
@@ -411,7 +434,7 @@ class CanvasRenderer {
         ctx.save();
         const from = { x: desc.shape.from.x * this.size, y: desc.shape.from.y * this.size };
         const to = { x: desc.shape.to.x * this.size, y: desc.shape.to.y * this.size };
-        this.drawRectSelection(from, to);
+        this.drawRectSelection(from, to, desc.selected);
         ctx.restore();
         ctx.save();
         ctx.translate(from.x + (to.x - from.x) / 2, from.y + (to.y - from.y) / 2 - 12);

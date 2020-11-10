@@ -38,17 +38,18 @@ const classes = css`
     color: black;
   }
   .toolbar button {
-    background: transparent;
+    background: black;
     width: 50px;
     height: 50px;
     border: 1px solid white;
     outline: none;
     margin: 4px;
   }
-  .toolbar > button:hover {
+  .toolbar button:hover {
+    background: #505050;
     box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.9), 2px 2px 8px rgba(255, 255, 255, 0.9);
   }
-  .toolbar > button:active {
+  .toolbar button:active {
     outline: none;
     border: none;
     scale: 0.9;

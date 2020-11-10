@@ -82,6 +82,7 @@ interface RoomDescription {
   name: string
   description: string
   shape: Shape
+  selected: boolean
 }
 
 export interface State extends InitialStateType {
@@ -135,7 +136,29 @@ export function setZoom(state: State, scale: number, offset: Pos) {
 
 export function addRoomDescription(state: State, desc: RoomDescription) {
   state.setState(produce(state, state => {
+    state.roomDescriptions.forEach(desc => desc.selected = false);
     state.roomDescriptions.push(desc);
+  }));
+}
+
+export function selectRoom(state: State, index: number) {
+  state.setState(produce(state, state => {
+    state.roomDescriptions.forEach(desc => desc.selected = false);
+    if (index >= 0 && index < state.roomDescriptions.length) {
+      state.roomDescriptions[index].selected = true;
+    }
+  }));
+}
+
+export function updateRoom(state: State, index: number, desc: RoomDescription) {
+  state.setState(produce(state, state => {
+    state.roomDescriptions[index] = desc;
+  }));
+}
+
+export function deleteRoom(state: State, index: number) {
+  state.setState(produce(state, state => {
+    state.roomDescriptions.splice(index, 1);
   }));
 }
 
