@@ -1,11 +1,10 @@
 import React, { useContext, useState } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
-import { sanitize } from 'dompurify';
-import marked from 'marked';
 
 import { DS } from './design_system';
 import { addRoomDescription, Context, deleteRoom, updateRoom } from './State';
+import RoomDescription from './RoomDescription';
 
 const classes = css`
   .editor {
@@ -17,24 +16,6 @@ const classes = css`
     height: 400px;
     outline: none;
     border: none;
-  }
-  .formattedText {
-    margin: 0;
-    padding: 0 8px;
-    color: white;
-  }
-  .formattedTextHeader {
-    font-size: 24px;
-    font-family: Helvetica serif;
-    padding: 0 8px;
-    margin: 0;
-    color: white;
-  }
-  .formattedText p {
-    font-size: 18px;
-    font-family: Helvetica serif;
-    padding: 0;
-    margin: 0;
   }
   .roomName {
     font-family: Helvetica serif;
@@ -51,7 +32,7 @@ const classes = css`
   }
 `;
 
-export default function Drawer() {
+export default function RoomEditor() {
   const appState = useContext(Context);
   const selectedIndex = appState.roomDescriptions.findIndex(desc => desc.selected);
   const selectedRoom = appState.roomDescriptions[selectedIndex];
@@ -111,7 +92,6 @@ export default function Drawer() {
       {selectedRoom && <button className={classNames(DS.button)} onClick={onUndoClicked}>Undo</button>}
       {selectedRoom && <button className={classNames(DS.button, DS.danger)} onClick={onDeleteClicked}>Delete</button>}
     </div>
-    <div className={classes.formattedTextHeader}>{`Room ${roomNo}: ${name}`}</div>
-    <div className={classes.formattedText} dangerouslySetInnerHTML={{ __html: sanitize(marked(text || '')) }} />
+    <RoomDescription name={name === undefined ? '' : `Room ${roomNo}: ${name}`} text={text || ''} />
   </div>;
 }

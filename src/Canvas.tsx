@@ -217,12 +217,13 @@ class CanvasRenderer {
     }
   }
 
-  drawMousePos(mouse: Pos) {
+  drawMousePos(mouse: Pos, halfGrid: boolean = false) {
     const { ctx } = this;
     const p = this.canvasToWorld(mouse);
+    const d = halfGrid ? 2 : 1;
     const closestGridPoint = {
-      x: Math.round(p.x / this.size) * this.size,
-      y: Math.round(p.y / this.size) * this.size,
+      x: Math.round(p.x / (this.size / d)) * (this.size / d),
+      y: Math.round(p.y / (this.size / d)) * (this.size / d),
     }
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -282,8 +283,13 @@ class CanvasRenderer {
     if (this.drag) {
       const start = this.canvasToWorld(this.drag.start);
       const end = this.canvasToWorld(this.drag.end);
-      if (dist(start.x, start.y, end.x, end.y) > this.size) {
+      if (dist(start.x, start.y, end.x, end.y) > this.size && this.appState.tools.rect.selected) {
         this.drawRectSelection(start, end);
+      } else {
+        this.ctx.strokeStyle = '#000';
+        this.ctx.moveTo(start.x, start.y);
+        this.ctx.lineTo(end.x, end.y);
+        this.ctx.stroke();
       }
     }
   }
@@ -425,7 +431,7 @@ class CanvasRenderer {
       ctx.restore();
     } else if (!appState.tools.eraser.selected && this.mouse) {
       ctx.save();
-      this.drawMousePos(this.mouse);
+      this.drawMousePos(this.mouse, appState.tools.doors.selected);
       ctx.restore();
     }
 
@@ -443,7 +449,7 @@ class CanvasRenderer {
       }
     });
 
-    if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected)) {
+    if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected || appState.tools.doors.selected)) {
       ctx.save();
       this.drawDrag();
       ctx.restore();

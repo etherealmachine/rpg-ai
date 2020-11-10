@@ -71,6 +71,7 @@ export const initialState = {
   offset: { x: 0, y: 0 },
   map: new TileMap<boolean>(),
   roomDescriptions: [] as RoomDescription[],
+  drawerOpen: true as boolean,
   setState: (state: any) => { },
 };
 
@@ -131,6 +132,12 @@ export function setZoom(state: State, scale: number, offset: Pos) {
   state.setState(produce(state, state => {
     state.scale = scale;
     state.offset = offset;
+  }));
+}
+
+export function toggleDrawer(state: State, open: boolean) {
+  state.setState(produce(state, state => {
+    state.drawerOpen = open;
   }));
 }
 

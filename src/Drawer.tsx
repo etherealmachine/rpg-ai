@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 
 import RoomEditor from './RoomEditor';
+import { Context, toggleDrawer } from './State';
 
 const classes = css`
   .drawer {
@@ -35,13 +36,13 @@ const classes = css`
 `;
 
 export default function Drawer() {
-  const [open, setOpen] = useState(true);
-  return <div className={classNames(classes.drawer, open && classes.open)}>
+  const appState = useContext(Context);
+  return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
-      className={classNames(classes.toggleButton, open && classes.open)}
-      onClick={() => setOpen(!open)}>
-      {open && <FontAwesomeIcon icon={faCaretRight} />}
-      {!open && <FontAwesomeIcon icon={faCaretLeft} />}
+      className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
+      onClick={() => toggleDrawer(appState, !appState.drawerOpen)}>
+      {appState.drawerOpen && <FontAwesomeIcon icon={faCaretRight} />}
+      {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
     <RoomEditor />
   </div>;
