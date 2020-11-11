@@ -4,8 +4,8 @@ import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 
-import RoomEditor from './RoomEditor';
-import { Context, toggleDrawer } from './State';
+import DescriptionEditor from './DescriptionEditor';
+import * as State from './State';
 
 const classes = css`
   .drawer {
@@ -36,14 +36,14 @@ const classes = css`
 `;
 
 export default function Drawer() {
-  const appState = useContext(Context);
+  const appState = useContext(State.Context);
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
-      onClick={() => toggleDrawer(appState, !appState.drawerOpen)}>
+      onClick={() => State.toggleDrawer(appState, !appState.drawerOpen)}>
       {appState.drawerOpen && <FontAwesomeIcon icon={faCaretRight} />}
       {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
-    <RoomEditor />
+    <DescriptionEditor type={'Room'} />
   </div>;
 }

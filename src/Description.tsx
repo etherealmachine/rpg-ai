@@ -24,7 +24,7 @@ const classes = css`
   }
 `;
 
-export default function RoomDescription(props: { name: string, text: string }) {
+export default function Description(props: { name: string, text: string }) {
   return <div className={classes.formattedText}>
     <h1>{props.name}</h1>
     <div dangerouslySetInnerHTML={{ __html: sanitize(marked(props.text || '')) }} />

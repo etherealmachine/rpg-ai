@@ -1,7 +1,9 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
-import { clearTile, Context, initialState, Pos, setZoom, setSelection, setTile, State, setOffset, selectRoom } from './State';
+import * as State from './State';
+
+type Pos = State.Pos;
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -13,7 +15,7 @@ class CanvasRenderer {
   size: number = 30
   lastTime: number = 0
   requestID?: number
-  appState: State = initialState
+  appState: State.State = State.initialState
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
 
@@ -40,7 +42,7 @@ class CanvasRenderer {
         start: { ...mouse },
         end: { ...mouse },
       }
-      const selectedIndex = this.appState.roomDescriptions.findIndex(desc => {
+      const selectedIndex = this.appState.descriptions.findIndex(desc => {
         if (desc.shape.type === 'rect') {
           const p = this.canvasToWorld(mouse);
           if (
@@ -53,15 +55,15 @@ class CanvasRenderer {
         }
         return false;
       });
-      if (selectedIndex !== undefined) selectRoom(this.appState, selectedIndex);
-      else selectRoom(this.appState, -1);
+      if (selectedIndex !== undefined) State.selectDescription(this.appState, selectedIndex);
+      else State.selectDescription(this.appState, -1);
     }
   }
 
   onMouseUp = () => {
     this.mouseDown = false;
     const { tools } = this.appState;
-    setSelection(this.appState, undefined);
+    State.setSelection(this.appState, undefined);
     if (this.drag) {
       if (tools.rect.selected) {
         const [from, to] = this.getBoundingRect(
@@ -74,19 +76,19 @@ class CanvasRenderer {
         if (tools.brush.selected || tools.eraser.selected) {
           for (let x = from.x; x < to.x; x++) {
             for (let y = from.y; y < to.y; y++) {
-              if (tools.brush.selected) setTile(this.appState, { x, y });
-              if (tools.eraser.selected) clearTile(this.appState, { x, y });
+              if (tools.brush.selected) State.setTile(this.appState, { x, y });
+              if (tools.eraser.selected) State.clearTile(this.appState, { x, y });
             }
           }
         } else if (from.x !== to.x && from.y !== to.y) {
-          setSelection(this.appState, { type: 'rect', from: from, to: to });
+          State.setSelection(this.appState, { type: 'rect', from: from, to: to });
         }
       }
       this.drag = undefined;
     } else if (this.mouse && (tools.brush.selected || tools.eraser.selected)) {
       const mouseTilePos = this.mouseToTile(this.mouse);
-      if (tools.brush.selected) setTile(this.appState, mouseTilePos);
-      if (tools.eraser.selected) clearTile(this.appState, mouseTilePos);
+      if (tools.brush.selected) State.setTile(this.appState, mouseTilePos);
+      if (tools.eraser.selected) State.clearTile(this.appState, mouseTilePos);
     }
   }
 
@@ -104,10 +106,10 @@ class CanvasRenderer {
     if (!dragTool && this.mouse && this.mouseDown) {
       const tileState = this.appState.map.get(mouseTilePos.x, mouseTilePos.y);
       if (this.appState.tools.brush.selected && !tileState) {
-        setTile(this.appState, mouseTilePos);
+        State.setTile(this.appState, mouseTilePos);
       }
       if (this.appState.tools.eraser.selected && tileState) {
-        clearTile(this.appState, mouseTilePos);
+        State.clearTile(this.appState, mouseTilePos);
       }
     }
   }
@@ -125,7 +127,7 @@ class CanvasRenderer {
       x: offset.x - (mouseWorldPos.x - newMouseWorldPos.x),
       y: offset.y - (mouseWorldPos.y - newMouseWorldPos.y)
     }
-    setZoom(this.appState, newScale, newOffset);
+    State.setZoom(this.appState, newScale, newOffset);
   }
 
   onKeyDown = (event: KeyboardEvent) => {
@@ -138,7 +140,7 @@ class CanvasRenderer {
     if (event.key === 's') newOffset = { x: appState.offset.x, y: appState.offset.y - S };
     if (event.key === 'd') newOffset = { x: appState.offset.x - S, y: appState.offset.y };
     if (newOffset !== appState.offset) {
-      setOffset(appState, newOffset);
+      State.setOffset(appState, newOffset);
     }
   }
 
@@ -154,7 +156,8 @@ class CanvasRenderer {
     return { x: (p.x + offset.x) * scale, y: (p.y + offset.y) * scale };
   }
 
-  tileToWorld(p: Pos): Pos {
+  // world coordinates to tile coordinates
+  worldToTile(p: Pos): Pos {
     return { x: Math.floor(p.x / this.size), y: Math.floor(p.y / this.size) };
   }
 
@@ -217,7 +220,7 @@ class CanvasRenderer {
     }
   }
 
-  drawMousePos(mouse: Pos, halfGrid: boolean = false) {
+  drawMousePos(mouse: Pos, halfGrid: boolean = false, debug: boolean = false) {
     const { ctx } = this;
     const p = this.canvasToWorld(mouse);
     const d = halfGrid ? 2 : 1;
@@ -229,15 +232,16 @@ class CanvasRenderer {
     ctx.beginPath();
     ctx.arc(closestGridPoint.x, closestGridPoint.y, 2, 0, 2 * Math.PI);
     ctx.fill();
-    /*
-    const font = "14px Roboto, sans-serif";
-    ctx.translate(p.x, p.y - 16);
-    this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
-    ctx.translate(0, -16);
-    this.renderTextCenter(`World: ${p.x.toFixed(0)},${p.y.toFixed(0)}`, font);
-    ctx.translate(0, -16);
-    this.renderTextCenter(`Tile: ${Math.floor(p.x / this.size).toFixed(0)},${Math.floor(p.y / this.size).toFixed(0)}`, font);
-    */
+
+    if (debug) {
+      const font = "14px Roboto, sans-serif";
+      ctx.translate(p.x, p.y - 16);
+      this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
+      ctx.translate(0, -16);
+      this.renderTextCenter(`World: ${p.x.toFixed(0)},${p.y.toFixed(0)}`, font);
+      ctx.translate(0, -16);
+      this.renderTextCenter(`Tile: ${Math.floor(p.x / this.size).toFixed(0)},${Math.floor(p.y / this.size).toFixed(0)}`, font);
+    }
   }
 
   drawRectSelection(from: Pos, to: Pos, overlay: boolean = false) {
@@ -435,7 +439,7 @@ class CanvasRenderer {
       ctx.restore();
     }
 
-    appState.roomDescriptions.forEach((desc, index) => {
+    appState.descriptions.forEach((desc, index) => {
       if (desc.shape.type === 'rect') {
         ctx.save();
         const from = { x: desc.shape.from.x * this.size, y: desc.shape.from.y * this.size };
@@ -475,7 +479,7 @@ class CanvasRenderer {
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const appState = useContext(Context);
+  const appState = useContext(State.Context);
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;

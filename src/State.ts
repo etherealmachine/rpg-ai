@@ -70,7 +70,7 @@ export const initialState = {
   scale: 1,
   offset: { x: 0, y: 0 },
   map: new TileMap<boolean>(),
-  roomDescriptions: [] as RoomDescription[],
+  descriptions: [] as Description[],
   drawerOpen: true as boolean,
   setState: (state: any) => { },
 };
@@ -79,7 +79,7 @@ type InitialStateType = typeof initialState;
 
 type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
 
-interface RoomDescription {
+interface Description {
   name: string
   description: string
   shape: Shape
@@ -141,31 +141,31 @@ export function toggleDrawer(state: State, open: boolean) {
   }));
 }
 
-export function addRoomDescription(state: State, desc: RoomDescription) {
+export function addDescription(state: State, desc: Description) {
   state.setState(produce(state, state => {
-    state.roomDescriptions.forEach(desc => desc.selected = false);
-    state.roomDescriptions.push(desc);
+    state.descriptions.forEach(desc => desc.selected = false);
+    state.descriptions.push(desc);
   }));
 }
 
-export function selectRoom(state: State, index: number) {
+export function selectDescription(state: State, index: number) {
   state.setState(produce(state, state => {
-    state.roomDescriptions.forEach(desc => desc.selected = false);
-    if (index >= 0 && index < state.roomDescriptions.length) {
-      state.roomDescriptions[index].selected = true;
+    state.descriptions.forEach(desc => desc.selected = false);
+    if (index >= 0 && index < state.descriptions.length) {
+      state.descriptions[index].selected = true;
     }
   }));
 }
 
-export function updateRoom(state: State, index: number, desc: RoomDescription) {
+export function updateDescription(state: State, index: number, desc: Description) {
   state.setState(produce(state, state => {
-    state.roomDescriptions[index] = desc;
+    state.descriptions[index] = desc;
   }));
 }
 
-export function deleteRoom(state: State, index: number) {
+export function deleteDescription(state: State, index: number) {
   state.setState(produce(state, state => {
-    state.roomDescriptions.splice(index, 1);
+    state.descriptions.splice(index, 1);
   }));
 }
 
