@@ -1,9 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
-import * as State from './State';
-
-type Pos = State.Pos;
+import { Context, Pos, State } from './State';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -15,7 +13,7 @@ class CanvasRenderer {
   size: number = 30
   lastTime: number = 0
   requestID?: number
-  appState = new State.State()
+  appState = new State()
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
 
@@ -43,6 +41,7 @@ class CanvasRenderer {
         end: { ...mouse },
       }
       /*
+      TODO: Select the geometry under the mouse
       const selectedIndex = this.appState.descriptions.findIndex(desc => {
         if (desc.shape.type === 'rect') {
           const p = this.canvasToWorld(mouse);
@@ -65,8 +64,6 @@ class CanvasRenderer {
   onMouseUp = () => {
     this.mouseDown = false;
     const { tools } = this.appState;
-    /*
-    State.setSelection(this.appState, undefined);
     if (this.drag) {
       if (tools.rect.selected) {
         const [from, to] = this.getBoundingRect(
@@ -76,24 +73,15 @@ class CanvasRenderer {
         from.y = Math.round(from.y / this.size);
         to.x = Math.round(to.x / this.size);
         to.y = Math.round(to.y / this.size);
-        if (tools.brush.selected || tools.eraser.selected) {
-          for (let x = from.x; x < to.x; x++) {
-            for (let y = from.y; y < to.y; y++) {
-              if (tools.brush.selected) State.setTile(this.appState, { x, y });
-              if (tools.eraser.selected) State.clearTile(this.appState, { x, y });
-            }
-          }
-        } else if (from.x !== to.x && from.y !== to.y) {
-          State.setSelection(this.appState, { type: 'rect', from: from, to: to });
+        if (tools.brush.selected) {
+          this.appState.addGeometry({
+            type: 'room',
+            shape: { type: 'rect', from: from, to: to },
+          });
         }
       }
       this.drag = undefined;
-    } else if (this.mouse && (tools.brush.selected || tools.eraser.selected)) {
-      const mouseTilePos = this.mouseToTile(this.mouse);
-      if (tools.brush.selected) State.setTile(this.appState, mouseTilePos);
-      if (tools.eraser.selected) State.clearTile(this.appState, mouseTilePos);
     }
-    */
   }
 
   onMouseMove = (event: MouseEvent) => {
@@ -492,7 +480,7 @@ class CanvasRenderer {
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const appState = useContext(State.Context);
+  const appState = useContext(Context);
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;

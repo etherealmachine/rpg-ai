@@ -6,6 +6,22 @@ export interface Pos {
   y: number
 }
 
+function modify() {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const modifierFn = descriptor.value;
+    descriptor.value = function () {
+      const args = Array.from(arguments);
+      (this as any).setState(produce(this, (newTarget: any) => {
+        modifierFn.bind(newTarget)(...args);
+      }));
+    };
+  };
+}
+
 export class State {
   tools = {
     'pointer': {
@@ -66,6 +82,12 @@ export class State {
     return this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex];
   }
 
+  @modify()
+  addGeometry(geometry: Geometry) {
+    this.layers[this.selection.layerIndex].geometries.push(geometry);
+  }
+
+  @modify()
   setSelectedTool(name: string) {
     const tool = (this.tools as any)[name];
     if (tool.selected) {
@@ -78,34 +100,38 @@ export class State {
     tool.selected = true;
   }
 
+  @modify()
   setSelection(selection: { layerIndex: number, geometryIndex: undefined | number }) {
     this.selection = selection;
   }
 
+  @modify()
   setOffset(offset: Pos) {
     this.offset = offset;
   }
 
+  @modify()
   setZoom(scale: number, offset: Pos) {
     this.scale = scale;
     this.offset = offset;
   }
 
+  @modify()
   toggleDrawer(open: boolean) {
     this.drawerOpen = open;
   }
 
+  @modify()
   setDescription(desc: Description | undefined) {
     if (this.selection.geometryIndex === undefined) return;
     this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex].description = desc;
   }
-};
+}
 
 interface Geometry {
   type: 'room'
   description?: Description
   shape: Shape
-  selected: boolean
 }
 
 interface Layer {
@@ -119,11 +145,4 @@ interface Description {
   description: string
 }
 
-const StateChangeHandler = {
-  get: function (target: any, prop: any, receiver: any) {
-    console.log(target, prop, receiver);
-    return Reflect.get(target, prop, receiver);
-  }
-};
-
-export const Context = React.createContext(new Proxy(new State(), StateChangeHandler) as State);
+export const Context = React.createContext(new State());

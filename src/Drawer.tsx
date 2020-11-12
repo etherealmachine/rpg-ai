@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 
 import DescriptionEditor from './DescriptionEditor';
-import * as State from './State';
+import { Context } from './State';
 
 const classes = css`
   .drawer {
@@ -36,7 +36,7 @@ const classes = css`
 `;
 
 export default function Drawer() {
-  const appState = useContext(State.Context);
+  const appState = useContext(Context);
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}

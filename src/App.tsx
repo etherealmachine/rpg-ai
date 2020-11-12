@@ -63,11 +63,16 @@ const classes = css`
 `;
 
 export default function App() {
-  const [state, setState] = useLocalStorageState('AppState', new State());
-  state.setState = setState;
+  const [state, setState] = useLocalStorageState('AppState', { i: 0, state: new State() });
+  state.state.setState = (newState: State) => {
+    setState({
+      i: state.i + 1,
+      state: newState,
+    });
+  };
   return (
     <div className={classes.app}>
-      <Context.Provider value={state}>
+      <Context.Provider value={state.state}>
         <Menubar />
         <div className={classes.canvasWrapper}>
           <Canvas />
