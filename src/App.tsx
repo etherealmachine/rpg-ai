@@ -35,7 +35,7 @@
     [ ] Particle effects
     [ ] Print to PDF
 */
-import React from 'react';
+import React, { useState } from 'react';
 import { css } from 'astroturf';
 
 import Canvas from './Canvas';
@@ -63,16 +63,15 @@ const classes = css`
 `;
 
 export default function App() {
-  const [state, setState] = useLocalStorageState('AppState', { i: 0, state: new State() });
-  state.state.setState = (newState: State) => {
-    setState({
-      i: state.i + 1,
-      state: newState,
-    });
+  const [i, setCount] = useState(0);
+  const [state, setState] = useLocalStorageState('AppState', new State());
+  state.setState = (newState: State) => {
+    setState(newState);
+    setCount(i + 1);
   };
   return (
     <div className={classes.app}>
-      <Context.Provider value={state.state}>
+      <Context.Provider value={state}>
         <Menubar />
         <div className={classes.canvasWrapper}>
           <Canvas />

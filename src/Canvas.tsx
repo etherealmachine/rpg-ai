@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
-import { Context, Pos, State } from './State';
+import { Context, Geometry, Pos, State } from './State';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -40,24 +40,7 @@ class CanvasRenderer {
         start: { ...mouse },
         end: { ...mouse },
       }
-      /*
-      TODO: Select the geometry under the mouse
-      const selectedIndex = this.appState.descriptions.findIndex(desc => {
-        if (desc.shape.type === 'rect') {
-          const p = this.canvasToWorld(mouse);
-          if (
-            p.x >= desc.shape.from.x * this.size &&
-            p.x <= desc.shape.to.x * this.size &&
-            p.y >= desc.shape.from.y * this.size &&
-            p.y <= desc.shape.to.y * this.size) {
-            return true;
-          }
-        }
-        return false;
-      });
-      if (selectedIndex !== undefined) State.selectDescription(this.appState, selectedIndex);
-      else State.selectDescription(this.appState, -1);
-      */
+      // TODO: Select the geometry under the mouse
     }
   }
 
@@ -73,7 +56,7 @@ class CanvasRenderer {
         from.y = Math.round(from.y / this.size);
         to.x = Math.round(to.x / this.size);
         to.y = Math.round(to.y / this.size);
-        if (tools.brush.selected) {
+        if (tools.brush.selected && from.x !== to.x && from.y !== to.y) {
           this.appState.addGeometry({
             type: 'room',
             shape: { type: 'rect', from: from, to: to },
@@ -92,20 +75,6 @@ class CanvasRenderer {
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = { ...this.mouse };
     }
-    const { tools } = this.appState;
-    const dragTool = tools.rect.selected || tools.polygon.selected || tools.circle.selected;
-    const mouseTilePos = this.mouseToTile(this.mouse);
-    /*
-    if (!dragTool && this.mouse && this.mouseDown) {
-      const tileState = this.appState.map.get(mouseTilePos.x, mouseTilePos.y);
-      if (this.appState.tools.brush.selected && !tileState) {
-        this.appState.setTile(mouseTilePos);
-      }
-      if (this.appState.tools.eraser.selected && tileState) {
-        this.appState.clearTile(mouseTilePos);
-      }
-    }
-    */
   }
 
   onWheel = (event: WheelEvent) => {
@@ -196,8 +165,9 @@ class CanvasRenderer {
 
   drawGrid() {
     const { canvas, ctx } = this;
-    const min = ctx.getTransform().inverse().transformPoint({ x: 0, y: 0 });
-    const max = ctx.getTransform().inverse().transformPoint({ x: canvas.width, y: canvas.height });
+    const iT = ctx.getTransform().inverse();
+    const min = iT.transformPoint({ x: 0, y: 0 });
+    const max = iT.transformPoint({ x: canvas.width, y: canvas.height });
     ctx.lineWidth = 0.5;
     ctx.strokeStyle = '#000';
     for (let x = Math.floor(min.x / this.size) * this.size; x <= max.x; x += this.size) {
@@ -320,86 +290,40 @@ class CanvasRenderer {
     ctx.stroke();
   }
 
-  drawWalls(x: number, y: number) {
-    const { ctx, appState } = this;
-    /*
-    const up = appState.map.get(x, y - 1);
-    const down = appState.map.get(x, y + 1);
-    const left = appState.map.get(x - 1, y);
-    const right = appState.map.get(x + 1, y);
-    const shadowWidth = Math.round(this.size * 0.25);
-    const halfShadowWidth = Math.round(shadowWidth / 2);
-    ctx.lineWidth = shadowWidth;
-    ctx.strokeStyle = "#999";
-    if (!up && !left && right) {
+  drawGeometry(geom: Geometry) {
+    const { ctx } = this;
+    if (geom.type === 'room' && geom.shape.type === 'rect') {
+      ctx.fillStyle = '#F1ECE0';
+      const w = (geom.shape.to.x - geom.shape.from.x);
+      const h = (geom.shape.to.y - geom.shape.from.y);
       ctx.beginPath();
-      ctx.moveTo(halfShadowWidth, this.size);
-      ctx.lineTo(halfShadowWidth, halfShadowWidth);
-      ctx.lineTo(this.size + shadowWidth, halfShadowWidth);
+      ctx.fillRect(geom.shape.from.x, geom.shape.from.y, w, h);
+      ctx.strokeStyle = "#999";
+      ctx.lineWidth = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(geom.shape.from.x + 0.1, geom.shape.to.y);
+      ctx.lineTo(geom.shape.from.x + 0.1, geom.shape.from.y + 0.1);
+      ctx.lineTo(geom.shape.to.x, geom.shape.from.y + 0.1);
       ctx.stroke();
-    } else if (!up && !left && !right) {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.1;
       ctx.beginPath();
-      ctx.moveTo(halfShadowWidth, this.size);
-      ctx.lineTo(halfShadowWidth, halfShadowWidth);
-      ctx.lineTo(this.size, halfShadowWidth);
-      ctx.stroke();
-    } else if (!up && !right) {
-      // TODO: miter left if no left
-      ctx.beginPath();
-      ctx.moveTo(0, halfShadowWidth);
-      ctx.lineTo(this.size, halfShadowWidth);
-      ctx.stroke();
-    } else if (!up && right) {
-      // TODO: miter left if no left
-      ctx.beginPath();
-      ctx.moveTo(0, halfShadowWidth);
-      ctx.lineTo(this.size + shadowWidth, halfShadowWidth);
-      ctx.stroke();
-    } else if (!left) {
-      // TODO: miter top
-      ctx.beginPath();
-      ctx.moveTo(halfShadowWidth, 0);
-      ctx.lineTo(halfShadowWidth, this.size);
+      ctx.moveTo(geom.shape.from.x, geom.shape.from.y);
+      ctx.lineTo(geom.shape.to.x, geom.shape.from.y);
+      ctx.lineTo(geom.shape.to.x, geom.shape.to.y);
+      ctx.lineTo(geom.shape.from.x, geom.shape.to.y);
+      ctx.lineTo(geom.shape.from.x, geom.shape.from.y);
       ctx.stroke();
     }
-    if (!up) this.drawLine(0, 0, this.size, 0, 2, '#000');
-    if (!down) this.drawLine(0, this.size, this.size, this.size, 2, '#000');
-    if (!left) this.drawLine(0, 0, 0, this.size, 2, '#000');
-    if (!right) this.drawLine(this.size, 0, this.size, this.size, 2, '#000');
-    */
   }
 
-  drawMap() {
+  drawLayers() {
     const { ctx, appState } = this;
-    /*
-    appState.map.forEach((occupied, pos) => {
-      if (occupied) {
-        ctx.save();
-        ctx.translate(pos.x * this.size, pos.y * this.size);
-        this.drawTile();
-        ctx.restore();
-      }
+    ctx.scale(this.size, this.size);
+    const layer = appState.layers[appState.selection.layerIndex];
+    layer.geometries.forEach(geom => {
+      this.drawGeometry(geom);
     });
-    appState.map.forEach((occupied, pos) => {
-      if (occupied) {
-        ctx.save();
-        ctx.translate(pos.x * this.size, pos.y * this.size);
-        this.drawWalls(pos.x, pos.y);
-        ctx.restore();
-      }
-    });
-    appState.map.forEach((occupied, pos) => {
-      if (occupied) {
-        ctx.save();
-        ctx.translate(pos.x * this.size, pos.y * this.size);
-        this.drawLine(0, 0, this.size, 0, 1, 'rgba(0, 0, 0, 0.2)');
-        this.drawLine(0, 0, 0, this.size, 1, 'rgba(0, 0, 0, 0.2)');
-        this.drawLine(this.size, 0, this.size, this.size, 0.1, '#000');
-        this.drawLine(0, this.size, this.size, this.size, 0.1, '#000');
-        ctx.restore();
-      }
-    });
-    */
   }
 
   render = (time: number) => {
@@ -419,12 +343,15 @@ class CanvasRenderer {
     ctx.scale(appState.scale, appState.scale);
     ctx.translate(appState.offset.x, appState.offset.y);
 
+    // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
+    // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
+
     ctx.save();
-    this.drawGrid();
+    this.drawLayers();
     ctx.restore();
 
     ctx.save();
-    this.drawMap();
+    this.drawGrid();
     ctx.restore();
 
     if (appState.tools.brush.selected) {
@@ -436,22 +363,6 @@ class CanvasRenderer {
       this.drawMousePos(this.mouse, appState.tools.doors.selected);
       ctx.restore();
     }
-
-    /*
-    appState.descriptions.forEach((desc, index) => {
-      if (desc.shape.type === 'rect') {
-        ctx.save();
-        const from = { x: desc.shape.from.x * this.size, y: desc.shape.from.y * this.size };
-        const to = { x: desc.shape.to.x * this.size, y: desc.shape.to.y * this.size };
-        this.drawRectSelection(from, to, desc.selected);
-        ctx.restore();
-        ctx.save();
-        ctx.translate(from.x + (to.x - from.x) / 2, from.y + (to.y - from.y) / 2 - 12);
-        this.renderTextCenter(`${index + 1}`, '24px Helvetica serif')
-        ctx.restore();
-      }
-    });
-    */
 
     const selection = appState.getSelectedGeometry();
     if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected || appState.tools.doors.selected)) {

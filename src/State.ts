@@ -126,21 +126,26 @@ export class State {
     if (this.selection.geometryIndex === undefined) return;
     this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex].description = desc;
   }
+
+  @modify()
+  reset() {
+    Object.assign(this, new State());
+  }
 }
 
-interface Geometry {
+export interface Geometry {
   type: 'room'
   description?: Description
   shape: Shape
 }
 
-interface Layer {
+export interface Layer {
   geometries: Geometry[]
 }
 
-type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
+export type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
 
-interface Description {
+export interface Description {
   name: string
   description: string
 }

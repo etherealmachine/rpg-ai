@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { css } from 'astroturf';
 
 import { DS } from './design_system';
+import { Context } from './State';
 
 const classes = css`
   .menubar {
@@ -19,6 +20,7 @@ const classes = css`
 `;
 
 export default function Menubar() {
+  const appState = useContext(Context);
   const [name, setName] = useState('');
   const updateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
@@ -33,7 +35,7 @@ export default function Menubar() {
     <button className={DS.buttonSmall}>Print</button>
     <button
       className={DS.buttonSmall}
-      onClick={() => { window.localStorage.removeItem('AppState') }}>
+      onClick={() => { appState.reset(); }}>
       Clear
     </button>
   </div>;
