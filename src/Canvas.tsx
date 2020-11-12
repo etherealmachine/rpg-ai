@@ -48,7 +48,7 @@ class CanvasRenderer {
     this.mouseDown = false;
     const { tools } = this.appState;
     if (this.drag) {
-      if (tools.rect.selected) {
+      if (tools.rect.selected || tools.ellipse.selected) {
         const [from, to] = this.getBoundingRect(
           this.canvasToWorld(this.drag.start),
           this.canvasToWorld(this.drag.end));
@@ -56,10 +56,11 @@ class CanvasRenderer {
         from.y = Math.round(from.y / this.size);
         to.x = Math.round(to.x / this.size);
         to.y = Math.round(to.y / this.size);
-        if (tools.brush.selected && from.x !== to.x && from.y !== to.y) {
+        if (tools.walls.selected && from.x !== to.x && from.y !== to.y) {
+          const type = tools.rect.selected ? 'rect' : 'ellipse';
           this.appState.addGeometry({
             type: 'room',
-            shape: { type: 'rect', from: from, to: to },
+            shape: { type: type, from: from, to: to },
           });
         }
       }
@@ -247,12 +248,60 @@ class CanvasRenderer {
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
+  drawEllipseSelection(from: Pos, to: Pos, overlay: boolean = false) {
+    const { ctx } = this;
+    const [a, b] = this.getBoundingRect(from, to);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.strokeStyle = '#2f5574';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(a.x, b.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.lineTo(b.x, a.y);
+    ctx.lineTo(a.x, a.y);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.beginPath();
+    ctx.ellipse((b.x - a.x) / 2, (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
+    ctx.stroke();
+    ctx.restore();
+
+    if (this.mouse) {
+      const mousePos = this.canvasToWorld(this.mouse);
+      if (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y) {
+        overlay = true;
+      }
+    }
+    if (overlay) {
+      ctx.fillStyle = 'rgb(47, 85, 116, 0.1)';
+      ctx.fillRect(a.x, a.y, (b.x - a.x), (b.y - a.y));
+    }
+
+    const w = Math.abs(a.x - b.x) / this.size;
+    const h = Math.abs(a.y - b.y) / this.size;
+    ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
+    ctx.fillStyle = '#000';
+    this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
+  }
+
   drawDrag() {
     if (this.drag) {
       const start = this.canvasToWorld(this.drag.start);
       const end = this.canvasToWorld(this.drag.end);
       if (dist(start.x, start.y, end.x, end.y) > this.size && this.appState.tools.rect.selected) {
         this.drawRectSelection(start, end);
+      } else if (dist(start.x, start.y, end.x, end.y) > this.size && this.appState.tools.ellipse.selected) {
+        this.drawEllipseSelection(start, end);
       } else {
         this.ctx.strokeStyle = '#000';
         this.ctx.moveTo(start.x, start.y);
@@ -293,27 +342,64 @@ class CanvasRenderer {
   drawGeometry(geom: Geometry) {
     const { ctx } = this;
     if (geom.type === 'room' && geom.shape.type === 'rect') {
-      ctx.fillStyle = '#F1ECE0';
+      const { from, to } = geom.shape;
       const w = (geom.shape.to.x - geom.shape.from.x);
       const h = (geom.shape.to.y - geom.shape.from.y);
+
+      ctx.fillStyle = '#999';
       ctx.beginPath();
-      ctx.fillRect(geom.shape.from.x, geom.shape.from.y, w, h);
-      ctx.strokeStyle = "#999";
-      ctx.lineWidth = 0.3;
-      ctx.beginPath();
-      ctx.moveTo(geom.shape.from.x + 0.1, geom.shape.to.y);
-      ctx.lineTo(geom.shape.from.x + 0.1, geom.shape.from.y + 0.1);
-      ctx.lineTo(geom.shape.to.x, geom.shape.from.y + 0.1);
-      ctx.stroke();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.lineTo(from.x, to.y);
+      ctx.lineTo(from.x, from.y);
+      ctx.fill();
+
+      ctx.fillStyle = '#F1ECE0';
+      ctx.save();
+      ctx.clip();
+      ctx.fillRect(from.x + 0.2, from.y + 0.2, w, h);
+      ctx.restore();
+
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.1;
       ctx.beginPath();
-      ctx.moveTo(geom.shape.from.x, geom.shape.from.y);
-      ctx.lineTo(geom.shape.to.x, geom.shape.from.y);
-      ctx.lineTo(geom.shape.to.x, geom.shape.to.y);
-      ctx.lineTo(geom.shape.from.x, geom.shape.to.y);
-      ctx.lineTo(geom.shape.from.x, geom.shape.from.y);
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.lineTo(from.x, to.y);
+      ctx.lineTo(from.x, from.y);
       ctx.stroke();
+    } else if (geom.type === 'room' && geom.shape.type === 'ellipse') {
+      const { from, to } = geom.shape;
+      const w = (to.x - from.x);
+      const h = (to.y - from.y);
+
+      ctx.save();
+      ctx.fillStyle = '#999';
+      ctx.translate(from.x, from.y);
+      ctx.beginPath();
+      ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = '#F1ECE0';
+      ctx.translate(from.x, from.y);
+      ctx.beginPath();
+      ctx.ellipse(w / 2 + 0.2, h / 2 + 0.2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.1;
+      ctx.translate(from.x, from.y);
+      ctx.beginPath();
+      ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -354,7 +440,7 @@ class CanvasRenderer {
     this.drawGrid();
     ctx.restore();
 
-    if (appState.tools.brush.selected) {
+    if (appState.tools.walls.selected) {
       ctx.save();
       this.drawHoverTile();
       ctx.restore();
@@ -365,7 +451,7 @@ class CanvasRenderer {
     }
 
     const selection = appState.getSelectedGeometry();
-    if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected || appState.tools.doors.selected)) {
+    if (this.drag && (appState.tools.rect.selected || appState.tools.ellipse.selected || appState.tools.doors.selected)) {
       ctx.save();
       this.drawDrag();
       ctx.restore();

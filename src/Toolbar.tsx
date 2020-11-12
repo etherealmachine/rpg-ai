@@ -5,8 +5,6 @@ import {
   faMousePointer,
   faVectorSquare,
   faDrawPolygon,
-  faCircle,
-  faBrush,
   faEraser,
   IconDefinition,
   faDoorClosed,
@@ -16,6 +14,7 @@ import {
 import { Context } from './State';
 import Tooltip from './Tooltip';
 import { stairsIcon, textIcon } from './icons/custom_icons';
+import { faCircle } from '@fortawesome/free-regular-svg-icons';
 
 const classes = css`
   .toolbar {
@@ -68,15 +67,14 @@ interface Button {
 
 const buttons: { [key: string]: Button } = {
   'pointer': { icon: faMousePointer, tooltip: 'Select' },
-  'brush': { icon: faBrush, tooltip: 'Paint' },
-  'walls': { icon: faSquare, tooltip: 'Walls (TODO)' },
-  'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
-  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
-  'circle': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
-  'eraser': { icon: faEraser, tooltip: 'Erase' },
+  'walls': { icon: faSquare, tooltip: 'Walls' },
+  'eraser': { icon: faEraser, tooltip: 'Erase (TODO)' },
   'text': { icon: textIcon, tooltip: 'Text (TODO)' },
   'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
   'doors': { icon: faDoorClosed, tooltip: 'Doors (TODO)' },
+  'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
+  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
+  'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
 };
 
 export default function Toolbar() {

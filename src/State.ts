@@ -28,7 +28,19 @@ export class State {
       selected: true,
       group: 1,
     },
-    'brush': {
+    'walls': {
+      selected: false,
+      group: 1,
+    },
+    'stairs': {
+      selected: false,
+      group: 1,
+    },
+    'doors': {
+      selected: false,
+      group: 1,
+    },
+    'text': {
       selected: false,
       group: 1,
     },
@@ -44,26 +56,10 @@ export class State {
       selected: false,
       group: 2,
     },
-    'circle': {
+    'ellipse': {
       selected: false,
       group: 2,
     },
-    'text': {
-      selected: false,
-      group: 2,
-    },
-    'walls': {
-      selected: false,
-      group: 2,
-    },
-    'stairs': {
-      selected: false,
-      group: 2,
-    },
-    'doors': {
-      selected: false,
-      group: 2,
-    }
   }
   scale = 1
   offset = { x: 0, y: 0 }
@@ -143,7 +139,7 @@ export interface Layer {
   geometries: Geometry[]
 }
 
-export type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
+export type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'ellipse', from: Pos, to: Pos }
 
 export interface Description {
   name: string
