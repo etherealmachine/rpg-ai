@@ -32,23 +32,13 @@ const classes = css`
   }
 `;
 
-export default function DescriptionEditor(props: { type: string }) {
+export default function DescriptionEditor() {
   const appState = useContext(State.Context);
-  const selectedIndex = appState.descriptions.findIndex(desc => desc.selected);
-  const selectedDesc = appState.descriptions[selectedIndex];
-  const [currIndex, setCurrIndex] = useState(selectedIndex !== undefined ? selectedIndex : undefined);
+  const selectedDesc = appState.selection.geometryIndex ?
+    appState.layers[appState.selection.layerIndex].geometries[appState.selection.geometryIndex].description :
+    undefined;
   const [name, setName] = useState(selectedDesc ? selectedDesc.name : undefined);
   const [text, setText] = useState(selectedDesc ? selectedDesc.description : undefined);
-  if (selectedIndex !== currIndex) {
-    if (selectedIndex === -1) {
-      setName('');
-      setText('');
-    } else {
-      setName(selectedDesc.name);
-      setText(selectedDesc.description);
-    }
-    setCurrIndex(selectedIndex);
-  }
   const onNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
   };
@@ -56,32 +46,22 @@ export default function DescriptionEditor(props: { type: string }) {
     setText(event.target.value);
   };
   const onSaveClicked = () => {
-    if (appState.selection) {
-      State.addDescription(appState, {
-        name: name || '',
-        description: text || '',
-        shape: appState.selection,
-        selected: true,
-      });
-    } else if (selectedDesc) {
-      State.updateDescription(appState, selectedIndex, {
-        ...selectedDesc,
-        name: name || '',
-        description: text || '',
-      });
-    }
+    appState.setDescription({
+      name: name || '',
+      description: text || '',
+    });
   };
   const onUndoClicked = () => {
-    setName(selectedDesc.name);
-    setText(selectedDesc.description);
+    if (selectedDesc) {
+      setName(selectedDesc.name);
+      setText(selectedDesc.description);
+    }
   };
   const onDeleteClicked = () => {
-    State.deleteDescription(appState, selectedIndex);
+    appState.setDescription(undefined);
   };
-  const descNo = selectedDesc ? selectedIndex + 1 : appState.selection ? appState.descriptions.length + 1 : '?';
   return <div className={classes.editor}>
     <div style={{ display: 'flex', alignContent: 'center' }}>
-      <div className={classes.name}>{props.type} {descNo}:</div>
       <input className={DS.input} style={{ flexGrow: 1 }} value={name === undefined && selectedDesc ? selectedDesc.name : name} onChange={onNameChange} />
     </div>
     <textarea
@@ -92,6 +72,6 @@ export default function DescriptionEditor(props: { type: string }) {
       {selectedDesc && <button className={classNames(DS.button)} onClick={onUndoClicked}>Undo</button>}
       {selectedDesc && <button className={classNames(DS.button, DS.danger)} onClick={onDeleteClicked}>Delete</button>}
     </div>
-    <Description name={name === undefined ? '' : `${props.type} ${descNo}: ${name}`} text={text || ''} />
+    <Description name={name === undefined ? '' : name} text={text || ''} />
   </div>;
 }

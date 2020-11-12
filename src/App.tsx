@@ -42,7 +42,7 @@ import Canvas from './Canvas';
 import Drawer from './Drawer';
 import Toolbar from './Toolbar';
 import Menubar from './Menubar';
-import { Context, initialState } from './State';
+import { Context, State } from './State';
 import { useLocalStorageState } from './Persistence';
 
 const classes = css`
@@ -63,10 +63,11 @@ const classes = css`
 `;
 
 export default function App() {
-  const [state, setState] = useLocalStorageState('AppState', initialState);
+  const [state, setState] = useLocalStorageState('AppState', new State());
+  state.setState = setState;
   return (
     <div className={classes.app}>
-      <Context.Provider value={{ ...state, setState: setState }}>
+      <Context.Provider value={state}>
         <Menubar />
         <div className={classes.canvasWrapper}>
           <Canvas />

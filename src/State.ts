@@ -6,30 +6,8 @@ export interface Pos {
   y: number
 }
 
-class TileMap<TileType> {
-  map: { [key: number]: { [key: number]: TileType } } = {}
-
-  get(x: number, y: number): TileType | undefined {
-    if (this.map[x] && this.map[x][y] !== undefined) {
-      return this.map[x][y];
-    }
-    return undefined;
-  }
-
-  set(x: number, y: number, value: TileType) {
-    if (this.map[x] === undefined) this.map[x] = {};
-    this.map[x][y] = value;
-  }
-
-  forEach(callback: (currentValue: TileType, index: Pos, array: TileMap<TileType>) => void) {
-    Object.entries(this.map).forEach(([x, col]) => Object.entries(col).forEach(([y, value]) => {
-      callback(value, { x: parseInt(x), y: parseInt(y) }, this);
-    }));
-  }
-}
-
-export const initialState = {
-  tools: {
+export class State {
+  tools = {
     'pointer': {
       selected: true,
       group: 1,
@@ -58,6 +36,10 @@ export const initialState = {
       selected: false,
       group: 2,
     },
+    'walls': {
+      selected: false,
+      group: 2,
+    },
     'stairs': {
       selected: false,
       group: 2,
@@ -66,107 +48,82 @@ export const initialState = {
       selected: false,
       group: 2,
     }
-  },
-  scale: 1,
-  offset: { x: 0, y: 0 },
-  map: new TileMap<boolean>(),
-  descriptions: [] as Description[],
-  drawerOpen: true as boolean,
-  setState: (state: any) => { },
+  }
+  scale = 1
+  offset = { x: 0, y: 0 }
+  layers = [{
+    geometries: [],
+  }] as Layer[]
+  drawerOpen = true
+  selection = {
+    layerIndex: 0 as number,
+    geometryIndex: undefined as number | undefined
+  }
+  setState = (state: any) => { }
+
+  getSelectedGeometry() {
+    if (this.selection.geometryIndex === undefined) return undefined;
+    return this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex];
+  }
+
+  setSelectedTool(name: string) {
+    const tool = (this.tools as any)[name];
+    if (tool.selected) {
+      tool.selected = false;
+      return;
+    }
+    Object.values(this.tools).forEach(t => {
+      if (t.group === tool.group) t.selected = false;
+    });
+    tool.selected = true;
+  }
+
+  setSelection(selection: { layerIndex: number, geometryIndex: undefined | number }) {
+    this.selection = selection;
+  }
+
+  setOffset(offset: Pos) {
+    this.offset = offset;
+  }
+
+  setZoom(scale: number, offset: Pos) {
+    this.scale = scale;
+    this.offset = offset;
+  }
+
+  toggleDrawer(open: boolean) {
+    this.drawerOpen = open;
+  }
+
+  setDescription(desc: Description | undefined) {
+    if (this.selection.geometryIndex === undefined) return;
+    this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex].description = desc;
+  }
 };
 
-type InitialStateType = typeof initialState;
+interface Geometry {
+  type: 'room'
+  description?: Description
+  shape: Shape
+  selected: boolean
+}
+
+interface Layer {
+  geometries: Geometry[]
+}
 
 type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'oval', from: Pos, to: Pos }
 
 interface Description {
   name: string
   description: string
-  shape: Shape
-  selected: boolean
 }
 
-export interface State extends InitialStateType {
-  selection?: Shape
-}
+const StateChangeHandler = {
+  get: function (target: any, prop: any, receiver: any) {
+    console.log(target, prop, receiver);
+    return Reflect.get(target, prop, receiver);
+  }
+};
 
-export function setSelectedTool(state: State, name: string) {
-  state.setState(produce(state, state => {
-    const tool = (state.tools as any)[name];
-    if (tool.selected) {
-      tool.selected = false;
-      return;
-    }
-    Object.values(state.tools).forEach(t => {
-      if (t.group === tool.group) t.selected = false;
-    });
-    tool.selected = true;
-  }));
-}
-
-export function setTile(state: State, loc: Pos) {
-  state.setState(produce(state, state => {
-    state.map.set(loc.x, loc.y, true);
-  }));
-}
-
-export function clearTile(state: State, loc: Pos) {
-  state.setState(produce(state, state => {
-    state.map.set(loc.x, loc.y, false);
-  }));
-}
-
-export function setSelection(state: State, selection: undefined | Shape) {
-  state.setState(produce(state, state => {
-    state.selection = selection;
-  }));
-}
-
-export function setOffset(state: State, offset: Pos) {
-  state.setState(produce(state, state => {
-    state.offset = offset;
-  }));
-}
-
-export function setZoom(state: State, scale: number, offset: Pos) {
-  state.setState(produce(state, state => {
-    state.scale = scale;
-    state.offset = offset;
-  }));
-}
-
-export function toggleDrawer(state: State, open: boolean) {
-  state.setState(produce(state, state => {
-    state.drawerOpen = open;
-  }));
-}
-
-export function addDescription(state: State, desc: Description) {
-  state.setState(produce(state, state => {
-    state.descriptions.forEach(desc => desc.selected = false);
-    state.descriptions.push(desc);
-  }));
-}
-
-export function selectDescription(state: State, index: number) {
-  state.setState(produce(state, state => {
-    state.descriptions.forEach(desc => desc.selected = false);
-    if (index >= 0 && index < state.descriptions.length) {
-      state.descriptions[index].selected = true;
-    }
-  }));
-}
-
-export function updateDescription(state: State, index: number, desc: Description) {
-  state.setState(produce(state, state => {
-    state.descriptions[index] = desc;
-  }));
-}
-
-export function deleteDescription(state: State, index: number) {
-  state.setState(produce(state, state => {
-    state.descriptions.splice(index, 1);
-  }));
-}
-
-export const Context = React.createContext(initialState as State);
+export const Context = React.createContext(new Proxy(new State(), StateChangeHandler) as State);

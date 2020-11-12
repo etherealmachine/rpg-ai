@@ -15,7 +15,7 @@ class CanvasRenderer {
   size: number = 30
   lastTime: number = 0
   requestID?: number
-  appState: State.State = State.initialState
+  appState = new State.State()
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
 
@@ -42,6 +42,7 @@ class CanvasRenderer {
         start: { ...mouse },
         end: { ...mouse },
       }
+      /*
       const selectedIndex = this.appState.descriptions.findIndex(desc => {
         if (desc.shape.type === 'rect') {
           const p = this.canvasToWorld(mouse);
@@ -57,12 +58,14 @@ class CanvasRenderer {
       });
       if (selectedIndex !== undefined) State.selectDescription(this.appState, selectedIndex);
       else State.selectDescription(this.appState, -1);
+      */
     }
   }
 
   onMouseUp = () => {
     this.mouseDown = false;
     const { tools } = this.appState;
+    /*
     State.setSelection(this.appState, undefined);
     if (this.drag) {
       if (tools.rect.selected) {
@@ -90,6 +93,7 @@ class CanvasRenderer {
       if (tools.brush.selected) State.setTile(this.appState, mouseTilePos);
       if (tools.eraser.selected) State.clearTile(this.appState, mouseTilePos);
     }
+    */
   }
 
   onMouseMove = (event: MouseEvent) => {
@@ -103,15 +107,17 @@ class CanvasRenderer {
     const { tools } = this.appState;
     const dragTool = tools.rect.selected || tools.polygon.selected || tools.circle.selected;
     const mouseTilePos = this.mouseToTile(this.mouse);
+    /*
     if (!dragTool && this.mouse && this.mouseDown) {
       const tileState = this.appState.map.get(mouseTilePos.x, mouseTilePos.y);
       if (this.appState.tools.brush.selected && !tileState) {
-        State.setTile(this.appState, mouseTilePos);
+        this.appState.setTile(mouseTilePos);
       }
       if (this.appState.tools.eraser.selected && tileState) {
-        State.clearTile(this.appState, mouseTilePos);
+        this.appState.clearTile(mouseTilePos);
       }
     }
+    */
   }
 
   onWheel = (event: WheelEvent) => {
@@ -127,7 +133,7 @@ class CanvasRenderer {
       x: offset.x - (mouseWorldPos.x - newMouseWorldPos.x),
       y: offset.y - (mouseWorldPos.y - newMouseWorldPos.y)
     }
-    State.setZoom(this.appState, newScale, newOffset);
+    this.appState.setZoom(newScale, newOffset);
   }
 
   onKeyDown = (event: KeyboardEvent) => {
@@ -140,7 +146,7 @@ class CanvasRenderer {
     if (event.key === 's') newOffset = { x: appState.offset.x, y: appState.offset.y - S };
     if (event.key === 'd') newOffset = { x: appState.offset.x - S, y: appState.offset.y };
     if (newOffset !== appState.offset) {
-      State.setOffset(appState, newOffset);
+      appState.setOffset(newOffset);
     }
   }
 
@@ -328,6 +334,7 @@ class CanvasRenderer {
 
   drawWalls(x: number, y: number) {
     const { ctx, appState } = this;
+    /*
     const up = appState.map.get(x, y - 1);
     const down = appState.map.get(x, y + 1);
     const left = appState.map.get(x - 1, y);
@@ -371,10 +378,12 @@ class CanvasRenderer {
     if (!down) this.drawLine(0, this.size, this.size, this.size, 2, '#000');
     if (!left) this.drawLine(0, 0, 0, this.size, 2, '#000');
     if (!right) this.drawLine(this.size, 0, this.size, this.size, 2, '#000');
+    */
   }
 
   drawMap() {
     const { ctx, appState } = this;
+    /*
     appState.map.forEach((occupied, pos) => {
       if (occupied) {
         ctx.save();
@@ -402,6 +411,7 @@ class CanvasRenderer {
         ctx.restore();
       }
     });
+    */
   }
 
   render = (time: number) => {
@@ -439,6 +449,7 @@ class CanvasRenderer {
       ctx.restore();
     }
 
+    /*
     appState.descriptions.forEach((desc, index) => {
       if (desc.shape.type === 'rect') {
         ctx.save();
@@ -452,16 +463,18 @@ class CanvasRenderer {
         ctx.restore();
       }
     });
+    */
 
+    const selection = appState.getSelectedGeometry();
     if (this.drag && (appState.tools.rect.selected || appState.tools.circle.selected || appState.tools.doors.selected)) {
       ctx.save();
       this.drawDrag();
       ctx.restore();
-    } else if (appState.selection !== undefined && appState.selection.type === 'rect') {
+    } else if (selection && selection.shape.type === 'rect') {
       ctx.save();
       this.drawRectSelection(
-        { x: appState.selection.from.x * this.size, y: appState.selection.from.y * this.size },
-        { x: appState.selection.to.x * this.size, y: appState.selection.to.y * this.size });
+        { x: selection.shape.from.x * this.size, y: selection.shape.from.y * this.size },
+        { x: selection.shape.to.x * this.size, y: selection.shape.to.y * this.size });
       ctx.restore();
     }
     if (appState.tools.eraser.selected) {

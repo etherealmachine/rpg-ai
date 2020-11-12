@@ -9,10 +9,11 @@ import {
   faBrush,
   faEraser,
   IconDefinition,
-  faDoorClosed
+  faDoorClosed,
+  faSquare
 } from '@fortawesome/free-solid-svg-icons'
 
-import { Context, setSelectedTool } from './State';
+import { Context } from './State';
 import Tooltip from './Tooltip';
 import { stairsIcon, textIcon } from './icons/custom_icons';
 
@@ -68,6 +69,7 @@ interface Button {
 const buttons: { [key: string]: Button } = {
   'pointer': { icon: faMousePointer, tooltip: 'Select' },
   'brush': { icon: faBrush, tooltip: 'Paint' },
+  'walls': { icon: faSquare, tooltip: 'Walls (TODO)' },
   'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
   'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
   'circle': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
@@ -80,7 +82,7 @@ const buttons: { [key: string]: Button } = {
 export default function Toolbar() {
   const state = useContext(Context);
   const handleButtonClick = (tool: string) => () => {
-    setSelectedTool(state, tool);
+    state.setSelectedTool(tool);
   };
   return <div className={classes.toolbar}>
     {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name].tooltip}>

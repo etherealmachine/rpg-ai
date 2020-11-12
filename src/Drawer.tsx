@@ -40,10 +40,10 @@ export default function Drawer() {
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
-      onClick={() => State.toggleDrawer(appState, !appState.drawerOpen)}>
+      onClick={() => appState.toggleDrawer(!appState.drawerOpen)}>
       {appState.drawerOpen && <FontAwesomeIcon icon={faCaretRight} />}
       {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
-    <DescriptionEditor type={'Room'} />
+    <DescriptionEditor />
   </div>;
 }
