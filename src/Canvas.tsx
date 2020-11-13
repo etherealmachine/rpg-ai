@@ -57,11 +57,7 @@ class CanvasRenderer {
         to.x = Math.round(to.x / this.size);
         to.y = Math.round(to.y / this.size);
         if (tools.walls.selected && from.x !== to.x && from.y !== to.y) {
-          const type = tools.rect.selected ? 'rect' : 'ellipse';
-          this.appState.addGeometry({
-            type: 'room',
-            shape: { type: type, from: from, to: to },
-          });
+          this.appState.addRoom(from, to);
         }
       }
       this.drag = undefined;
@@ -185,7 +181,7 @@ class CanvasRenderer {
     }
   }
 
-  drawMousePos(mouse: Pos, halfGrid: boolean = false, debug: boolean = false) {
+  drawMousePos(mouse: Pos, halfGrid: boolean = false) {
     const { ctx } = this;
     const p = this.canvasToWorld(mouse);
     const d = halfGrid ? 2 : 1;
@@ -198,7 +194,7 @@ class CanvasRenderer {
     ctx.arc(closestGridPoint.x, closestGridPoint.y, 2, 0, 2 * Math.PI);
     ctx.fill();
 
-    if (debug) {
+    if (this.appState.debug) {
       const font = "14px Roboto, sans-serif";
       ctx.translate(p.x, p.y - 16);
       this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
@@ -341,65 +337,66 @@ class CanvasRenderer {
 
   drawGeometry(geom: Geometry) {
     const { ctx } = this;
-    if (geom.type === 'room' && geom.shape.type === 'rect') {
-      const { from, to } = geom.shape;
-      const w = (geom.shape.to.x - geom.shape.from.x);
-      const h = (geom.shape.to.y - geom.shape.from.y);
+    if (geom.type === 'room') {
+      const { points } = geom.shape;
 
       ctx.fillStyle = '#999';
       ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.lineTo(from.x, to.y);
-      ctx.lineTo(from.x, from.y);
+      ctx.moveTo(points[0].x, points[0].y);
+      points.slice(1).forEach(p => {
+        ctx.lineTo(p.x, p.y);
+      });
+      ctx.lineTo(points[0].x, points[0].y);
       ctx.fill();
 
       ctx.fillStyle = '#F1ECE0';
       ctx.save();
       ctx.clip();
-      ctx.fillRect(from.x + 0.2, from.y + 0.2, w, h);
+      ctx.beginPath();
+      ctx.moveTo(points[0].x + 0.2, points[0].y + 0.2);
+      points.slice(1).forEach(p => {
+        ctx.lineTo(p.x + 0.2, p.y + 0.2);
+      });
+      ctx.lineTo(points[0].x + 0.2, points[0].y + 0.2);
+      ctx.fill();
       ctx.restore();
 
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.1;
       ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.lineTo(from.x, to.y);
-      ctx.lineTo(from.x, from.y);
+      ctx.moveTo(points[0].x, points[0].y);
+      ctx.arcTo(points[1].x, points[1].y, points[2].x, points[2].y, points[2].x - points[1].x);
+      ctx.moveTo(points[2].x, points[2].y);
+      ctx.arcTo(points[3].x, points[3].y, points[4].x, points[4].y, points[4].y - points[3].y);
+      ctx.moveTo(points[4].x, points[4].y);
+      ctx.arcTo(points[5].x, points[5].y, points[6].x, points[6].y, points[5].x - points[6].x);
+      ctx.moveTo(points[6].x, points[6].y);
+      ctx.arcTo(points[7].x, points[7].y, points[0].x, points[0].y, points[7].y - points[0].y);
       ctx.stroke();
-    } else if (geom.type === 'room' && geom.shape.type === 'ellipse') {
-      const { from, to } = geom.shape;
-      const w = (to.x - from.x);
-      const h = (to.y - from.y);
 
-      ctx.save();
-      ctx.fillStyle = '#999';
-      ctx.translate(from.x, from.y);
-      ctx.beginPath();
-      ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.restore();
+      if (this.appState.debug) {
+        ctx.strokeStyle = '#49ce3d';
+        ctx.lineWidth = 0.2;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach(p => {
+          ctx.lineTo(p.x, p.y);
+        });
+        ctx.lineTo(points[0].x, points[0].y);
+        ctx.stroke();
 
-      ctx.save();
-      ctx.clip();
-      ctx.fillStyle = '#F1ECE0';
-      ctx.translate(from.x, from.y);
-      ctx.beginPath();
-      ctx.ellipse(w / 2 + 0.2, h / 2 + 0.2, w / 2, h / 2, 0, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 0.1;
-      ctx.translate(from.x, from.y);
-      ctx.beginPath();
-      ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
-      ctx.stroke();
-      ctx.restore();
+        points.forEach((p, i) => {
+          ctx.fillStyle = '#fffb00';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 0.2, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          this.renderTextCenter(`${i}`, '1px Roboto, sans-serif');
+          ctx.restore();
+        });
+      }
     }
   }
 
@@ -450,16 +447,9 @@ class CanvasRenderer {
       ctx.restore();
     }
 
-    const selection = appState.getSelectedGeometry();
     if (this.drag && (appState.tools.rect.selected || appState.tools.ellipse.selected || appState.tools.doors.selected)) {
       ctx.save();
       this.drawDrag();
-      ctx.restore();
-    } else if (selection && selection.shape.type === 'rect') {
-      ctx.save();
-      this.drawRectSelection(
-        { x: selection.shape.from.x * this.size, y: selection.shape.from.y * this.size },
-        { x: selection.shape.to.x * this.size, y: selection.shape.to.y * this.size });
       ctx.restore();
     }
     if (appState.tools.eraser.selected) {

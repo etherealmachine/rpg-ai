@@ -17,6 +17,13 @@ const classes = css`
     color: white;
     margin: 8px 24px 8px 24px;
   }
+  .debugMenu {
+    margin-left: auto;
+    margin-right: 24px;
+  }
+  label {
+    color: white;
+  }
 `;
 
 export default function Menubar() {
@@ -38,5 +45,12 @@ export default function Menubar() {
       onClick={() => { appState.reset(); }}>
       Clear
     </button>
+    <div className={classes.debugMenu}>
+      <label>Debug</label>
+      <input
+        type="checkbox"
+        checked={appState.debug}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => appState.setDebug(event.target.checked)} />
+    </div>
   </div>;
 }

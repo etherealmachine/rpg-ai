@@ -4,6 +4,7 @@ import { produce } from 'immer';
 export interface Pos {
   x: number
   y: number
+  arc?: boolean
 }
 
 function modify() {
@@ -71,6 +72,7 @@ export class State {
     layerIndex: 0 as number,
     geometryIndex: undefined as number | undefined
   }
+  debug = false
   setState = (state: any) => { }
 
   getSelectedGeometry() {
@@ -79,8 +81,44 @@ export class State {
   }
 
   @modify()
-  addGeometry(geometry: Geometry) {
-    this.layers[this.selection.layerIndex].geometries.push(geometry);
+  setDebug(debug: boolean) {
+    this.debug = debug;
+  }
+
+  @modify()
+  addRoom(from: Pos, to: Pos) {
+    let shape;
+    if (this.tools.rect.selected) {
+      shape = {
+        points: [
+          { x: from.x, y: from.y },
+          { x: to.x, y: from.y },
+          { x: to.x, y: to.y },
+          { x: from.x, y: to.y },
+        ],
+      };
+    } else if (this.tools.ellipse.selected) {
+      const w = to.x - from.x;
+      const h = to.y - from.y;
+      shape = {
+        points: [
+          { x: from.x, y: from.y + h / 2, arc: true },
+          { x: from.x, y: from.y },
+          { x: from.x + w / 2, y: from.y, arc: true },
+          { x: to.x, y: from.y },
+          { x: to.x, y: from.y + h / 2, arc: true },
+          { x: to.x, y: to.y },
+          { x: to.x - w / 2, y: to.y, arc: true },
+          { x: from.x, y: to.y },
+        ],
+      }
+    }
+    if (shape) {
+      this.layers[this.selection.layerIndex].geometries.push({
+        type: 'room',
+        shape,
+      });
+    }
   }
 
   @modify()
@@ -139,7 +177,9 @@ export interface Layer {
   geometries: Geometry[]
 }
 
-export type Shape = { type: 'rect', from: Pos, to: Pos } | { type: 'polygon', points: Pos[] } | { type: 'ellipse', from: Pos, to: Pos }
+export type Shape = {
+  points: Pos[]
+}
 
 export interface Description {
   name: string
