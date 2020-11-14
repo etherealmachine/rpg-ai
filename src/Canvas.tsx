@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
-import { Context, State } from './State';
+import { Context, Feature, State } from './State';
 import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
 
 interface Pos {
@@ -60,7 +60,7 @@ class CanvasRenderer {
       from.y = Math.round(from.y / this.size);
       to.x = Math.round(to.x / this.size);
       to.y = Math.round(to.y / this.size);
-      this.appState.handleRect(from, to);
+      this.appState.handleDrag(from, to);
       this.drag = undefined;
     }
     if (this.mouse && this.appState.tools.polygon.selected) {
@@ -297,6 +297,23 @@ class CanvasRenderer {
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
+  drawLineSelection(from: Pos, to: Pos) {
+    const { ctx, size } = this;
+    const S = size / 2;
+    from.x = Math.round(from.x / S) * S;
+    from.y = Math.round(from.y / S) * S;
+    to.x = Math.round(to.x / S) * S;
+    to.y = Math.round(to.y / S) * S;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+    if (to.x > from.x) ctx.translate(to.x + 14, to.y - 7);
+    else ctx.translate(to.x - 14, to.y - 7);
+    ctx.fillStyle = '#000';
+    this.renderTextCenter(`${Math.floor(dist(from.x, from.y, to.x, to.y) / size).toFixed(0)}`, "14px Roboto, sans-serif");
+  }
+
   drawPolygonSelection(points: Pos[], overlay: boolean = false) {
     const { ctx } = this;
     ctx.fillStyle = '#000';
@@ -321,18 +338,16 @@ class CanvasRenderer {
   }
 
   drawDrag() {
-    if (this.drag) {
-      const start = this.canvasToWorld(this.drag.start);
-      const end = this.canvasToWorld(this.drag.end);
-      if (dist(start.x, start.y, end.x, end.y) > this.size && this.appState.tools.rect.selected) {
+    const { drag, size, appState } = this;
+    if (drag) {
+      const start = this.canvasToWorld(drag.start);
+      const end = this.canvasToWorld(drag.end);
+      if (dist(start.x, start.y, end.x, end.y) > size && appState.tools.rect.selected) {
         this.drawRectSelection(start, end);
-      } else if (dist(start.x, start.y, end.x, end.y) > this.size && this.appState.tools.ellipse.selected) {
+      } else if (dist(start.x, start.y, end.x, end.y) > size && appState.tools.ellipse.selected) {
         this.drawEllipseSelection(start, end);
       } else {
-        this.ctx.strokeStyle = '#000';
-        this.ctx.moveTo(start.x, start.y);
-        this.ctx.lineTo(end.x, end.y);
-        this.ctx.stroke();
+        this.drawLineSelection(start, end);
       }
     }
   }
@@ -365,12 +380,16 @@ class CanvasRenderer {
     ctx.stroke();
   }
 
-  drawFeature(feature: GeoJSON.Feature) {
+  drawFeature(feature: Feature) {
     if (feature.type === 'Feature') {
       if (isPolygonFeature(feature)) {
         this.drawPolygon(feature);
-      } else if (isMultiPointFeature(feature)) {
+      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
         this.drawEllipse(feature);
+      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
+        const points = feature.geometry.coordinates;
+        const [from, to] = points;
+        this.drawLine(from[0], from[1], to[0], to[1], 0.1, '#000');
       } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
       }
@@ -380,29 +399,6 @@ class CanvasRenderer {
   drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>) {
     const { ctx } = this;
     const points = feature.geometry.coordinates.flat();
-
-    ctx.fillStyle = '#999';
-    ctx.beginPath();
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 0; i < points.length; i++) {
-      ctx.lineTo(points[i][0], points[i][1]);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#F1ECE0';
-    ctx.save();
-    ctx.clip();
-    ctx.translate(0.2, 0.2);
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 0; i < points.length; i++) {
-      ctx.lineTo(points[i][0], points[i][1]);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
 
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 0.1;
@@ -425,7 +421,7 @@ class CanvasRenderer {
       ctx.closePath();
       ctx.stroke();
 
-      points.forEach((p, i) => {
+      points.slice(0, points.length - 1).forEach((p, i) => {
         ctx.fillStyle = '#fffb00';
         ctx.beginPath();
         ctx.arc(p[0], p[1], 0.2, 0, 2 * Math.PI);
@@ -442,6 +438,33 @@ class CanvasRenderer {
 
   drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
     const { ctx } = this;
+    const points = feature.geometry.coordinates;
+    const [from, to] = points;
+    let a = { x: from[0], y: from[1] };
+    let b = { x: to[0], y: to[1] };
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.ellipse(a.x + (b.x - a.x) / 2, a.y + (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+
+    if (this.appState.debug) {
+      ctx.strokeStyle = '#49ce3d';
+      ctx.lineWidth = 0.2;
+      ctx.beginPath();
+      ctx.rect(a.x, a.y, b.x - a.x, b.y - a.y);
+      ctx.closePath();
+      ctx.stroke();
+
+      points.slice(0, points.length - 1).forEach((p, i) => {
+        ctx.fillStyle = '#fffb00';
+        ctx.beginPath();
+        ctx.arc(a.x + (b.x - a.x) / 2, a.y + (b.y - a.y) / 2, 0.2, 0, 2 * Math.PI);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
   }
 
   drawLayers() {
