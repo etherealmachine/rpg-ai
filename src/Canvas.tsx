@@ -1,7 +1,12 @@
 import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
-import { Context, Geometry, Pos, State } from './State';
+import { Context, State } from './State';
+
+interface Pos {
+  x: number
+  y: number
+}
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -10,6 +15,7 @@ class CanvasRenderer {
     start: Pos
     end: Pos
   }
+  points: Pos[] = []
   size: number = 30
   lastTime: number = 0
   requestID?: number
@@ -40,27 +46,30 @@ class CanvasRenderer {
         start: { ...mouse },
         end: { ...mouse },
       }
-      // TODO: Select the geometry under the mouse
     }
   }
 
   onMouseUp = () => {
     this.mouseDown = false;
-    const { tools } = this.appState;
     if (this.drag) {
-      if (tools.rect.selected || tools.ellipse.selected) {
-        const [from, to] = this.getBoundingRect(
-          this.canvasToWorld(this.drag.start),
-          this.canvasToWorld(this.drag.end));
-        from.x = Math.round(from.x / this.size);
-        from.y = Math.round(from.y / this.size);
-        to.x = Math.round(to.x / this.size);
-        to.y = Math.round(to.y / this.size);
-        if (tools.walls.selected && from.x !== to.x && from.y !== to.y) {
-          this.appState.addRoom(from, to);
-        }
+      const [from, to] = this.getBoundingRect(
+        this.canvasToWorld(this.drag.start),
+        this.canvasToWorld(this.drag.end));
+      from.x = Math.round(from.x / this.size);
+      from.y = Math.round(from.y / this.size);
+      to.x = Math.round(to.x / this.size);
+      to.y = Math.round(to.y / this.size);
+      if ((this.appState.tools.rect.selected || this.appState.tools.ellipse.selected)
+        && from.x !== to.x && from.y !== to.y) {
+        this.appState.addRoomFromRect(from, to);
       }
       this.drag = undefined;
+    }
+    if (this.mouse && this.appState.tools.polygon.selected) {
+      const worldPos = this.canvasToWorld(this.mouse);
+      worldPos.x = Math.round(worldPos.x / this.size) * this.size;
+      worldPos.y = Math.round(worldPos.y / this.size) * this.size;
+      this.points?.push(worldPos);
     }
   }
 
@@ -290,6 +299,29 @@ class CanvasRenderer {
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
+  drawPolygonSelection(points: Pos[], overlay: boolean = false) {
+    const { ctx } = this;
+    ctx.fillStyle = '#000';
+    for (let i = 0; i < points.length; i++) {
+      ctx.beginPath();
+      ctx.arc(points[i].x, points[i].y, 2, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = '#2f5574';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 0; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    // TODO: mouse intersection & overlay
+  }
+
   drawDrag() {
     if (this.drag) {
       const start = this.canvasToWorld(this.drag.start);
@@ -335,64 +367,67 @@ class CanvasRenderer {
     ctx.stroke();
   }
 
-  drawGeometry(geom: Geometry) {
+  drawFeature(feature: GeoJSON.Feature) {
     const { ctx } = this;
-    if (geom.type === 'room') {
-      const { points } = geom.shape;
+    if (feature.type === 'Feature') {
+      if (feature.geometry.type !== "Polygon") {
+        throw new Error(`Can't draw ${feature.geometry.type}`);
+      }
+      const points = feature.geometry.coordinates.flat();
 
       ctx.fillStyle = '#999';
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      points.slice(1).forEach(p => {
-        ctx.lineTo(p.x, p.y);
-      });
-      ctx.lineTo(points[0].x, points[0].y);
+      ctx.beginPath();
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 0; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = '#F1ECE0';
       ctx.save();
       ctx.clip();
+      ctx.translate(0.2, 0.2);
       ctx.beginPath();
-      ctx.moveTo(points[0].x + 0.2, points[0].y + 0.2);
-      points.slice(1).forEach(p => {
-        ctx.lineTo(p.x + 0.2, p.y + 0.2);
-      });
-      ctx.lineTo(points[0].x + 0.2, points[0].y + 0.2);
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 0; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.closePath();
       ctx.fill();
       ctx.restore();
 
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.1;
       ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      ctx.arcTo(points[1].x, points[1].y, points[2].x, points[2].y, points[2].x - points[1].x);
-      ctx.moveTo(points[2].x, points[2].y);
-      ctx.arcTo(points[3].x, points[3].y, points[4].x, points[4].y, points[4].y - points[3].y);
-      ctx.moveTo(points[4].x, points[4].y);
-      ctx.arcTo(points[5].x, points[5].y, points[6].x, points[6].y, points[5].x - points[6].x);
-      ctx.moveTo(points[6].x, points[6].y);
-      ctx.arcTo(points[7].x, points[7].y, points[0].x, points[0].y, points[7].y - points[0].y);
+      ctx.moveTo(points[0][0], points[0][1]);
+      for (let i = 0; i < points.length; i++) {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+      ctx.closePath();
       ctx.stroke();
 
       if (this.appState.debug) {
         ctx.strokeStyle = '#49ce3d';
         ctx.lineWidth = 0.2;
         ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-        points.slice(1).forEach(p => {
-          ctx.lineTo(p.x, p.y);
-        });
-        ctx.lineTo(points[0].x, points[0].y);
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 0; i < points.length; i++) {
+          ctx.lineTo(points[i][0], points[i][1]);
+        }
+        ctx.closePath();
         ctx.stroke();
 
         points.forEach((p, i) => {
           ctx.fillStyle = '#fffb00';
           ctx.beginPath();
-          ctx.arc(p.x, p.y, 0.2, 0, 2 * Math.PI);
+          ctx.arc(p[0], p[1], 0.2, 0, 2 * Math.PI);
+          ctx.closePath();
           ctx.fill();
           ctx.fillStyle = '#000';
           ctx.save();
-          ctx.translate(p.x, p.y);
+          ctx.translate(p[0], p[1]);
           this.renderTextCenter(`${i}`, '1px Roboto, sans-serif');
           ctx.restore();
         });
@@ -404,13 +439,14 @@ class CanvasRenderer {
     const { ctx, appState } = this;
     ctx.scale(this.size, this.size);
     const layer = appState.layers[appState.selection.layerIndex];
-    layer.geometries.forEach(geom => {
-      this.drawGeometry(geom);
+    layer.features.forEach(features => {
+      this.drawFeature(features);
     });
   }
 
   render = (time: number) => {
     const { ctx, appState } = this;
+    const { tools } = appState;
 
     ctx.resetTransform();
 
@@ -437,22 +473,26 @@ class CanvasRenderer {
     this.drawGrid();
     ctx.restore();
 
-    if (appState.tools.walls.selected) {
+    if (tools.walls.selected) {
       ctx.save();
       this.drawHoverTile();
       ctx.restore();
-    } else if (!appState.tools.eraser.selected && this.mouse) {
+    } else if (!tools.eraser.selected && this.mouse) {
       ctx.save();
-      this.drawMousePos(this.mouse, appState.tools.doors.selected);
+      this.drawMousePos(this.mouse, tools.doors.selected);
       ctx.restore();
     }
 
-    if (this.drag && (appState.tools.rect.selected || appState.tools.ellipse.selected || appState.tools.doors.selected)) {
+    if (this.drag && (tools.rect.selected || tools.ellipse.selected || tools.doors.selected)) {
       ctx.save();
       this.drawDrag();
       ctx.restore();
+    } else if (this.points.length > 0 && tools.polygon.selected) {
+      ctx.save();
+      this.drawPolygonSelection(this.points);
+      ctx.restore();
     }
-    if (appState.tools.eraser.selected) {
+    if (tools.eraser.selected) {
       ctx.save();
       this.drawHoverTile("rgba(220, 53, 68, 0.2)");
       ctx.restore();

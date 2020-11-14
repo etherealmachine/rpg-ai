@@ -73,7 +73,7 @@ const buttons: { [key: string]: Button } = {
   'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
   'doors': { icon: faDoorClosed, tooltip: 'Doors (TODO)' },
   'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
-  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
+  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon' },
   'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
 };
 

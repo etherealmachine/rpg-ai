@@ -1,11 +1,7 @@
 import React from 'react';
 import { produce } from 'immer';
 
-export interface Pos {
-  x: number
-  y: number
-  arc?: boolean
-}
+import * as martinez from 'martinez-polygon-clipping';
 
 function modify() {
   return function (
@@ -65,19 +61,19 @@ export class State {
   scale = 1
   offset = { x: 0, y: 0 }
   layers = [{
-    geometries: [],
+    features: [],
   }] as Layer[]
   drawerOpen = true
   selection = {
     layerIndex: 0 as number,
-    geometryIndex: undefined as number | undefined
+    featureIndex: undefined as number | undefined
   }
   debug = false
   setState = (state: any) => { }
 
-  getSelectedGeometry() {
-    if (this.selection.geometryIndex === undefined) return undefined;
-    return this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex];
+  getSelectedFeature() {
+    if (this.selection.featureIndex === undefined) return undefined;
+    return this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
   }
 
   @modify()
@@ -86,38 +82,21 @@ export class State {
   }
 
   @modify()
-  addRoom(from: Pos, to: Pos) {
-    let shape;
-    if (this.tools.rect.selected) {
-      shape = {
-        points: [
-          { x: from.x, y: from.y },
-          { x: to.x, y: from.y },
-          { x: to.x, y: to.y },
-          { x: from.x, y: to.y },
-        ],
-      };
-    } else if (this.tools.ellipse.selected) {
-      const w = to.x - from.x;
-      const h = to.y - from.y;
-      shape = {
-        points: [
-          { x: from.x, y: from.y + h / 2, arc: true },
-          { x: from.x, y: from.y },
-          { x: from.x + w / 2, y: from.y, arc: true },
-          { x: to.x, y: from.y },
-          { x: to.x, y: from.y + h / 2, arc: true },
-          { x: to.x, y: to.y },
-          { x: to.x - w / 2, y: to.y, arc: true },
-          { x: from.x, y: to.y },
-        ],
-      }
-    }
-    if (shape) {
-      this.layers[this.selection.layerIndex].geometries.push({
-        type: 'room',
-        shape,
+  addRoomFromRect(from: Pos, to: Pos) {
+    const coordinates = [[[from.x, from.y], [from.x, to.y], [to.x, to.y], [to.x, from.y], [from.x, from.y]]];
+    const features = this.layers[this.selection.layerIndex].features;
+    if (features.length === 0) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: coordinates,
+        },
+        properties: {},
       });
+    } else {
+      const merged = martinez.union(features[0].geometry.coordinates, coordinates);
+      features[0].geometry.coordinates = [merged[0][0] as number[][]];
     }
   }
 
@@ -135,7 +114,7 @@ export class State {
   }
 
   @modify()
-  setSelection(selection: { layerIndex: number, geometryIndex: undefined | number }) {
+  setSelection(selection: { layerIndex: number, featureIndex: undefined | number }) {
     this.selection = selection;
   }
 
@@ -157,8 +136,15 @@ export class State {
 
   @modify()
   setDescription(desc: Description | undefined) {
-    if (this.selection.geometryIndex === undefined) return;
-    this.layers[this.selection.layerIndex].geometries[this.selection.geometryIndex].description = desc;
+    if (this.selection.featureIndex === undefined) return;
+    const feature = this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
+    if (feature.properties) {
+      feature.properties["description"] = desc;
+    } else {
+      feature.properties = {
+        'description': desc
+      };
+    }
   }
 
   @modify()
@@ -167,18 +153,13 @@ export class State {
   }
 }
 
-export interface Geometry {
-  type: 'room'
-  description?: Description
-  shape: Shape
+export interface Pos {
+  x: number
+  y: number
 }
 
 export interface Layer {
-  geometries: Geometry[]
-}
-
-export type Shape = {
-  points: Pos[]
+  features: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>[]
 }
 
 export interface Description {

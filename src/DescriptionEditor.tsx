@@ -34,11 +34,12 @@ const classes = css`
 
 export default function DescriptionEditor() {
   const appState = useContext(State.Context);
-  const selectedDesc = appState.selection.geometryIndex ?
-    appState.layers[appState.selection.layerIndex].geometries[appState.selection.geometryIndex].description :
+  const selectedFeature = appState.selection.featureIndex ?
+    appState.layers[appState.selection.layerIndex].features[appState.selection.featureIndex] :
     undefined;
-  const [name, setName] = useState(selectedDesc ? selectedDesc.name : undefined);
-  const [text, setText] = useState(selectedDesc ? selectedDesc.description : undefined);
+  const properties = selectedFeature?.properties;
+  const [name, setName] = useState(properties ? properties['name'] : undefined);
+  const [text, setText] = useState(properties ? properties['description'] : undefined);
   const onNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setName(event.target.value);
   };
@@ -52,9 +53,9 @@ export default function DescriptionEditor() {
     });
   };
   const onUndoClicked = () => {
-    if (selectedDesc) {
-      setName(selectedDesc.name);
-      setText(selectedDesc.description);
+    if (properties) {
+      setName(properties['name']);
+      setText(properties['description']);
     }
   };
   const onDeleteClicked = () => {
@@ -62,15 +63,15 @@ export default function DescriptionEditor() {
   };
   return <div className={classes.editor}>
     <div style={{ display: 'flex', alignContent: 'center' }}>
-      <input className={DS.input} style={{ flexGrow: 1 }} value={name === undefined && selectedDesc ? selectedDesc.name : name} onChange={onNameChange} />
+      <input className={DS.input} style={{ flexGrow: 1 }} value={name === undefined && properties ? properties['name'] : name} onChange={onNameChange} />
     </div>
     <textarea
       value={text}
       onChange={onTextChange} />
     <div className={classes.actions}>
-      {(appState.selection || selectedDesc) && <button className={DS.button} onClick={onSaveClicked}>Save</button>}
-      {selectedDesc && <button className={classNames(DS.button)} onClick={onUndoClicked}>Undo</button>}
-      {selectedDesc && <button className={classNames(DS.button, DS.danger)} onClick={onDeleteClicked}>Delete</button>}
+      {(appState.selection || properties) && <button className={DS.button} onClick={onSaveClicked}>Save</button>}
+      {properties && <button className={classNames(DS.button)} onClick={onUndoClicked}>Undo</button>}
+      {properties && <button className={classNames(DS.button, DS.danger)} onClick={onDeleteClicked}>Delete</button>}
     </div>
     <Description name={name === undefined ? '' : name} text={text || ''} />
   </div>;
