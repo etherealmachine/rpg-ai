@@ -140,6 +140,7 @@ export class State {
           shape: 'ellipse',
         },
       });
+    } else if (this.tools.walls.selected && this.tools.brush.selected) {
     } else if (this.tools.walls.selected) {
       features.push({
         type: 'Feature',
@@ -172,6 +173,7 @@ export class State {
     const features = this.layers[this.selection.layerIndex].features;
     if (this.tools.walls.selected) {
       const coordinates = [points.map(p => [p.x, p.y])];
+      coordinates[0].push([points[0].x, points[0].y]);
       coordinates[0].push([points[0].x, points[0].y]);
       features.push({
         type: 'Feature',

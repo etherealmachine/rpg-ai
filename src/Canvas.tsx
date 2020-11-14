@@ -17,6 +17,7 @@ class CanvasRenderer {
     end: Pos
   }
   points: Pos[] = []
+  polygonToolSelected: boolean = false
   size: number = 30
   lastTime: number = 0
   requestID?: number
@@ -73,6 +74,8 @@ class CanvasRenderer {
         worldPos.y = Math.round(worldPos.y / this.size) * this.size;
         this.points.push(worldPos);
       }
+    } else {
+      this.points = [];
     }
   }
 
@@ -83,6 +86,9 @@ class CanvasRenderer {
     };
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = { ...this.mouse };
+      if (this.appState.tools.brush) {
+        this.points.push(this.canvasToWorld(this.mouse));
+      }
     }
   }
 
@@ -319,7 +325,7 @@ class CanvasRenderer {
     this.renderTextCenter(`${Math.floor(dist(from.x, from.y, to.x, to.y) / size).toFixed(0)}`, "14px Roboto, sans-serif");
   }
 
-  drawPolygonSelection(points: Pos[], overlay: boolean = false) {
+  drawPolygonSelection(points: Pos[]) {
     const { ctx } = this;
     ctx.fillStyle = '#000';
     for (let i = 0; i < points.length; i++) {
@@ -340,6 +346,18 @@ class CanvasRenderer {
     ctx.stroke();
 
     // TODO: mouse intersection & overlay
+  }
+
+  drawBrushSelection(points: Pos[]) {
+    const { ctx } = this;
+    ctx.strokeStyle = '#2f5574';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 0; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
   }
 
   drawDrag() {
@@ -484,6 +502,10 @@ class CanvasRenderer {
   render = (time: number) => {
     const { ctx, appState } = this;
     const { tools } = appState;
+    if (this.polygonToolSelected && !appState.tools.polygon.selected) {
+      this.points = [];
+    }
+    this.polygonToolSelected = appState.tools.polygon.selected;
 
     ctx.resetTransform();
 
@@ -527,6 +549,10 @@ class CanvasRenderer {
     } else if (this.points.length > 0 && tools.polygon.selected) {
       ctx.save();
       this.drawPolygonSelection(this.points);
+      ctx.restore();
+    } else if (this.points.length > 0 && tools.brush.selected) {
+      ctx.save();
+      this.drawBrushSelection(this.points);
       ctx.restore();
     }
     if (tools.eraser.selected) {

@@ -75,11 +75,11 @@ const buttons: { [key in ToolName]: Button } = {
   'walls': { icon: faSquare, tooltip: 'Walls' },
   'text': { icon: textIcon, tooltip: 'Text (TODO)' },
   'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
-  'doors': { icon: faDoorClosed, tooltip: 'Doors (In Progress)' },
+  'doors': { icon: faDoorClosed, tooltip: 'Doors' },
   'brush': { icon: faBrush, tooltip: 'Paint (TODO)' },
   'eraser': { icon: faEraser, tooltip: 'Erase (TODO)' },
   'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
-  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon (TODO)' },
+  'polygon': { icon: faDrawPolygon, tooltip: 'Polygon' },
   'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse' },
 };
 
