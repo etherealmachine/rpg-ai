@@ -169,7 +169,22 @@ export class State {
 
   @modify()
   handlePolygon(points: Pos[]) {
-    // TODO
+    const features = this.layers[this.selection.layerIndex].features;
+    if (this.tools.walls.selected) {
+      const coordinates = [points.map(p => [p.x, p.y])];
+      coordinates[0].push([points[0].x, points[0].y]);
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: coordinates,
+        },
+        properties: {
+          type: 'wall',
+          shape: 'polygon',
+        },
+      });
+    }
   }
 
   @modify()

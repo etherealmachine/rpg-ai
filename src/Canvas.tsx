@@ -65,9 +65,14 @@ class CanvasRenderer {
     }
     if (this.mouse && this.appState.tools.polygon.selected) {
       const worldPos = this.canvasToWorld(this.mouse);
-      worldPos.x = Math.round(worldPos.x / this.size) * this.size;
-      worldPos.y = Math.round(worldPos.y / this.size) * this.size;
-      this.points?.push(worldPos);
+      if (this.points.length >= 1 && dist(this.points[0].x, this.points[0].y, worldPos.x, worldPos.y) < this.size) {
+        this.appState.handlePolygon(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
+        this.points = [];
+      } else {
+        worldPos.x = Math.round(worldPos.x / this.size) * this.size;
+        worldPos.y = Math.round(worldPos.y / this.size) * this.size;
+        this.points.push(worldPos);
+      }
     }
   }
 
