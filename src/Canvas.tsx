@@ -75,6 +75,9 @@ class CanvasRenderer {
         this.points.push(worldPos);
       }
     } else {
+      if (this.appState.tools.brush.selected) {
+        // TODO
+      }
       this.points = [];
     }
   }
@@ -351,7 +354,9 @@ class CanvasRenderer {
   drawBrushSelection(points: Pos[]) {
     const { ctx } = this;
     ctx.strokeStyle = '#2f5574';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = this.size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     for (let i = 0; i < points.length; i++) {
