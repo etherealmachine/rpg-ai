@@ -11,7 +11,7 @@ import {
   faSquare
 } from '@fortawesome/free-solid-svg-icons'
 
-import { Context } from './State';
+import { Context, ToolName } from './State';
 import Tooltip from './Tooltip';
 import { stairsIcon, textIcon } from './icons/custom_icons';
 import { faCircle } from '@fortawesome/free-regular-svg-icons';
@@ -58,6 +58,10 @@ const classes = css`
     background: #bbb;
     box-shadow: -1px -1px 8px rgba(255, 255, 255, 0.5), 1px 1px 8px rgba(255, 255, 255, 0.5);
   }
+  .toolbar button[disabled] {
+    background: #444;
+    box-shadow: none;
+  }
 `;
 
 interface Button {
@@ -65,29 +69,30 @@ interface Button {
   tooltip: string
 }
 
-const buttons: { [key: string]: Button } = {
+const buttons: { [key in ToolName]: Button } = {
   'pointer': { icon: faMousePointer, tooltip: 'Select' },
   'walls': { icon: faSquare, tooltip: 'Walls' },
+  'text': { icon: textIcon, tooltip: 'Text' },
+  'stairs': { icon: stairsIcon, tooltip: 'Stairs' },
+  'doors': { icon: faDoorClosed, tooltip: 'Doors' },
   'eraser': { icon: faEraser, tooltip: 'Erase (TODO)' },
-  'text': { icon: textIcon, tooltip: 'Text (TODO)' },
-  'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
-  'doors': { icon: faDoorClosed, tooltip: 'Doors (TODO)' },
   'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
   'polygon': { icon: faDrawPolygon, tooltip: 'Polygon' },
-  'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse (TODO)' },
+  'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse' },
 };
 
 export default function Toolbar() {
   const state = useContext(Context);
-  const handleButtonClick = (tool: string) => () => {
+  const handleButtonClick = (tool: ToolName) => () => {
     state.setSelectedTool(tool);
   };
   return <div className={classes.toolbar}>
-    {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name].tooltip}>
+    {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name as ToolName].tooltip}>
       <button
         className={spec.selected ? classes.selected : ''}
-        onClick={handleButtonClick(name)}>
-        <FontAwesomeIcon icon={buttons[name].icon} />
+        disabled={spec.disabled}
+        onClick={handleButtonClick(name as ToolName)}>
+        <FontAwesomeIcon icon={buttons[name as ToolName].icon} />
       </button>
     </Tooltip>)}
   </div>;

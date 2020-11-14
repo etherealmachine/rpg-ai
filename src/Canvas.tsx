@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef } from 'react';
 import { dist } from './lib';
 
 import { Context, State } from './State';
+import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
 
 interface Pos {
   x: number
@@ -59,10 +60,7 @@ class CanvasRenderer {
       from.y = Math.round(from.y / this.size);
       to.x = Math.round(to.x / this.size);
       to.y = Math.round(to.y / this.size);
-      if ((this.appState.tools.rect.selected || this.appState.tools.ellipse.selected)
-        && from.x !== to.x && from.y !== to.y) {
-        this.appState.addRoomFromRect(from, to);
-      }
+      this.appState.handleRect(from, to);
       this.drag = undefined;
     }
     if (this.mouse && this.appState.tools.polygon.selected) {
@@ -368,38 +366,57 @@ class CanvasRenderer {
   }
 
   drawFeature(feature: GeoJSON.Feature) {
-    const { ctx } = this;
     if (feature.type === 'Feature') {
-      if (feature.geometry.type !== "Polygon") {
+      if (isPolygonFeature(feature)) {
+        this.drawPolygon(feature);
+      } else if (isMultiPointFeature(feature)) {
+        this.drawEllipse(feature);
+      } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
       }
-      const points = feature.geometry.coordinates.flat();
+    }
+  }
 
-      ctx.fillStyle = '#999';
-      ctx.beginPath();
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let i = 0; i < points.length; i++) {
-        ctx.lineTo(points[i][0], points[i][1]);
-      }
-      ctx.closePath();
-      ctx.fill();
+  drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>) {
+    const { ctx } = this;
+    const points = feature.geometry.coordinates.flat();
 
-      ctx.fillStyle = '#F1ECE0';
-      ctx.save();
-      ctx.clip();
-      ctx.translate(0.2, 0.2);
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let i = 0; i < points.length; i++) {
-        ctx.lineTo(points[i][0], points[i][1]);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+    ctx.fillStyle = '#999';
+    ctx.beginPath();
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 0; i < points.length; i++) {
+      ctx.lineTo(points[i][0], points[i][1]);
+    }
+    ctx.closePath();
+    ctx.fill();
 
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 0.1;
+    ctx.fillStyle = '#F1ECE0';
+    ctx.save();
+    ctx.clip();
+    ctx.translate(0.2, 0.2);
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 0; i < points.length; i++) {
+      ctx.lineTo(points[i][0], points[i][1]);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 0; i < points.length; i++) {
+      ctx.lineTo(points[i][0], points[i][1]);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    if (this.appState.debug) {
+      ctx.strokeStyle = '#49ce3d';
+      ctx.lineWidth = 0.2;
       ctx.beginPath();
       ctx.moveTo(points[0][0], points[0][1]);
       for (let i = 0; i < points.length; i++) {
@@ -408,31 +425,23 @@ class CanvasRenderer {
       ctx.closePath();
       ctx.stroke();
 
-      if (this.appState.debug) {
-        ctx.strokeStyle = '#49ce3d';
-        ctx.lineWidth = 0.2;
+      points.forEach((p, i) => {
+        ctx.fillStyle = '#fffb00';
         ctx.beginPath();
-        ctx.moveTo(points[0][0], points[0][1]);
-        for (let i = 0; i < points.length; i++) {
-          ctx.lineTo(points[i][0], points[i][1]);
-        }
+        ctx.arc(p[0], p[1], 0.2, 0, 2 * Math.PI);
         ctx.closePath();
-        ctx.stroke();
-
-        points.forEach((p, i) => {
-          ctx.fillStyle = '#fffb00';
-          ctx.beginPath();
-          ctx.arc(p[0], p[1], 0.2, 0, 2 * Math.PI);
-          ctx.closePath();
-          ctx.fill();
-          ctx.fillStyle = '#000';
-          ctx.save();
-          ctx.translate(p[0], p[1]);
-          this.renderTextCenter(`${i}`, '1px Roboto, sans-serif');
-          ctx.restore();
-        });
-      }
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.save();
+        ctx.translate(p[0], p[1]);
+        this.renderTextCenter(`${i}`, '1px Roboto, sans-serif');
+        ctx.restore();
+      });
     }
+  }
+
+  drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
+    const { ctx } = this;
   }
 
   drawLayers() {

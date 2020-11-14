@@ -1,7 +1,7 @@
 import React from 'react';
 import { produce } from 'immer';
 
-import * as martinez from 'martinez-polygon-clipping';
+// import * as martinez from 'martinez-polygon-clipping';
 
 function modify() {
   return function (
@@ -19,45 +19,67 @@ function modify() {
   };
 }
 
+const initialTools = {
+  'pointer': {
+    selected: true,
+    group: 1,
+    polygon: true,
+    disabled: false,
+  },
+  'walls': {
+    selected: false,
+    group: 1,
+    polygon: true,
+    disabled: false,
+  },
+  'stairs': {
+    selected: false,
+    group: 1,
+    polygon: false,
+    disabled: false,
+  },
+  'doors': {
+    selected: false,
+    group: 1,
+    polygon: false,
+    disabled: false,
+  },
+  'text': {
+    selected: false,
+    group: 1,
+    polygon: false,
+    disabled: false,
+  },
+  'eraser': {
+    selected: false,
+    group: 1,
+    polygon: true,
+    disabled: false,
+  },
+  'rect': {
+    selected: false,
+    group: 2,
+    polygon: true,
+    disabled: false,
+  },
+  'polygon': {
+    selected: false,
+    group: 2,
+    polygon: true,
+    disabled: false,
+  },
+  'ellipse': {
+    selected: false,
+    group: 2,
+    polygon: true,
+    disabled: false,
+  },
+}
+
+export type ToolName = keyof typeof initialTools;
+
 export class State {
-  tools = {
-    'pointer': {
-      selected: true,
-      group: 1,
-    },
-    'walls': {
-      selected: false,
-      group: 1,
-    },
-    'stairs': {
-      selected: false,
-      group: 1,
-    },
-    'doors': {
-      selected: false,
-      group: 1,
-    },
-    'text': {
-      selected: false,
-      group: 1,
-    },
-    'eraser': {
-      selected: false,
-      group: 1,
-    },
-    'rect': {
-      selected: false,
-      group: 2,
-    },
-    'polygon': {
-      selected: false,
-      group: 2,
-    },
-    'ellipse': {
-      selected: false,
-      group: 2,
-    },
-  }
+  tools = initialTools
   scale = 1
   offset = { x: 0, y: 0 }
   layers = [{
@@ -82,10 +104,10 @@ export class State {
   }
 
   @modify()
-  addRoomFromRect(from: Pos, to: Pos) {
-    const coordinates = [[[from.x, from.y], [from.x, to.y], [to.x, to.y], [to.x, from.y], [from.x, from.y]]];
+  handleRect(from: Pos, to: Pos) {
     const features = this.layers[this.selection.layerIndex].features;
-    if (features.length === 0) {
+    if (this.tools.rect.selected && from.x !== to.x && from.y !== to.y) {
+      const coordinates = [[[from.x, from.y], [from.x, to.y], [to.x, to.y], [to.x, from.y], [from.x, from.y]]];
       features.push({
         type: "Feature",
         geometry: {
@@ -94,15 +116,34 @@ export class State {
         },
         properties: {},
       });
-    } else {
-      const merged = martinez.union(features[0].geometry.coordinates, coordinates);
-      features[0].geometry.coordinates = [merged[0][0] as number[][]];
+    } else if (this.tools.ellipse.selected && from.x !== to.x && from.y !== to.y) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "MultiPoint",
+          coordinates: [[from.x, from.y], [to.x, to.y]],
+        },
+        properties: {},
+      });
     }
   }
 
   @modify()
-  setSelectedTool(name: string) {
-    const tool = (this.tools as any)[name];
+  handlePolygon(points: Pos[]) {
+    const features = this.layers[this.selection.layerIndex].features;
+    features.push({
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [points.map(p => [p.x, p.y])],
+      },
+      properties: {},
+    });
+  }
+
+  @modify()
+  setSelectedTool(name: ToolName) {
+    const tool = this.tools[name];
     if (tool.selected) {
       tool.selected = false;
       return;
@@ -110,6 +151,20 @@ export class State {
     Object.values(this.tools).forEach(t => {
       if (t.group === tool.group) t.selected = false;
     });
+    if (!tool.polygon) {
+      Object.values(this.tools).forEach(t => {
+        if (t.group === 2) {
+          t.selected = false;
+          t.disabled = true;
+        }
+      });
+    } else {
+      Object.values(this.tools).forEach(t => {
+        if (t.group === 2) {
+          t.disabled = false;
+        }
+      });
+    }
     tool.selected = true;
   }
 
@@ -159,7 +214,7 @@ export interface Pos {
 }
 
 export interface Layer {
-  features: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>[]
+  features: GeoJSON.Feature[]
 }
 
 export interface Description {
