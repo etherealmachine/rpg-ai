@@ -1,3 +1,8 @@
+export interface Pos {
+  x: number
+  y: number
+}
+
 export function line(x0: number, y0: number, x1: number, y1: number): { x: number, y: number }[] {
   const dx = Math.abs(x1 - x0);
   const dy = Math.abs(y1 - y0);
@@ -35,4 +40,16 @@ export function colorToIndex(r: number, g: number, b: number): number {
 export function indexToColor(i: number): string {
   if (i < 0 || i > 255 * 255 * 255) throw new Error('Index out of range');
   return '#' + i.toString(16).padStart(6, '0');
+}
+
+export function boundingRect(from: Pos, to: Pos, closest: number = 1) {
+  let x1 = Math.min(from.x, to.x);
+  let y1 = Math.min(from.y, to.y);
+  let x2 = Math.max(from.x, to.x);
+  let y2 = Math.max(from.y, to.y);
+  x1 = Math.round(x1 / closest) * closest;
+  y1 = Math.round(y1 / closest) * closest;
+  x2 = Math.round(x2 / closest) * closest;
+  y2 = Math.round(y2 / closest) * closest;
+  return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
 }

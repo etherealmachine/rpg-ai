@@ -1,13 +1,8 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { colorToIndex, dist, indexToColor } from './lib';
 
+import { boundingRect, colorToIndex, dist, indexToColor, Pos } from './lib';
 import { Context, Feature, State } from './State';
 import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
-
-interface Pos {
-  x: number
-  y: number
-}
 
 const floorColor = '#F1ECE0';
 const shadowColor = '#999';
@@ -74,9 +69,9 @@ class CanvasRenderer {
   onMouseUp = () => {
     this.mouseDown = false;
     if (this.drag) {
-      const [from, to] = this.getBoundingRect(
+      const [from, to] = boundingRect(
         this.canvasToWorld(this.drag.start),
-        this.canvasToWorld(this.drag.end));
+        this.canvasToWorld(this.drag.end), this.size);
       from.x = Math.round(from.x / this.size);
       from.y = Math.round(from.y / this.size);
       to.x = Math.round(to.x / this.size);
@@ -169,18 +164,6 @@ class CanvasRenderer {
     return p;
   }
 
-  getBoundingRect(from: Pos, to: Pos) {
-    let x1 = Math.min(from.x, to.x);
-    let y1 = Math.min(from.y, to.y);
-    let x2 = Math.max(from.x, to.x);
-    let y2 = Math.max(from.y, to.y);
-    x1 = Math.round(x1 / this.size) * this.size;
-    y1 = Math.round(y1 / this.size) * this.size;
-    x2 = Math.round(x2 / this.size) * this.size;
-    y2 = Math.round(y2 / this.size) * this.size;
-    return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
-  }
-
   renderTextCenter(text: string, font: string) {
     this.ctx.font = font;
     const m = this.ctx.measureText(text);
@@ -251,7 +234,7 @@ class CanvasRenderer {
 
   drawRectSelection(from: Pos, to: Pos) {
     const { ctx } = this;
-    const [a, b] = this.getBoundingRect(from, to);
+    const [a, b] = boundingRect(from, to, this.size);
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
@@ -279,7 +262,7 @@ class CanvasRenderer {
 
   drawEllipseSelection(from: Pos, to: Pos) {
     const { ctx } = this;
-    const [a, b] = this.getBoundingRect(from, to);
+    const [a, b] = boundingRect(from, to, this.size);
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
@@ -379,42 +362,36 @@ class CanvasRenderer {
     }
   }
 
-  drawLine(x1: number, y1: number, x2: number, y2: number, width: number, style: string) {
-    const { ctx } = this;
-    ctx.lineWidth = width;
-    ctx.strokeStyle = style;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  }
-
   drawFeature(feature: Feature, color?: string, outline: boolean = false) {
     const { ctx } = this;
     if (feature.type === 'Feature') {
+      if (color) ctx.fillStyle = color;
       if (isPolygonFeature(feature)) {
-        if (color) ctx.fillStyle = color;
         this.drawPolygon(feature);
-        if (color) ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
         if (color) ctx.fillStyle = color;
         this.drawEllipse(feature);
-        if (color) ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
-        if (color) {
-          const points = feature.geometry.coordinates;
-          const [from, to] = points;
-          this.drawLine(from[0], from[1], to[0], to[1], 0.1, color);
-        }
+        this.drawLine(feature);
       } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
       }
+      if (color) ctx.fill();
       if (outline) {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.3;
+        ctx.lineJoin = 'round';
         ctx.stroke();
       }
     }
+  }
+
+  drawLine(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
+    const { ctx } = this;
+    const points = feature.geometry.coordinates;
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    ctx.lineTo(points[1][0], points[1][1]);
   }
 
   drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>) {
@@ -481,16 +458,26 @@ class CanvasRenderer {
     this.ctx.save();
     this.ctx.translate(0.3, 0.3);
     this.ctx.globalCompositeOperation = 'source-atop';
-    layer.features.forEach((features, i) => {
+    layer.features.forEach(features => {
       this.ctx.save();
-      this.drawFeature(features, (this.hoverIndex === i || this.appState.selection.featureIndex === i) ? highlightColor : floorColor);
+      this.drawFeature(features, floorColor);
       this.ctx.restore();
     });
     this.ctx.restore();
     this.ctx.globalCompositeOperation = 'destination-over';
-    layer.features.forEach(features => {
+    layer.features.forEach((features, i) => {
       this.ctx.save();
-      this.drawFeature(features, undefined, true);
+      const overlay = this.hoverIndex === i || this.appState.selection.featureIndex === i;
+      this.drawFeature(features, overlay ? highlightColor : undefined, true);
+      this.ctx.restore();
+    });
+    this.ctx.restore();
+    this.ctx.globalCompositeOperation = 'source-over';
+    layer.features.forEach((features, i) => {
+      this.ctx.save();
+      if (this.hoverIndex === i || this.appState.selection.featureIndex === i) {
+        this.drawFeature(features, highlightColor);
+      }
       this.ctx.restore();
     });
 
@@ -532,7 +519,7 @@ class CanvasRenderer {
       this.drawMousePos(this.mouse, tools.doors.selected);
       ctx.restore();
     }
-    if (this.drag && (tools.rect.selected || tools.ellipse.selected || tools.doors.selected)) {
+    if (this.drag) {
       this.drawDrag();
     } else if (this.points.length > 0 && tools.polygon.selected) {
       this.drawPolygonSelection(this.points);

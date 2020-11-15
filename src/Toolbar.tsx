@@ -9,7 +9,7 @@ import {
   IconDefinition,
   faDoorClosed,
   faSquare,
-  faBrush
+  faBrush,
 } from '@fortawesome/free-solid-svg-icons'
 
 import { Context, ToolName } from './State';
