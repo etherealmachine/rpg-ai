@@ -30,13 +30,11 @@ class CanvasRenderer {
   appState = new State()
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
-  selectionCanvas: HTMLCanvasElement;
-  selectionCtx: CanvasRenderingContext2D;
   bufferCanvas: HTMLCanvasElement;
   bufferCtx: CanvasRenderingContext2D;
 
   constructor(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (ctx === null) {
       throw new Error('canvas has null rendering context');
     }
@@ -49,19 +47,10 @@ class CanvasRenderer {
     window.addEventListener('wheel', this.onWheel);
     this.requestID = requestAnimationFrame(this.render);
 
-    this.selectionCanvas = document.createElement('canvas');
-    this.selectionCanvas.width = this.canvas.width;
-    this.selectionCanvas.height = this.canvas.height;
-    const selectionCtx = this.selectionCanvas.getContext('2d', { alpha: false });
-    if (selectionCtx === null) {
-      throw new Error('canvas has null rendering context');
-    }
-    this.selectionCtx = selectionCtx;
-
     this.bufferCanvas = document.createElement('canvas');
     this.bufferCanvas.width = this.canvas.width;
     this.bufferCanvas.height = this.canvas.height;
-    const bufferCtx = this.bufferCanvas.getContext('2d');
+    const bufferCtx = this.bufferCanvas.getContext('2d', { alpha: true });
     if (bufferCtx === null) {
       throw new Error('canvas has null rendering context');
     }
@@ -124,8 +113,6 @@ class CanvasRenderer {
         this.points.push(this.canvasToWorld(this.mouse));
       }
     }
-    const p = this.selectionCtx.getImageData(this.mouse.x, this.mouse.y, 1, 1).data;
-    this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
   }
 
   onWheel = (event: WheelEvent) => {
@@ -208,13 +195,9 @@ class CanvasRenderer {
   }
 
   clearScreen() {
-    const { canvas, ctx, selectionCanvas, bufferCanvas } = this;
+    const { canvas, ctx, bufferCanvas } = this;
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (selectionCanvas.width !== canvas.width || selectionCanvas.height !== canvas.height) {
-      selectionCanvas.width = canvas.width;
-      selectionCanvas.height = canvas.height;
-    }
     if (bufferCanvas.width !== canvas.width || bufferCanvas.height !== canvas.height) {
       bufferCanvas.width = canvas.width;
       bufferCanvas.height = canvas.height;
@@ -406,23 +389,30 @@ class CanvasRenderer {
     ctx.stroke();
   }
 
-  drawFeature(feature: Feature, color: string) {
+  drawFeature(feature: Feature, color?: string, outline: boolean = false) {
     const { ctx } = this;
     if (feature.type === 'Feature') {
       if (isPolygonFeature(feature)) {
-        ctx.fillStyle = color;
+        if (color) ctx.fillStyle = color;
         this.drawPolygon(feature);
-        ctx.fill();
+        if (color) ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
-        ctx.fillStyle = color;
+        if (color) ctx.fillStyle = color;
         this.drawEllipse(feature);
-        ctx.fill();
+        if (color) ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
-        const points = feature.geometry.coordinates;
-        const [from, to] = points;
-        this.drawLine(from[0], from[1], to[0], to[1], 0.1, color);
+        if (color) {
+          const points = feature.geometry.coordinates;
+          const [from, to] = points;
+          this.drawLine(from[0], from[1], to[0], to[1], 0.1, color);
+        }
       } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
+      }
+      if (outline) {
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
       }
     }
   }
@@ -450,40 +440,63 @@ class CanvasRenderer {
   }
 
   drawLayers() {
+    const { appState } = this;
     const { width, height } = this.canvas;
-
-    this.selectionCtx.setTransform(this.ctx.getTransform());
 
     const tmp = this.ctx;
 
-    this.ctx = this.selectionCtx;
+    this.ctx = this.bufferCtx;
+    this.ctx.resetTransform();
+    this.ctx.globalCompositeOperation = 'source-over';
     this.ctx.fillStyle = "#fff";
     this.ctx.fillRect(0, 0, width, height);
     this.ctx.save();
+    this.ctx.scale(appState.scale, appState.scale);
+    this.ctx.translate(appState.offset.x, appState.offset.y);
     this.ctx.scale(this.size, this.size);
+
     const layer = this.appState.layers[this.appState.selection.layerIndex];
     layer.features.forEach((features, featureIndex) => {
       this.ctx.save();
       this.drawFeature(features, indexToColor(featureIndex));
       this.ctx.restore();
     });
+
+    if (this.mouse) {
+      const p = this.ctx.getImageData(this.mouse.x, this.mouse.y, 1, 1).data;
+      this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
+    }
     this.ctx.restore();
 
-    this.ctx = this.bufferCtx;
+    this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, width, height);
-    this.ctx.save();
+    this.ctx.scale(appState.scale, appState.scale);
+    this.ctx.translate(appState.offset.x, appState.offset.y);
     this.ctx.scale(this.size, this.size);
-    layer.features.forEach((features, featureIndex) => {
+    layer.features.forEach(features => {
       this.ctx.save();
-      const color = this.appState.tools.pointer.selected && (featureIndex === this.appState.selection.featureIndex || featureIndex === this.hoverIndex) ? highlightColor : floorColor;
-      this.drawFeature(features, color);
+      this.drawFeature(features, shadowColor);
+      this.ctx.restore();
+    });
+    this.ctx.save();
+    this.ctx.translate(0.3, 0.3);
+    this.ctx.globalCompositeOperation = 'source-atop';
+    layer.features.forEach((features, i) => {
+      this.ctx.save();
+      this.drawFeature(features, (this.hoverIndex === i || this.appState.selection.featureIndex === i) ? highlightColor : floorColor);
       this.ctx.restore();
     });
     this.ctx.restore();
+    this.ctx.globalCompositeOperation = 'destination-over';
+    layer.features.forEach(features => {
+      this.ctx.save();
+      this.drawFeature(features, undefined, true);
+      this.ctx.restore();
+    });
+
+    tmp.drawImage(this.bufferCanvas, 0, 0);
 
     this.ctx = tmp;
-
-    this.ctx.drawImage(this.bufferCanvas, 0, 0);
   }
 
   render = (time: number) => {
@@ -495,22 +508,11 @@ class CanvasRenderer {
     this.polygonToolSelected = appState.tools.polygon.selected;
 
     ctx.resetTransform();
-    this.selectionCtx.resetTransform();
     this.bufferCtx.resetTransform();
 
     ctx.save();
     this.clearScreen();
     ctx.restore();
-
-    if (appState.debug) {
-      ctx.save();
-      this.renderFPS(time);
-      ctx.restore();
-    }
-
-    ctx.save();
-    ctx.scale(appState.scale, appState.scale);
-    ctx.translate(appState.offset.x, appState.offset.y);
 
     // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
     // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
@@ -520,31 +522,30 @@ class CanvasRenderer {
     ctx.restore();
 
     ctx.save();
+    ctx.scale(appState.scale, appState.scale);
+    ctx.translate(appState.offset.x, appState.offset.y);
+    ctx.save();
     this.drawGrid();
     ctx.restore();
-
     if (this.mouse) {
       ctx.save();
       this.drawMousePos(this.mouse, tools.doors.selected);
       ctx.restore();
     }
-
     if (this.drag && (tools.rect.selected || tools.ellipse.selected || tools.doors.selected)) {
-      ctx.save();
       this.drawDrag();
-      ctx.restore();
     } else if (this.points.length > 0 && tools.polygon.selected) {
-      ctx.save();
       this.drawPolygonSelection(this.points);
-      ctx.restore();
     } else if (this.points.length > 0 && tools.brush.selected) {
-      ctx.save();
       this.drawBrushSelection(this.points);
-      ctx.restore();
     }
-
     ctx.restore();
 
+    if (appState.debug) {
+      ctx.save();
+      this.renderFPS(time);
+      ctx.restore();
+    }
     this.lastTime = time;
     this.requestID = requestAnimationFrame(this.render);
   }
