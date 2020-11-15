@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { dist } from './lib';
+import { colorToIndex, dist, indexToColor } from './lib';
 
 import { Context, Feature, State } from './State';
 import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
@@ -8,6 +8,11 @@ interface Pos {
   x: number
   y: number
 }
+
+const floorColor = '#F1ECE0';
+const shadowColor = '#999';
+const backgroundColor = '#D9D2BF';
+const highlightColor = '#2f5574';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -18,26 +23,38 @@ class CanvasRenderer {
   }
   points: Pos[] = []
   polygonToolSelected: boolean = false
+  hoverIndex?: number
   size: number = 30
   lastTime: number = 0
   requestID?: number
   appState = new State()
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
+  selectionCanvas: HTMLCanvasElement;
+  selectionCtx: CanvasRenderingContext2D;
 
   constructor(canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (ctx === null) {
       throw new Error('canvas has null rendering context');
     }
     this.canvas = canvas;
-    this.ctx = ctx
+    this.ctx = ctx;
     canvas.addEventListener('mousedown', this.onMouseDown);
     canvas.addEventListener('mouseup', this.onMouseUp);
     canvas.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('wheel', this.onWheel);
     this.requestID = requestAnimationFrame(this.render);
+
+    this.selectionCanvas = document.createElement('canvas');
+    this.selectionCanvas.width = this.canvas.width;
+    this.selectionCanvas.height = this.canvas.height;
+    const selectionCtx = this.selectionCanvas.getContext('2d', { alpha: false });
+    if (selectionCtx === null) {
+      throw new Error('canvas has null rendering context');
+    }
+    this.selectionCtx = selectionCtx;
   }
 
   onMouseDown = () => {
@@ -93,6 +110,8 @@ class CanvasRenderer {
         this.points.push(this.canvasToWorld(this.mouse));
       }
     }
+    const p = this.selectionCtx.getImageData(this.mouse.x, this.mouse.y, 1, 1).data;
+    this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
   }
 
   onWheel = (event: WheelEvent) => {
@@ -175,10 +194,15 @@ class CanvasRenderer {
   }
 
   clearScreen() {
-    const { canvas, ctx } = this;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#D9D2BF';
+    const { canvas, ctx, selectionCanvas, selectionCtx } = this;
+    ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (selectionCanvas.width !== canvas.width || selectionCanvas.height !== canvas.height) {
+      selectionCanvas.width = canvas.width;
+      selectionCanvas.height = canvas.height;
+    }
+    selectionCtx.fillStyle = '#fff';
+    selectionCtx.fillRect(0, 0, selectionCanvas.width, selectionCanvas.height);
   }
 
   drawGrid() {
@@ -226,7 +250,7 @@ class CanvasRenderer {
     }
   }
 
-  drawRectSelection(from: Pos, to: Pos, overlay: boolean = false) {
+  drawRectSelection(from: Pos, to: Pos) {
     const { ctx } = this;
     const [a, b] = this.getBoundingRect(from, to);
     ctx.fillStyle = '#000';
@@ -237,7 +261,7 @@ class CanvasRenderer {
     ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
     ctx.fill();
 
-    ctx.strokeStyle = '#2f5574';
+    ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
@@ -247,17 +271,6 @@ class CanvasRenderer {
     ctx.lineTo(a.x, a.y);
     ctx.stroke();
 
-    if (this.mouse) {
-      const mousePos = this.canvasToWorld(this.mouse);
-      if (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y) {
-        overlay = true;
-      }
-    }
-    if (overlay) {
-      ctx.fillStyle = 'rgb(47, 85, 116, 0.1)';
-      ctx.fillRect(a.x, a.y, (b.x - a.x), (b.y - a.y));
-    }
-
     const w = Math.abs(a.x - b.x) / this.size;
     const h = Math.abs(a.y - b.y) / this.size;
     ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
@@ -265,7 +278,7 @@ class CanvasRenderer {
     this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
   }
 
-  drawEllipseSelection(from: Pos, to: Pos, overlay: boolean = false) {
+  drawEllipseSelection(from: Pos, to: Pos) {
     const { ctx } = this;
     const [a, b] = this.getBoundingRect(from, to);
     ctx.fillStyle = '#000';
@@ -276,7 +289,7 @@ class CanvasRenderer {
     ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
     ctx.fill();
 
-    ctx.strokeStyle = '#2f5574';
+    ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
@@ -292,17 +305,6 @@ class CanvasRenderer {
     ctx.ellipse((b.x - a.x) / 2, (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
     ctx.stroke();
     ctx.restore();
-
-    if (this.mouse) {
-      const mousePos = this.canvasToWorld(this.mouse);
-      if (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y) {
-        overlay = true;
-      }
-    }
-    if (overlay) {
-      ctx.fillStyle = 'rgb(47, 85, 116, 0.1)';
-      ctx.fillRect(a.x, a.y, (b.x - a.x), (b.y - a.y));
-    }
 
     const w = Math.abs(a.x - b.x) / this.size;
     const h = Math.abs(a.y - b.y) / this.size;
@@ -338,7 +340,7 @@ class CanvasRenderer {
       ctx.fill();
     }
 
-    ctx.strokeStyle = '#2f5574';
+    ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
@@ -347,13 +349,11 @@ class CanvasRenderer {
     }
     ctx.closePath();
     ctx.stroke();
-
-    // TODO: mouse intersection & overlay
   }
 
   drawBrushSelection(points: Pos[]) {
     const { ctx } = this;
-    ctx.strokeStyle = '#2f5574';
+    ctx.strokeStyle = highlightColor;
     ctx.lineWidth = this.size;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -380,24 +380,6 @@ class CanvasRenderer {
     }
   }
 
-  drawTile(style?: string) {
-    const { ctx } = this;
-    ctx.fillStyle = style || '#F1ECE0';
-    ctx.beginPath();
-    ctx.fillRect(0, 0, this.size, this.size);
-  }
-
-  drawHoverTile(style?: string) {
-    const { ctx } = this;
-    if (this.mouse) {
-      const p = this.canvasToWorld(this.mouse);
-      ctx.translate(
-        Math.floor(p.x / this.size) * this.size,
-        Math.floor(p.y / this.size) * this.size);
-      this.drawTile(style);
-    }
-  }
-
   drawLine(x1: number, y1: number, x2: number, y2: number, width: number, style: string) {
     const { ctx } = this;
     ctx.lineWidth = width;
@@ -408,16 +390,21 @@ class CanvasRenderer {
     ctx.stroke();
   }
 
-  drawFeature(feature: Feature) {
+  drawFeature(feature: Feature, color: string) {
+    const { ctx } = this;
     if (feature.type === 'Feature') {
       if (isPolygonFeature(feature)) {
+        ctx.fillStyle = color;
         this.drawPolygon(feature);
+        ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
+        ctx.fillStyle = color;
         this.drawEllipse(feature);
+        ctx.fill();
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
         const points = feature.geometry.coordinates;
         const [from, to] = points;
-        this.drawLine(from[0], from[1], to[0], to[1], 0.1, '#000');
+        this.drawLine(from[0], from[1], to[0], to[1], 0.1, color);
       } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
       }
@@ -427,41 +414,12 @@ class CanvasRenderer {
   drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>) {
     const { ctx } = this;
     const points = feature.geometry.coordinates.flat();
-
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 0.1;
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
     for (let i = 0; i < points.length; i++) {
       ctx.lineTo(points[i][0], points[i][1]);
     }
     ctx.closePath();
-    ctx.stroke();
-
-    if (this.appState.debug) {
-      ctx.strokeStyle = '#49ce3d';
-      ctx.lineWidth = 0.2;
-      ctx.beginPath();
-      ctx.moveTo(points[0][0], points[0][1]);
-      for (let i = 0; i < points.length; i++) {
-        ctx.lineTo(points[i][0], points[i][1]);
-      }
-      ctx.closePath();
-      ctx.stroke();
-
-      points.slice(0, points.length - 1).forEach((p, i) => {
-        ctx.fillStyle = '#fffb00';
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], 0.2, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.save();
-        ctx.translate(p[0], p[1]);
-        this.renderTextCenter(`${i}`, '1px Roboto, sans-serif');
-        ctx.restore();
-      });
-    }
   }
 
   drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
@@ -470,37 +428,32 @@ class CanvasRenderer {
     const [from, to] = points;
     let a = { x: from[0], y: from[1] };
     let b = { x: to[0], y: to[1] };
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 0.1;
     ctx.beginPath();
     ctx.ellipse(a.x + (b.x - a.x) / 2, a.y + (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
     ctx.closePath();
-    ctx.stroke();
-
-    if (this.appState.debug) {
-      ctx.strokeStyle = '#49ce3d';
-      ctx.lineWidth = 0.2;
-      ctx.beginPath();
-      ctx.rect(a.x, a.y, b.x - a.x, b.y - a.y);
-      ctx.closePath();
-      ctx.stroke();
-
-      points.slice(0, points.length - 1).forEach((p, i) => {
-        ctx.fillStyle = '#fffb00';
-        ctx.beginPath();
-        ctx.arc(a.x + (b.x - a.x) / 2, a.y + (b.y - a.y) / 2, 0.2, 0, 2 * Math.PI);
-        ctx.closePath();
-        ctx.fill();
-      });
-    }
   }
 
   drawLayers() {
-    const { ctx, appState } = this;
-    ctx.scale(this.size, this.size);
-    const layer = appState.layers[appState.selection.layerIndex];
-    layer.features.forEach(features => {
-      this.drawFeature(features);
+    const tmp = this.ctx;
+    this.ctx = this.selectionCtx;
+    this.ctx.save();
+    this.ctx.scale(this.size, this.size);
+    const layer = this.appState.layers[this.appState.selection.layerIndex];
+    layer.features.forEach((features, featureIndex) => {
+      this.ctx.save();
+      this.drawFeature(features, indexToColor(featureIndex));
+      this.ctx.restore();
+    });
+    this.ctx.restore();
+    this.ctx = tmp;
+    this.ctx = tmp;
+    this.ctx.save();
+    this.ctx.scale(this.size, this.size);
+    layer.features.forEach((features, featureIndex) => {
+      this.ctx.save();
+      const color = this.appState.tools.pointer.selected && featureIndex === this.hoverIndex ? highlightColor : floorColor;
+      this.drawFeature(features, color);
+      this.ctx.restore();
     });
   }
 
@@ -537,11 +490,7 @@ class CanvasRenderer {
     this.drawGrid();
     ctx.restore();
 
-    if (tools.walls.selected) {
-      ctx.save();
-      this.drawHoverTile();
-      ctx.restore();
-    } else if (!tools.eraser.selected && this.mouse) {
+    if (this.mouse) {
       ctx.save();
       this.drawMousePos(this.mouse, tools.doors.selected);
       ctx.restore();
@@ -558,11 +507,6 @@ class CanvasRenderer {
     } else if (this.points.length > 0 && tools.brush.selected) {
       ctx.save();
       this.drawBrushSelection(this.points);
-      ctx.restore();
-    }
-    if (tools.eraser.selected) {
-      ctx.save();
-      this.drawHoverTile("rgba(220, 53, 68, 0.2)");
       ctx.restore();
     }
 

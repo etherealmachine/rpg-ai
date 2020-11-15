@@ -22,3 +22,17 @@ export function sqDist(x0: number, y0: number, x1: number, y1: number): number {
 export function dist(x0: number, y0: number, x1: number, y1: number): number {
   return Math.sqrt(sqDist(x0, y0, x1, y1));
 }
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) throw new Error('Invalid color component');
+  return ((r << 16) | (g << 8) | b).toString(16);
+}
+
+export function colorToIndex(r: number, g: number, b: number): number {
+  return ((r << 16) | (g << 8) | b);
+}
+
+export function indexToColor(i: number): string {
+  if (i < 0 || i > 255 * 255 * 255) throw new Error('Index out of range');
+  return '#' + i.toString(16).padStart(6, '0');
+}

@@ -22,7 +22,7 @@ function modify() {
 const initialTools = () => ({
   'pointer': {
     selected: true,
-    group: 1,
+    group: 0,
     polygon: true,
     disabled: false,
   },
@@ -195,6 +195,17 @@ export class State {
     if (tool.selected) {
       tool.selected = false;
       return;
+    }
+    if (tool.group === 0) {
+      Object.values(this.tools).forEach(t => {
+        t.selected = false;
+      });
+      tool.selected = true;
+      return;
+    } else {
+      Object.values(this.tools).forEach(t => {
+        if (t.group === 0) t.selected = false;
+      });
     }
     Object.values(this.tools).forEach(t => {
       if (t.group === tool.group) t.selected = false;
