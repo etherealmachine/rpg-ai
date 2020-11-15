@@ -101,7 +101,7 @@ export class State {
   debug = false
   setState = (state: any) => { }
 
-  getSelectedFeature() {
+  getSelectedFeature(): Feature | undefined {
     if (this.selection.featureIndex === undefined) return undefined;
     return this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
   }

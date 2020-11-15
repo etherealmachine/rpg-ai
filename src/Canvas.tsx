@@ -32,6 +32,8 @@ class CanvasRenderer {
   ctx: CanvasRenderingContext2D
   selectionCanvas: HTMLCanvasElement;
   selectionCtx: CanvasRenderingContext2D;
+  bufferCanvas: HTMLCanvasElement;
+  bufferCtx: CanvasRenderingContext2D;
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -55,6 +57,15 @@ class CanvasRenderer {
       throw new Error('canvas has null rendering context');
     }
     this.selectionCtx = selectionCtx;
+
+    this.bufferCanvas = document.createElement('canvas');
+    this.bufferCanvas.width = this.canvas.width;
+    this.bufferCanvas.height = this.canvas.height;
+    const bufferCtx = this.bufferCanvas.getContext('2d');
+    if (bufferCtx === null) {
+      throw new Error('canvas has null rendering context');
+    }
+    this.bufferCtx = bufferCtx;
   }
 
   onMouseDown = () => {
@@ -65,6 +76,9 @@ class CanvasRenderer {
         start: { ...mouse },
         end: { ...mouse },
       }
+    }
+    if (this.appState.tools.pointer.selected && this.hoverIndex !== undefined) {
+      this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
     }
   }
 
@@ -189,20 +203,22 @@ class CanvasRenderer {
 
   renderFPS(time: number) {
     const fps = (1000 / (time - this.lastTime)).toFixed(0);
-    this.ctx.translate(this.canvas.width - 18, 12);
+    this.ctx.translate(this.canvas.width - 48, 12);
     this.renderTextCenter(fps, "18px Roboto Mono, monospace");
   }
 
   clearScreen() {
-    const { canvas, ctx, selectionCanvas, selectionCtx } = this;
+    const { canvas, ctx, selectionCanvas, bufferCanvas } = this;
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (selectionCanvas.width !== canvas.width || selectionCanvas.height !== canvas.height) {
       selectionCanvas.width = canvas.width;
       selectionCanvas.height = canvas.height;
     }
-    selectionCtx.fillStyle = '#fff';
-    selectionCtx.fillRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+    if (bufferCanvas.width !== canvas.width || bufferCanvas.height !== canvas.height) {
+      bufferCanvas.width = canvas.width;
+      bufferCanvas.height = canvas.height;
+    }
   }
 
   drawGrid() {
@@ -434,8 +450,15 @@ class CanvasRenderer {
   }
 
   drawLayers() {
+    const { width, height } = this.canvas;
+
+    this.selectionCtx.setTransform(this.ctx.getTransform());
+
     const tmp = this.ctx;
+
     this.ctx = this.selectionCtx;
+    this.ctx.fillStyle = "#fff";
+    this.ctx.fillRect(0, 0, width, height);
     this.ctx.save();
     this.ctx.scale(this.size, this.size);
     const layer = this.appState.layers[this.appState.selection.layerIndex];
@@ -445,16 +468,22 @@ class CanvasRenderer {
       this.ctx.restore();
     });
     this.ctx.restore();
-    this.ctx = tmp;
-    this.ctx = tmp;
+
+    this.ctx = this.bufferCtx;
+    this.ctx.clearRect(0, 0, width, height);
     this.ctx.save();
     this.ctx.scale(this.size, this.size);
     layer.features.forEach((features, featureIndex) => {
       this.ctx.save();
-      const color = this.appState.tools.pointer.selected && featureIndex === this.hoverIndex ? highlightColor : floorColor;
+      const color = this.appState.tools.pointer.selected && (featureIndex === this.appState.selection.featureIndex || featureIndex === this.hoverIndex) ? highlightColor : floorColor;
       this.drawFeature(features, color);
       this.ctx.restore();
     });
+    this.ctx.restore();
+
+    this.ctx = tmp;
+
+    this.ctx.drawImage(this.bufferCanvas, 0, 0);
   }
 
   render = (time: number) => {
@@ -466,14 +495,18 @@ class CanvasRenderer {
     this.polygonToolSelected = appState.tools.polygon.selected;
 
     ctx.resetTransform();
+    this.selectionCtx.resetTransform();
+    this.bufferCtx.resetTransform();
 
     ctx.save();
     this.clearScreen();
     ctx.restore();
 
-    ctx.save();
-    this.renderFPS(time);
-    ctx.restore();
+    if (appState.debug) {
+      ctx.save();
+      this.renderFPS(time);
+      ctx.restore();
+    }
 
     ctx.save();
     ctx.scale(appState.scale, appState.scale);
