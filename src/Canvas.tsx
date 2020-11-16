@@ -8,6 +8,7 @@ const floorColor = '#F1ECE0';
 const shadowColor = '#999';
 const backgroundColor = '#D9D2BF';
 const highlightColor = '#2f5574';
+const wallColor = '#000';
 
 class CanvasRenderer {
   mouse?: Pos = undefined
@@ -362,24 +363,24 @@ class CanvasRenderer {
     }
   }
 
-  drawFeature(feature: Feature, color?: string, outline: boolean = false) {
+  drawFeature(feature: Feature, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     if (feature.type === 'Feature') {
-      if (color) ctx.fillStyle = color;
+      if (fillColor) ctx.fillStyle = fillColor;
       if (isPolygonFeature(feature)) {
         this.drawPolygon(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
-        if (color) ctx.fillStyle = color;
+        if (fillColor) ctx.fillStyle = fillColor;
         this.drawEllipse(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
         this.drawLine(feature);
       } else {
         throw new Error(`Can't draw ${feature.geometry.type}`);
       }
-      if (color) ctx.fill();
-      if (outline) {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 0.3;
+      if (fillColor) ctx.fill();
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 0.2;
         ctx.lineJoin = 'round';
         ctx.stroke();
       }
@@ -421,8 +422,11 @@ class CanvasRenderer {
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
+    const layer = this.appState.layers[this.appState.selection.layerIndex];
 
     this.ctx = this.bufferCtx;
+
+    // color-indexed mouse picking
     this.ctx.resetTransform();
     this.ctx.globalCompositeOperation = 'source-over';
     this.ctx.fillStyle = "#fff";
@@ -431,55 +435,63 @@ class CanvasRenderer {
     this.ctx.scale(appState.scale, appState.scale);
     this.ctx.translate(appState.offset.x, appState.offset.y);
     this.ctx.scale(this.size, this.size);
-
-    const layer = this.appState.layers[this.appState.selection.layerIndex];
-    layer.features.forEach((features, featureIndex) => {
+    layer.features.forEach((feature, i) => {
       this.ctx.save();
-      this.drawFeature(features, indexToColor(featureIndex));
+      this.drawFeature(feature, indexToColor(i), indexToColor(i));
       this.ctx.restore();
     });
-
     if (this.mouse) {
       const p = this.ctx.getImageData(this.mouse.x, this.mouse.y, 1, 1).data;
       this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
     }
     this.ctx.restore();
 
+    // setup transform and clear buffer
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, width, height);
     this.ctx.scale(appState.scale, appState.scale);
     this.ctx.translate(appState.offset.x, appState.offset.y);
     this.ctx.scale(this.size, this.size);
-    layer.features.forEach(features => {
+
+    // shadows
+    layer.features.forEach(feature => {
       this.ctx.save();
-      this.drawFeature(features, shadowColor);
+      this.drawFeature(feature, shadowColor);
       this.ctx.restore();
     });
-    this.ctx.save();
-    this.ctx.translate(0.3, 0.3);
-    this.ctx.globalCompositeOperation = 'source-atop';
-    layer.features.forEach(features => {
+
+    // floor, offset and drawn over the shadow
+    layer.features.forEach(feature => {
       this.ctx.save();
-      this.drawFeature(features, floorColor);
+      this.ctx.translate(0.2, 0.2);
+      this.ctx.globalCompositeOperation = 'source-atop';
+      this.drawFeature(feature, floorColor);
       this.ctx.restore();
     });
-    this.ctx.restore();
-    this.ctx.globalCompositeOperation = 'destination-over';
-    layer.features.forEach((features, i) => {
-      this.ctx.save();
-      const overlay = this.hoverIndex === i || this.appState.selection.featureIndex === i;
-      this.drawFeature(features, overlay ? highlightColor : undefined, true);
-      this.ctx.restore();
-    });
-    this.ctx.restore();
-    this.ctx.globalCompositeOperation = 'source-over';
-    layer.features.forEach((features, i) => {
-      this.ctx.save();
-      if (this.hoverIndex === i || this.appState.selection.featureIndex === i) {
-        this.drawFeature(features, highlightColor);
+
+    // walls, drawn around the shape
+    layer.features.forEach(feature => {
+      if (feature.properties.type === 'wall') {
+        this.ctx.globalCompositeOperation = 'source-over';
+      } else {
+        this.ctx.globalCompositeOperation = 'destination-over';
       }
+      this.ctx.save();
+      this.drawFeature(feature, undefined, wallColor);
       this.ctx.restore();
     });
+
+    if (appState.tools.pointer.selected) {
+      // highlight, drawn on top of everything
+      this.ctx.globalCompositeOperation = 'source-over';
+      layer.features.forEach((feature, i) => {
+        if (this.hoverIndex === i || this.appState.selection.featureIndex === i) {
+          this.ctx.save();
+          this.drawFeature(feature, highlightColor, highlightColor);
+          this.ctx.restore();
+        }
+      });
+    }
 
     tmp.drawImage(this.bufferCanvas, 0, 0);
 
