@@ -35,16 +35,17 @@ export default function Menubar() {
   return <div className={classes.menubar}>
     <span className={classes.title}>RPG.ai</span>
     <input className={DS.input} value={name} onChange={updateName} />
-    <button className={DS.buttonSmall}>Save</button>
-    <button className={DS.buttonSmall}>Load</button>
-    <button className={DS.buttonSmall}>Undo</button>
-    <button className={DS.buttonSmall}>Redo</button>
-    <button className={DS.buttonSmall}>Print</button>
     <button
       className={DS.buttonSmall}
-      onClick={() => { appState.reset(); }}>
-      Clear
+      onClick={() => { appState.newMap(); }}>
+      New
     </button>
+    {appState.debug &&
+      <button
+        className={DS.buttonSmall}
+        onClick={() => { appState.reset(); }}>
+        Clear
+      </button>}
     <div className={classes.debugMenu}>
       <label>Debug</label>
       <input

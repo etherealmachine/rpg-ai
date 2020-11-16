@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useRef } from 'react';
 
 import { boundingRect, colorToIndex, dist, indexToColor, Pos } from './lib';
-import { Context, Feature, State } from './State';
+import { Context, Feature, FeatureProperties, State } from './State';
 import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
+import GeoJSON from 'geojson';
 
 const floorColor = '#F1ECE0';
 const shadowColor = '#999';
@@ -92,7 +93,7 @@ class CanvasRenderer {
       }
     } else {
       if (this.appState.tools.brush.selected) {
-        // TODO
+        this.appState.handleBrush(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
       }
       this.points = [];
     }
@@ -138,6 +139,9 @@ class CanvasRenderer {
     if (event.key === 'd') newOffset = { x: appState.offset.x - S, y: appState.offset.y };
     if (newOffset !== appState.offset) {
       appState.setOffset(newOffset);
+    }
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      appState.handleDelete();
     }
   }
 
@@ -366,19 +370,22 @@ class CanvasRenderer {
   drawFeature(feature: Feature, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     if (feature.type === 'Feature') {
+      let stroke = true;
       if (fillColor) ctx.fillStyle = fillColor;
       if (isPolygonFeature(feature)) {
         this.drawPolygon(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
-        if (fillColor) ctx.fillStyle = fillColor;
         this.drawEllipse(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
         this.drawLine(feature);
+      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'brush') {
+        this.drawBrush(feature);
+        stroke = false;
       } else {
-        throw new Error(`Can't draw ${feature.geometry.type}`);
+        throw new Error(`Can't draw ${feature.geometry.type} ${feature.properties.shape}`);
       }
       if (fillColor) ctx.fill();
-      if (strokeColor) {
+      if (strokeColor && stroke) {
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 0.2;
         ctx.lineJoin = 'round';
@@ -387,7 +394,7 @@ class CanvasRenderer {
     }
   }
 
-  drawLine(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
+  drawLine(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
     const { ctx } = this;
     const points = feature.geometry.coordinates;
     ctx.beginPath();
@@ -395,7 +402,15 @@ class CanvasRenderer {
     ctx.lineTo(points[1][0], points[1][1]);
   }
 
-  drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, GeoJSON.GeoJsonProperties>) {
+  drawBrush(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
+    const { ctx } = this;
+    const points = feature.geometry.coordinates;
+    points.forEach(p => {
+      ctx.ellipse(p[0], p[1], 1, 1, 0, 0, 2 * Math.PI);
+    });
+  }
+
+  drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, FeatureProperties>) {
     const { ctx } = this;
     const points = feature.geometry.coordinates.flat();
     ctx.beginPath();
@@ -406,7 +421,7 @@ class CanvasRenderer {
     ctx.closePath();
   }
 
-  drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, GeoJSON.GeoJsonProperties>) {
+  drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
     const { ctx } = this;
     const points = feature.geometry.coordinates;
     const [from, to] = points;

@@ -107,6 +107,14 @@ export class State {
   }
 
   @modify()
+  newMap() {
+    this.layers = [{ features: [] }];
+    this.selection = { layerIndex: 0, featureIndex: undefined };
+    this.scale = 1;
+    this.offset = { x: 0, y: 0 }
+  }
+
+  @modify()
   setDebug(debug: boolean) {
     this.debug = debug;
   }
@@ -140,7 +148,6 @@ export class State {
           shape: 'ellipse',
         },
       });
-    } else if (this.tools.walls.selected && this.tools.brush.selected) {
     } else if (this.tools.walls.selected) {
       features.push({
         type: 'Feature',
@@ -187,6 +194,32 @@ export class State {
         },
       });
     }
+  }
+
+  @modify()
+  handleBrush(points: Pos[]) {
+    const features = this.layers[this.selection.layerIndex].features;
+    if (this.tools.walls.selected && this.tools.brush.selected) {
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'MultiPoint',
+          coordinates: points.map(p => [p.x, p.y]),
+        },
+        properties: {
+          type: 'wall',
+          shape: 'brush',
+        },
+      });
+    }
+  }
+
+  @modify()
+  handleDelete() {
+    const features = this.layers[this.selection.layerIndex].features;
+    if (this.selection.featureIndex === undefined) return;
+    features.splice(this.selection.featureIndex, 1);
+    this.selection.featureIndex = undefined;
   }
 
   @modify()
@@ -266,9 +299,9 @@ export interface Pos {
   y: number
 }
 
-interface FeatureProperties {
+export interface FeatureProperties {
   type: FeatureType
-  shape: 'polygon' | 'ellipse' | 'line'
+  shape: 'polygon' | 'ellipse' | 'line' | 'brush'
   name?: string
   description?: string
 }
