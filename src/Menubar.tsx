@@ -40,6 +40,11 @@ export default function Menubar() {
       onClick={() => { appState.newMap(); }}>
       New
     </button>
+    <button
+      className={DS.buttonSmall}
+      onClick={() => { appState.toggleModal(); }}>
+      Help
+    </button>
     {appState.debug &&
       <button
         className={DS.buttonSmall}

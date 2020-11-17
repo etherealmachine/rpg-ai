@@ -85,13 +85,21 @@ class CanvasRenderer {
       this.points = [];
       this.drag = undefined;
     } else if (this.drag) {
-      const [from, to] = boundingRect(
-        this.canvasToWorld(this.drag.start),
-        this.canvasToWorld(this.drag.end), this.size);
-      from.x = Math.round(from.x / this.size);
-      from.y = Math.round(from.y / this.size);
-      to.x = Math.round(to.x / this.size);
-      to.y = Math.round(to.y / this.size);
+      let [from, to] = [this.canvasToWorld(this.drag.start), this.canvasToWorld(this.drag.end)];
+      if (this.appState.tools.rect.selected || this.appState.tools.ellipse.selected) {
+        [from, to] = boundingRect(from, to);
+      }
+      if (this.appState.tools.walls.selected) {
+        from.x = Math.round(from.x / this.size);
+        from.y = Math.round(from.y / this.size);
+        to.x = Math.round(to.x / this.size);
+        to.y = Math.round(to.y / this.size);
+      } else {
+        from.x = Math.round(from.x / (this.size / 2)) * (this.size / 2) / this.size;
+        from.y = Math.round(from.y / (this.size / 2)) * (this.size / 2) / this.size;
+        to.x = Math.round(to.x / (this.size / 2)) * (this.size / 2) / this.size;
+        to.y = Math.round(to.y / (this.size / 2)) * (this.size / 2) / this.size;
+      }
       this.appState.handleDrag(from, to);
       this.drag = undefined;
       this.points = [];
@@ -261,7 +269,7 @@ class CanvasRenderer {
     const h = Math.abs(a.y - b.y) / this.size;
     ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
     ctx.fillStyle = '#000';
-    this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
+    this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
   }
 
   drawEllipseSelection(from: Pos, to: Pos) {
@@ -296,7 +304,7 @@ class CanvasRenderer {
     const h = Math.abs(a.y - b.y) / this.size;
     ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
     ctx.fillStyle = '#000';
-    this.renderTextCenter(`${w} x ${h}`, "14px Roboto, sans-serif");
+    this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
   }
 
   drawLineSelection(from: Pos, to: Pos) {
@@ -313,7 +321,7 @@ class CanvasRenderer {
     if (to.x > from.x) ctx.translate(to.x + 14, to.y - 7);
     else ctx.translate(to.x - 14, to.y - 7);
     ctx.fillStyle = '#000';
-    this.renderTextCenter(`${Math.floor(dist(from.x, from.y, to.x, to.y) / size).toFixed(0)}`, "14px Roboto, sans-serif");
+    this.renderTextCenter(`${Math.floor(dist(from.x, from.y, to.x, to.y) / size * 5).toFixed(0)}ft`, "14px Roboto, sans-serif");
   }
 
   drawPolygonSelection(points: Pos[]) {
@@ -374,8 +382,13 @@ class CanvasRenderer {
         this.drawPolygon(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
         this.drawEllipse(feature);
-      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
+      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line' && feature.properties.type === 'wall') {
         this.drawLine(feature);
+      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line' && feature.properties.type === 'door') {
+        if (strokeColor) {
+          ctx.strokeStyle = strokeColor;
+          this.drawDoor(feature);
+        }
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'brush') {
         if (fillColor) {
           ctx.strokeStyle = fillColor;
@@ -409,6 +422,27 @@ class CanvasRenderer {
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
     ctx.lineTo(points[1][0], points[1][1]);
+  }
+
+  drawDoor(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
+    const { ctx } = this;
+    const points = feature.geometry.coordinates;
+    const [x1, y1, x2, y2] = [points[0][0], points[0][1], points[1][0], points[1][1]];
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 + 0.2 * (x2 - x1), y1 + 0.2 * (y2 - y1));
+    ctx.lineWidth = 0.2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1 + 0.2 * (x2 - x1), y1 + 0.2 * (y2 - y1));
+    ctx.lineTo(x1 + 0.8 * (x2 - x1), y1 + 0.8 * (y2 - y1));
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x1 + 0.8 * (x2 - x1), y1 + 0.8 * (y2 - y1));
+    ctx.lineTo(x2, y2);
+    ctx.lineWidth = 0.2;
+    ctx.stroke();
   }
 
   drawBrush(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
@@ -504,22 +538,31 @@ class CanvasRenderer {
     this.ctx.globalCompositeOperation = 'source-over';
     //this.ctx.globalCompositeOperation = 'source-atop';
     layer.features.forEach(feature => {
-      this.ctx.save();
-      //this.ctx.translate(0.2, 0.2);
-      this.drawFeature(feature, floorColor);
-      this.ctx.restore();
+      if (feature.properties.type === 'wall') {
+        this.ctx.save();
+        //this.ctx.translate(0.2, 0.2);
+        this.drawFeature(feature, floorColor);
+        this.ctx.restore();
+      }
     });
 
     // walls, drawn around the shape
+    this.ctx.globalCompositeOperation = 'source-over';
     layer.features.forEach(feature => {
       if (feature.properties.type === 'wall') {
-        this.ctx.globalCompositeOperation = 'source-over';
-      } else {
-        this.ctx.globalCompositeOperation = 'destination-over';
+        this.ctx.save();
+        this.drawFeature(feature, undefined, wallColor);
+        this.ctx.restore();
       }
-      this.ctx.save();
-      this.drawFeature(feature, undefined, wallColor);
-      this.ctx.restore();
+    });
+
+    this.ctx.globalCompositeOperation = 'source-over';
+    layer.features.forEach(feature => {
+      if (feature.properties.type === 'door') {
+        this.ctx.save();
+        this.drawFeature(feature, undefined, wallColor);
+        this.ctx.restore();
+      }
     });
 
     if (appState.tools.pointer.selected) {

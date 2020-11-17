@@ -93,17 +93,23 @@ export class State {
   layers = [{
     features: [],
   }] as Layer[]
-  drawerOpen = true
+  drawerOpen = false
   selection = {
     layerIndex: 0 as number,
     featureIndex: undefined as number | undefined
   }
   debug = false
+  modalOpen = true
   setState = (state: any) => { }
 
   getSelectedFeature(): Feature | undefined {
     if (this.selection.featureIndex === undefined) return undefined;
     return this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
+  }
+
+  @modify()
+  toggleModal() {
+    this.modalOpen = !this.modalOpen;
   }
 
   @modify()
