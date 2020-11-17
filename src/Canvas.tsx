@@ -70,17 +70,6 @@ class CanvasRenderer {
 
   onMouseUp = () => {
     this.mouseDown = false;
-    if (this.drag) {
-      const [from, to] = boundingRect(
-        this.canvasToWorld(this.drag.start),
-        this.canvasToWorld(this.drag.end), this.size);
-      from.x = Math.round(from.x / this.size);
-      from.y = Math.round(from.y / this.size);
-      to.x = Math.round(to.x / this.size);
-      to.y = Math.round(to.y / this.size);
-      this.appState.handleDrag(from, to);
-      this.drag = undefined;
-    }
     if (this.mouse && this.appState.tools.polygon.selected) {
       const worldPos = this.canvasToWorld(this.mouse);
       if (this.points.length >= 1 && dist(this.points[0].x, this.points[0].y, worldPos.x, worldPos.y) < this.size) {
@@ -91,10 +80,20 @@ class CanvasRenderer {
         worldPos.y = Math.round(worldPos.y / this.size) * this.size;
         this.points.push(worldPos);
       }
-    } else {
-      if (this.appState.tools.brush.selected) {
-        this.appState.handleBrush(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
-      }
+    } else if (this.appState.tools.brush.selected) {
+      this.appState.handleBrush(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
+      this.points = [];
+      this.drag = undefined;
+    } else if (this.drag) {
+      const [from, to] = boundingRect(
+        this.canvasToWorld(this.drag.start),
+        this.canvasToWorld(this.drag.end), this.size);
+      from.x = Math.round(from.x / this.size);
+      from.y = Math.round(from.y / this.size);
+      to.x = Math.round(to.x / this.size);
+      to.y = Math.round(to.y / this.size);
+      this.appState.handleDrag(from, to);
+      this.drag = undefined;
       this.points = [];
     }
   }
@@ -370,7 +369,6 @@ class CanvasRenderer {
   drawFeature(feature: Feature, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     if (feature.type === 'Feature') {
-      let stroke = true;
       if (fillColor) ctx.fillStyle = fillColor;
       if (isPolygonFeature(feature)) {
         this.drawPolygon(feature);
@@ -379,13 +377,24 @@ class CanvasRenderer {
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line') {
         this.drawLine(feature);
       } else if (isMultiPointFeature(feature) && feature.properties.shape === 'brush') {
+        if (fillColor) {
+          ctx.strokeStyle = fillColor;
+          ctx.lineWidth = 0.2;
+          ctx.lineJoin = 'round';
+        } else if (strokeColor) {
+          ctx.strokeStyle = strokeColor;
+          ctx.lineWidth = 0.6;
+          ctx.lineJoin = 'round';
+          this.ctx.globalCompositeOperation = 'destination-over';
+        }
         this.drawBrush(feature);
-        stroke = false;
+        ctx.stroke();
+        return;
       } else {
         throw new Error(`Can't draw ${feature.geometry.type} ${feature.properties.shape}`);
       }
       if (fillColor) ctx.fill();
-      if (strokeColor && stroke) {
+      if (strokeColor) {
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 0.2;
         ctx.lineJoin = 'round';
@@ -404,10 +413,24 @@ class CanvasRenderer {
 
   drawBrush(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
     const { ctx } = this;
+    const t1 = ctx.getTransform().transformPoint({ x: 0, y: 0 });
+    const t2 = ctx.getTransform().transformPoint({ x: 1, y: 1 });
+    const [dx, dy] = [t2.x - t1.x, t2.y - t1.y];
     const points = feature.geometry.coordinates;
-    points.forEach(p => {
-      ctx.ellipse(p[0], p[1], 1, 1, 0, 0, 2 * Math.PI);
-    });
+    ctx.beginPath();
+    for (let i = 0; i < points.length; i++) {
+      const [currX, currY] = points[i];
+      if (i > 0) {
+        let [lastX, lastY] = points[i - 1];
+        const d = dist(lastX * dx, lastY * dy, currX * dx, currY * dy);
+        for (let j = 0; j < d; j++) {
+          ctx.ellipse(
+            lastX + (currX - lastX) * (j / d),
+            lastY + (currY - lastY) * (j / d),
+            1, 1, 0, 0, 2 * Math.PI);
+        }
+      }
+    }
   }
 
   drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, FeatureProperties>) {
@@ -469,17 +492,20 @@ class CanvasRenderer {
     this.ctx.scale(this.size, this.size);
 
     // shadows
+    /*
     layer.features.forEach(feature => {
       this.ctx.save();
       this.drawFeature(feature, shadowColor);
       this.ctx.restore();
     });
+    */
 
     // floor, offset and drawn over the shadow
+    this.ctx.globalCompositeOperation = 'source-over';
+    //this.ctx.globalCompositeOperation = 'source-atop';
     layer.features.forEach(feature => {
       this.ctx.save();
-      this.ctx.translate(0.2, 0.2);
-      this.ctx.globalCompositeOperation = 'source-atop';
+      //this.ctx.translate(0.2, 0.2);
       this.drawFeature(feature, floorColor);
       this.ctx.restore();
     });
@@ -546,12 +572,12 @@ class CanvasRenderer {
       this.drawMousePos(this.mouse, tools.doors.selected);
       ctx.restore();
     }
-    if (this.drag) {
-      this.drawDrag();
-    } else if (this.points.length > 0 && tools.polygon.selected) {
+    if (this.points.length > 0 && tools.polygon.selected) {
       this.drawPolygonSelection(this.points);
     } else if (this.points.length > 0 && tools.brush.selected) {
       this.drawBrushSelection(this.points);
+    } else if (this.drag) {
+      this.drawDrag();
     }
     ctx.restore();
 
