@@ -1,9 +1,12 @@
 import React, { useContext, useEffect, useRef } from 'react';
 
-import { boundingRect, colorToIndex, dist, indexToColor, Pos } from './lib';
-import { Context, Feature, FeatureProperties, State } from './State';
-import { isPolygonFeature, isMultiPointFeature } from './GeoJSON';
-import GeoJSON from 'geojson';
+import {
+  boundingRect,
+  colorToIndex,
+  dist,
+  indexToColor,
+} from './lib';
+import { Context, Geometry, State } from './State';
 
 const floorColor = '#F1ECE0';
 const shadowColor = '#999';
@@ -12,13 +15,13 @@ const highlightColor = '#2f5574';
 const wallColor = '#000';
 
 class CanvasRenderer {
-  mouse?: Pos = undefined
+  mouse?: number[] = undefined
   mouseDown: boolean = false
   drag?: {
-    start: Pos
-    end: Pos
+    start: number[]
+    end: number[]
   }
-  points: Pos[] = []
+  points: number[][] = []
   polygonToolSelected: boolean = false
   hoverIndex?: number
   size: number = 30
@@ -72,16 +75,14 @@ class CanvasRenderer {
     this.mouseDown = false;
     if (this.mouse && this.appState.tools.polygon.selected) {
       const worldPos = this.canvasToWorld(this.mouse);
-      if (this.points.length >= 1 && dist(this.points[0].x, this.points[0].y, worldPos.x, worldPos.y) < this.size) {
-        this.appState.handlePolygon(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
+      if (this.points.length >= 1 && dist(this.points[0][0], this.points[0][1], worldPos[0], worldPos[1]) < this.size) {
+        this.appState.handlePolygon(this.points.map(this.worldToTile));
         this.points = [];
       } else {
-        worldPos.x = Math.round(worldPos.x / this.size) * this.size;
-        worldPos.y = Math.round(worldPos.y / this.size) * this.size;
-        this.points.push(worldPos);
+        this.points.push(this.roundToTile(worldPos));
       }
     } else if (this.appState.tools.brush.selected) {
-      this.appState.handleBrush(this.points.map(p => ({ x: p.x / this.size, y: p.y / this.size })));
+      this.appState.handleBrush(this.points.map(p => [p[0] / this.size, p[1] / this.size]));
       this.points = [];
       this.drag = undefined;
     } else if (this.drag) {
@@ -89,28 +90,16 @@ class CanvasRenderer {
       if (this.appState.tools.rect.selected || this.appState.tools.ellipse.selected) {
         [from, to] = boundingRect(from, to);
       }
-      if (this.appState.tools.walls.selected) {
-        from.x = Math.round(from.x / this.size);
-        from.y = Math.round(from.y / this.size);
-        to.x = Math.round(to.x / this.size);
-        to.y = Math.round(to.y / this.size);
-      } else {
-        from.x = Math.round(from.x / (this.size / 2)) * (this.size / 2) / this.size;
-        from.y = Math.round(from.y / (this.size / 2)) * (this.size / 2) / this.size;
-        to.x = Math.round(to.x / (this.size / 2)) * (this.size / 2) / this.size;
-        to.y = Math.round(to.y / (this.size / 2)) * (this.size / 2) / this.size;
-      }
-      this.appState.handleDrag(from, to);
+      this.appState.handleDrag(
+        this.worldToTile(this.roundToTile(from)),
+        this.worldToTile(this.roundToTile(to)));
       this.drag = undefined;
       this.points = [];
     }
   }
 
   onMouseMove = (event: MouseEvent) => {
-    this.mouse = {
-      x: event.offsetX,
-      y: event.offsetY,
-    };
+    this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = { ...this.mouse };
       if (this.appState.tools.brush) {
@@ -127,11 +116,11 @@ class CanvasRenderer {
     const min = 0.2;
     const newScale = Math.max(Math.min(scale - event.deltaY / 100, max), min);
     const mouseWorldPos = this.canvasToWorld(mouse);
-    const newMouseWorldPos = { x: mouse.x / newScale - offset.x, y: mouse.y / newScale - offset.y };
-    const newOffset = {
-      x: offset.x - (mouseWorldPos.x - newMouseWorldPos.x),
-      y: offset.y - (mouseWorldPos.y - newMouseWorldPos.y)
-    }
+    const newMouseWorldPos = [mouse[0] / newScale - offset[0], mouse[1] / newScale - offset[1]];
+    const newOffset = [
+      offset[0] - (mouseWorldPos[0] - newMouseWorldPos[0]),
+      offset[1] - (mouseWorldPos[1] - newMouseWorldPos[1])
+    ];
     this.appState.setZoom(newScale, newOffset);
   }
 
@@ -140,10 +129,10 @@ class CanvasRenderer {
     const { appState } = this;
     const S = this.size * this.appState.scale;
     let newOffset = appState.offset;
-    if (event.key === 'w') newOffset = { x: appState.offset.x, y: appState.offset.y + S };
-    if (event.key === 'a') newOffset = { x: appState.offset.x + S, y: appState.offset.y };
-    if (event.key === 's') newOffset = { x: appState.offset.x, y: appState.offset.y - S };
-    if (event.key === 'd') newOffset = { x: appState.offset.x - S, y: appState.offset.y };
+    if (event.key === 'w') newOffset = [appState.offset[0], appState.offset[1] + S];
+    if (event.key === 'a') newOffset = [appState.offset[0] + S, appState.offset[1]];
+    if (event.key === 's') newOffset = [appState.offset[0], appState.offset[1] - S];
+    if (event.key === 'd') newOffset = [appState.offset[0] - S, appState.offset[1]];
     if (newOffset !== appState.offset) {
       appState.setOffset(newOffset);
     }
@@ -153,27 +142,28 @@ class CanvasRenderer {
   }
 
   // canvas coordinates to world coordinates
-  canvasToWorld(p: Pos): Pos {
+  canvasToWorld = (p: number[]): number[] => {
     const { offset, scale } = this.appState;
-    return { x: p.x / scale - offset.x, y: p.y / scale - offset.y };
+    return [p[0] / scale - offset[0], p[1] / scale - offset[1]];
   }
 
   // world coordinates to canvas coordinates
-  worldToCanvas(p: Pos): Pos {
+  worldToCanvas = (p: number[]): number[] => {
     const { offset, scale } = this.appState;
-    return { x: (p.x + offset.x) * scale, y: (p.y + offset.y) * scale };
+    return [(p[0] + offset[0]) * scale, (p[1] + offset[1]) * scale];
   }
 
   // world coordinates to tile coordinates
-  worldToTile(p: Pos): Pos {
-    return { x: Math.floor(p.x / this.size), y: Math.floor(p.y / this.size) };
+  worldToTile = (p: number[]): number[] => {
+    return [Math.floor(p[0] / this.size), Math.floor(p[1] / this.size)];
   }
 
-  mouseToTile(mouse: Pos) {
-    const p = this.canvasToWorld(mouse);
-    p.x = Math.floor(p.x / this.size);
-    p.y = Math.floor(p.y / this.size);
-    return p;
+  roundToTile = (p: number[]): number[] => {
+    return [Math.round(p[0] / this.size) * this.size, Math.round(p[1] / this.size) * this.size];
+  }
+
+  mouseToTile = (mouse: number[]) => {
+    return this.worldToTile(this.canvasToWorld(mouse));
   }
 
   renderTextCenter(text: string, font: string) {
@@ -220,142 +210,126 @@ class CanvasRenderer {
     }
   }
 
-  drawMousePos(mouse: Pos, halfGrid: boolean = false) {
+  drawMousePos(mouse: number[]) {
     const { ctx } = this;
-    const p = this.canvasToWorld(mouse);
-    const d = halfGrid ? 2 : 1;
-    const closestGridPoint = {
-      x: Math.round(p.x / (this.size / d)) * (this.size / d),
-      y: Math.round(p.y / (this.size / d)) * (this.size / d),
-    }
+    const p = this.roundToTile(this.canvasToWorld(mouse));
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(closestGridPoint.x, closestGridPoint.y, 2, 0, 2 * Math.PI);
+    ctx.arc(p[0], p[1], 2, 0, 2 * Math.PI);
     ctx.fill();
 
     if (this.appState.debug) {
       const font = "14px Roboto, sans-serif";
-      ctx.translate(p.x, p.y - 16);
-      this.renderTextCenter(`Mouse: ${mouse.x.toFixed(0)},${mouse.y.toFixed(0)}`, font);
+      ctx.translate(p[0], p[1] - 16);
+      this.renderTextCenter(`Mouse: ${mouse[0].toFixed(0)},${mouse[1].toFixed(0)}`, font);
       ctx.translate(0, -16);
-      this.renderTextCenter(`World: ${p.x.toFixed(0)},${p.y.toFixed(0)}`, font);
+      this.renderTextCenter(`World: ${p[0].toFixed(0)},${p[1].toFixed(0)}`, font);
       ctx.translate(0, -16);
-      this.renderTextCenter(`Tile: ${Math.floor(p.x / this.size).toFixed(0)},${Math.floor(p.y / this.size).toFixed(0)}`, font);
+      this.renderTextCenter(`Tile: ${Math.floor(p[0] / this.size).toFixed(0)},${Math.floor(p[1] / this.size).toFixed(0)}`, font);
     }
   }
 
-  drawRectSelection(from: Pos, to: Pos) {
+  drawRectSelection(from: number[], to: number[]) {
     const { ctx } = this;
     const [a, b] = boundingRect(from, to, this.size);
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
+    ctx.arc(a[0], a[1], 2, 0, 2 * Math.PI);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
+    ctx.arc(b[0], b[1], 2, 0, 2 * Math.PI);
     ctx.fill();
 
     ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(a.x, b.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.lineTo(b.x, a.y);
-    ctx.lineTo(a.x, a.y);
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(a[0], b[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.lineTo(b[0], a[1]);
+    ctx.lineTo(a[0], a[1]);
     ctx.stroke();
 
-    const w = Math.abs(a.x - b.x) / this.size;
-    const h = Math.abs(a.y - b.y) / this.size;
-    ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
+    const w = Math.abs(a[0] - b[0]) / this.size;
+    const h = Math.abs(a[1] - b[1]) / this.size;
+    ctx.translate(a[0] + (b[0] - a[0]) / 2, a[1] - 14);
     ctx.fillStyle = '#000';
     this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
   }
 
-  drawEllipseSelection(from: Pos, to: Pos) {
+  drawEllipseSelection(from: number[], to: number[]) {
     const { ctx } = this;
     const [a, b] = boundingRect(from, to, this.size);
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(a.x, a.y, 2, 0, 2 * Math.PI);
+    ctx.arc(a[0], a[1], 2, 0, 2 * Math.PI);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(b.x, b.y, 2, 0, 2 * Math.PI);
+    ctx.arc(b[0], b[1], 2, 0, 2 * Math.PI);
     ctx.fill();
 
     ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(a.x, b.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.lineTo(b.x, a.y);
-    ctx.lineTo(a.x, a.y);
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(a[0], b[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.lineTo(b[0], a[1]);
+    ctx.lineTo(a[0], a[1]);
     ctx.stroke();
 
     ctx.save();
-    ctx.translate(a.x, a.y);
-    ctx.beginPath();
-    ctx.ellipse((b.x - a.x) / 2, (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
+    this.pathEllipse([a, b]);
     ctx.stroke();
     ctx.restore();
 
-    const w = Math.abs(a.x - b.x) / this.size;
-    const h = Math.abs(a.y - b.y) / this.size;
-    ctx.translate(a.x + (b.x - a.x) / 2, a.y - 14);
+    const w = Math.abs(a[0] - b[0]) / this.size;
+    const h = Math.abs(a[1] - b[1]) / this.size;
+    ctx.translate(a[0] + (b[0] - a[0]) / 2, a[1] - 14);
     ctx.fillStyle = '#000';
     this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
   }
 
-  drawLineSelection(from: Pos, to: Pos) {
+  drawLineSelection(from: number[], to: number[]) {
     const { ctx, size } = this;
     const S = size / 2;
-    from.x = Math.round(from.x / S) * S;
-    from.y = Math.round(from.y / S) * S;
-    to.x = Math.round(to.x / S) * S;
-    to.y = Math.round(to.y / S) * S;
+    from[0] = Math.round(from[0] / S) * S;
+    from[1] = Math.round(from[1] / S) * S;
+    to[0] = Math.round(to[0] / S) * S;
+    to[1] = Math.round(to[1] / S) * S;
     ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
+    ctx.moveTo(from[0], from[1]);
+    ctx.lineTo(to[0], to[1]);
     ctx.stroke();
-    if (to.x > from.x) ctx.translate(to.x + 14, to.y - 7);
-    else ctx.translate(to.x - 14, to.y - 7);
+    if (to[0] > from[0]) ctx.translate(to[0] + 14, to[1] - 7);
+    else ctx.translate(to[0] - 14, to[1] - 7);
     ctx.fillStyle = '#000';
-    this.renderTextCenter(`${Math.floor(dist(from.x, from.y, to.x, to.y) / size * 5).toFixed(0)}ft`, "14px Roboto, sans-serif");
+    this.renderTextCenter(`${Math.floor(dist(from[0], from[1], to[0], to[1]) / size * 5).toFixed(0)}ft`, "14px Roboto, sans-serif");
   }
 
-  drawPolygonSelection(points: Pos[]) {
+  drawPolygonSelection(points: number[][]) {
     const { ctx } = this;
     ctx.fillStyle = '#000';
     for (let i = 0; i < points.length; i++) {
       ctx.beginPath();
-      ctx.arc(points[i].x, points[i].y, 2, 0, 2 * Math.PI);
+      ctx.arc(points[i][0], points[i][1], 2, 0, 2 * Math.PI);
       ctx.closePath();
       ctx.fill();
     }
 
     ctx.strokeStyle = highlightColor;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 0; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.closePath();
+    this.pathPoints(points, true)
     ctx.stroke();
   }
 
-  drawBrushSelection(points: Pos[]) {
+  drawBrushSelection(points: number[][]) {
     const { ctx } = this;
     ctx.strokeStyle = highlightColor;
     ctx.lineWidth = this.size;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 0; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
+    this.pathPoints(points);
     ctx.stroke();
   }
 
@@ -364,9 +338,9 @@ class CanvasRenderer {
     if (drag) {
       const start = this.canvasToWorld(drag.start);
       const end = this.canvasToWorld(drag.end);
-      if (dist(start.x, start.y, end.x, end.y) > size && appState.tools.rect.selected) {
+      if (dist(start[0], start[1], end[0], end[1]) > size && appState.tools.rect.selected) {
         this.drawRectSelection(start, end);
-      } else if (dist(start.x, start.y, end.x, end.y) > size && appState.tools.ellipse.selected) {
+      } else if (dist(start[0], start[1], end[0], end[1]) > size && appState.tools.ellipse.selected) {
         this.drawEllipseSelection(start, end);
       } else {
         this.drawLineSelection(start, end);
@@ -374,127 +348,101 @@ class CanvasRenderer {
     }
   }
 
-  drawFeature(feature: Feature, fillColor?: string, strokeColor?: string) {
-    const { ctx } = this;
-    if (feature.type === 'Feature') {
-      if (fillColor) ctx.fillStyle = fillColor;
-      if (isPolygonFeature(feature)) {
-        this.drawPolygon(feature);
-      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'ellipse') {
-        this.drawEllipse(feature);
-      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line' && feature.properties.type === 'wall') {
-        this.drawLine(feature);
-      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'line' && feature.properties.type === 'door') {
-        if (strokeColor) {
-          ctx.strokeStyle = strokeColor;
-          this.drawDoor(feature);
-        }
-      } else if (isMultiPointFeature(feature) && feature.properties.shape === 'brush') {
-        if (fillColor) {
-          ctx.strokeStyle = fillColor;
-          ctx.lineWidth = 0.2;
-          ctx.lineJoin = 'round';
-        } else if (strokeColor) {
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = 0.6;
-          ctx.lineJoin = 'round';
-          this.ctx.globalCompositeOperation = 'destination-over';
-        }
-        this.drawBrush(feature);
-        ctx.stroke();
-        return;
-      } else {
-        throw new Error(`Can't draw ${feature.geometry.type} ${feature.properties.shape}`);
-      }
-      if (fillColor) ctx.fill();
-      if (strokeColor) {
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 0.2;
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      }
+  drawGeometry(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+    if (geometry.type === 'polygon') {
+      this.drawPolygon(geometry, fillColor, strokeColor);
+    } else if (geometry.type === 'ellipse') {
+      this.drawEllipse(geometry, fillColor, strokeColor);
+    } else if (geometry.type === 'line') {
+      this.drawLine(geometry, strokeColor);
+    } else if (geometry.type === 'brush') {
+      this.drawBrush(geometry, fillColor, strokeColor);
     }
   }
 
-  drawLine(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
+  drawPolygon(geometry: Geometry, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    const points = feature.geometry.coordinates;
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    ctx.lineTo(points[1][0], points[1][1]);
-  }
-
-  drawDoor(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
-    const { ctx } = this;
-    const points = feature.geometry.coordinates;
-    const [x1, y1, x2, y2] = [points[0][0], points[0][1], points[1][0], points[1][1]];
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x1 + 0.2 * (x2 - x1), y1 + 0.2 * (y2 - y1));
-    ctx.lineWidth = 0.2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x1 + 0.2 * (x2 - x1), y1 + 0.2 * (y2 - y1));
-    ctx.lineTo(x1 + 0.8 * (x2 - x1), y1 + 0.8 * (y2 - y1));
-    ctx.lineWidth = 0.4;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x1 + 0.8 * (x2 - x1), y1 + 0.8 * (y2 - y1));
-    ctx.lineTo(x2, y2);
-    ctx.lineWidth = 0.2;
-    ctx.stroke();
-  }
-
-  drawBrush(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
-    const { ctx } = this;
-    const t1 = ctx.getTransform().transformPoint({ x: 0, y: 0 });
-    const t2 = ctx.getTransform().transformPoint({ x: 1, y: 1 });
-    const [dx, dy] = [t2.x - t1.x, t2.y - t1.y];
-    const points = feature.geometry.coordinates;
-    ctx.beginPath();
-    for (let i = 0; i < points.length; i++) {
-      const [currX, currY] = points[i];
-      if (i > 0) {
-        let [lastX, lastY] = points[i - 1];
-        const d = dist(lastX * dx, lastY * dy, currX * dx, currY * dy);
-        for (let j = 0; j < d; j++) {
-          ctx.ellipse(
-            lastX + (currX - lastX) * (j / d),
-            lastY + (currY - lastY) * (j / d),
-            1, 1, 0, 0, 2 * Math.PI);
-        }
-      }
+    this.pathPoints(geometry.coordinates, true);
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 0.1;
+      ctx.stroke();
     }
   }
 
-  drawPolygon(feature: GeoJSON.Feature<GeoJSON.Polygon, FeatureProperties>) {
+  drawEllipse(geometry: Geometry, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    const points = feature.geometry.coordinates.flat();
+    this.pathEllipse(geometry.coordinates, true);
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 0.1;
+      ctx.stroke();
+    }
+  }
+
+  drawLine(geometry: Geometry, strokeColor?: string) {
+    const { ctx } = this;
+    this.pathPoints(geometry.coordinates);
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 0.1;
+      ctx.stroke();
+    }
+  }
+
+  drawBrush(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+    const { ctx } = this;
+    this.pathPoints(geometry.coordinates);
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+    if (fillColor) {
+      ctx.strokeStyle = fillColor;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+  }
+
+  pathPoints(points: number[][], close: boolean = false) {
+    const { ctx } = this;
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
     for (let i = 0; i < points.length; i++) {
       ctx.lineTo(points[i][0], points[i][1]);
     }
-    ctx.closePath();
+    if (close) ctx.closePath();
   }
 
-  drawEllipse(feature: GeoJSON.Feature<GeoJSON.MultiPoint, FeatureProperties>) {
+  pathEllipse(points: number[][], close: boolean = false) {
     const { ctx } = this;
-    const points = feature.geometry.coordinates;
-    const [from, to] = points;
-    let a = { x: from[0], y: from[1] };
-    let b = { x: to[0], y: to[1] };
+    const [a, b] = points;
     ctx.beginPath();
-    ctx.ellipse(a.x + (b.x - a.x) / 2, a.y + (b.y - a.y) / 2, (b.x - a.x) / 2, (b.y - a.y) / 2, 0, 0, 2 * Math.PI);
-    ctx.closePath();
+    ctx.translate(a[0], a[1]);
+    ctx.beginPath();
+    ctx.ellipse((b[0] - a[0]) / 2, (b[1] - a[1]) / 2, (b[0] - a[0]) / 2, (a[1] - b[1]) / 2, 0, 0, 2 * Math.PI);
+    if (close) ctx.closePath();
   }
 
-  drawLayers() {
+  drawLevels() {
     const { appState } = this;
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
-    const layer = this.appState.layers[this.appState.selection.layerIndex];
+    const level = this.appState.levels[this.appState.selection.layerIndex];
 
     this.ctx = this.bufferCtx;
 
@@ -505,15 +453,15 @@ class CanvasRenderer {
     this.ctx.fillRect(0, 0, width, height);
     this.ctx.save();
     this.ctx.scale(appState.scale, appState.scale);
-    this.ctx.translate(appState.offset.x, appState.offset.y);
+    this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
-    layer.features.forEach((feature, i) => {
+    level.features.forEach((feature, i) => {
       this.ctx.save();
-      this.drawFeature(feature, indexToColor(i), indexToColor(i));
+      this.drawGeometry(feature.geometry, indexToColor(i), indexToColor(i));
       this.ctx.restore();
     });
     if (this.mouse) {
-      const p = this.ctx.getImageData(this.mouse.x, this.mouse.y, 1, 1).data;
+      const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
       this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
     }
     this.ctx.restore();
@@ -522,56 +470,21 @@ class CanvasRenderer {
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, width, height);
     this.ctx.scale(appState.scale, appState.scale);
-    this.ctx.translate(appState.offset.x, appState.offset.y);
+    this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
 
-    // shadows
-    /*
-    layer.features.forEach(feature => {
+    level.features.forEach(feature => {
       this.ctx.save();
-      this.drawFeature(feature, shadowColor);
+      this.drawGeometry(feature.geometry, floorColor, wallColor);
       this.ctx.restore();
-    });
-    */
-
-    // floor, offset and drawn over the shadow
-    this.ctx.globalCompositeOperation = 'source-over';
-    //this.ctx.globalCompositeOperation = 'source-atop';
-    layer.features.forEach(feature => {
-      if (feature.properties.type === 'wall') {
-        this.ctx.save();
-        //this.ctx.translate(0.2, 0.2);
-        this.drawFeature(feature, floorColor);
-        this.ctx.restore();
-      }
-    });
-
-    // walls, drawn around the shape
-    this.ctx.globalCompositeOperation = 'source-over';
-    layer.features.forEach(feature => {
-      if (feature.properties.type === 'wall') {
-        this.ctx.save();
-        this.drawFeature(feature, undefined, wallColor);
-        this.ctx.restore();
-      }
-    });
-
-    this.ctx.globalCompositeOperation = 'source-over';
-    layer.features.forEach(feature => {
-      if (feature.properties.type === 'door') {
-        this.ctx.save();
-        this.drawFeature(feature, undefined, wallColor);
-        this.ctx.restore();
-      }
     });
 
     if (appState.tools.pointer.selected) {
-      // highlight, drawn on top of everything
       this.ctx.globalCompositeOperation = 'source-over';
-      layer.features.forEach((feature, i) => {
+      level.features.forEach((feature, i) => {
         if (this.hoverIndex === i || this.appState.selection.featureIndex === i) {
           this.ctx.save();
-          this.drawFeature(feature, highlightColor, highlightColor);
+          this.drawGeometry(feature.geometry, highlightColor, highlightColor);
           this.ctx.restore();
         }
       });
@@ -601,18 +514,18 @@ class CanvasRenderer {
     // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
 
     ctx.save();
-    this.drawLayers();
+    this.drawLevels();
     ctx.restore();
 
     ctx.save();
     ctx.scale(appState.scale, appState.scale);
-    ctx.translate(appState.offset.x, appState.offset.y);
+    ctx.translate(appState.offset[0], appState.offset[1]);
     ctx.save();
     this.drawGrid();
     ctx.restore();
     if (this.mouse) {
       ctx.save();
-      this.drawMousePos(this.mouse, tools.doors.selected);
+      this.drawMousePos(this.mouse);
       ctx.restore();
     }
     if (this.points.length > 0 && tools.polygon.selected) {

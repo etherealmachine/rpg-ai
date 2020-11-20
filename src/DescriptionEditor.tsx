@@ -35,7 +35,7 @@ const classes = css`
 export default function DescriptionEditor() {
   const appState = useContext(State.Context);
   const selectedFeature = appState.selection.featureIndex ?
-    appState.layers[appState.selection.layerIndex].features[appState.selection.featureIndex] :
+    appState.levels[appState.selection.layerIndex].features[appState.selection.featureIndex] :
     undefined;
   const properties = selectedFeature?.properties;
   const [name, setName] = useState(properties ? properties['name'] : undefined);

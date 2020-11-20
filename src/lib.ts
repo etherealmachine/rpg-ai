@@ -1,7 +1,4 @@
-export interface Pos {
-  x: number
-  y: number
-}
+import * as martinez from 'martinez-polygon-clipping';
 
 export function line(x0: number, y0: number, x1: number, y1: number): { x: number, y: number }[] {
   const dx = Math.abs(x1 - x0);
@@ -42,14 +39,37 @@ export function indexToColor(i: number): string {
   return '#' + i.toString(16).padStart(6, '0');
 }
 
-export function boundingRect(from: Pos, to: Pos, closest: number = 1) {
-  let x1 = Math.min(from.x, to.x);
-  let y1 = Math.min(from.y, to.y);
-  let x2 = Math.max(from.x, to.x);
-  let y2 = Math.max(from.y, to.y);
+export function boundingRect(from: number[], to: number[], closest: number = 1) {
+  let x1 = Math.min(from[0], to[0]);
+  let y1 = Math.max(from[1], to[1]);
+  let x2 = Math.max(from[0], to[0]);
+  let y2 = Math.min(from[1], to[1]);
   x1 = Math.round(x1 / closest) * closest;
   y1 = Math.round(y1 / closest) * closest;
   x2 = Math.round(x2 / closest) * closest;
   y2 = Math.round(y2 / closest) * closest;
-  return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+  return [[x1, y1], [x2, y2]];
+}
+
+export function merge(features: GeoJSON.Feature[]) {
+  while (true) {
+    let overlap = false;
+    for (let i = 0; i < features.length; i++) {
+      for (let j = 0; j < features.length; j++) {
+        if (i === j) continue;
+        const f1 = features[i];
+        const f2 = features[j];
+        if (f1.geometry.type === 'Polygon' && f2.geometry.type === 'Polygon') {
+          const union = martinez.union(f1.geometry.coordinates, f2.geometry.coordinates);
+          if (union.length === 1) {
+            f1.geometry.coordinates = union[0] as number[][][];
+            features.splice(j, 1);
+            overlap = true;
+            break;
+          }
+        }
+      }
+    }
+    if (!overlap) return;
+  }
 }

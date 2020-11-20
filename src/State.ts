@@ -1,8 +1,6 @@
 import React from 'react';
 import { produce } from 'immer';
 
-// import * as martinez from 'martinez-polygon-clipping';
-
 function modify() {
   return function (
     target: any,
@@ -84,13 +82,11 @@ const initialTools = () => ({
 
 export type ToolName = keyof ReturnType<typeof initialTools>;
 
-export type FeatureType = 'wall' | 'door' | 'stairs' | 'text'
-
 export class State {
   tools = initialTools()
   scale = 1
-  offset = { x: 0, y: 0 }
-  layers = [{
+  offset = [0, 0]
+  levels = [{
     features: [],
   }] as Layer[]
   drawerOpen = false
@@ -104,7 +100,7 @@ export class State {
 
   getSelectedFeature(): Feature | undefined {
     if (this.selection.featureIndex === undefined) return undefined;
-    return this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
+    return this.levels[this.selection.layerIndex].features[this.selection.featureIndex];
   }
 
   @modify()
@@ -114,10 +110,10 @@ export class State {
 
   @modify()
   newMap() {
-    this.layers = [{ features: [] }];
+    this.levels = [{ features: [] }];
     this.selection = { layerIndex: 0, featureIndex: undefined };
     this.scale = 1;
-    this.offset = { x: 0, y: 0 }
+    this.offset = [0, 0];
   }
 
   @modify()
@@ -126,95 +122,60 @@ export class State {
   }
 
   @modify()
-  handleDrag(from: Pos, to: Pos) {
-    if (from.x === to.x && from.y === to.y) return;
-    const features = this.layers[this.selection.layerIndex].features;
-    if (this.tools.walls.selected && this.tools.rect.selected) {
-      const coordinates = [[[from.x, from.y], [from.x, to.y], [to.x, to.y], [to.x, from.y], [from.x, from.y]]];
+  handleDrag(from: number[], to: number[]) {
+    if (from[0] === to[0] && from[1] === to[1]) return;
+    const features = this.levels[this.selection.layerIndex].features;
+    if (!this.tools.walls.selected) return;
+    if (this.tools.rect.selected) {
       features.push({
-        type: 'Feature',
         geometry: {
-          type: 'Polygon',
-          coordinates: coordinates,
+          type: 'polygon',
+          coordinates: [[from[0], from[1]], [from[0], to[1]], [to[0], to[1]], [to[0], from[1]]],
         },
         properties: {
-          type: 'wall',
-          shape: 'polygon',
+          type: 'room',
         },
       });
-    } else if (this.tools.walls.selected && this.tools.ellipse.selected) {
+    } else if (this.tools.ellipse.selected) {
       features.push({
-        type: 'Feature',
         geometry: {
-          type: 'MultiPoint',
-          coordinates: [[from.x, from.y], [to.x, to.y]],
+          type: 'ellipse',
+          coordinates: [from, to],
         },
         properties: {
-          type: 'wall',
-          shape: 'ellipse',
-        },
-      });
-    } else if (this.tools.walls.selected) {
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'MultiPoint',
-          coordinates: [[from.x, from.y], [to.x, to.y]],
-        },
-        properties: {
-          type: 'wall',
-          shape: 'line',
-        },
-      });
-    } else if (this.tools.doors.selected) {
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'MultiPoint',
-          coordinates: [[from.x, from.y], [to.x, to.y]],
-        },
-        properties: {
-          type: 'door',
-          shape: 'line',
+          type: 'room',
         },
       });
     }
   }
 
   @modify()
-  handlePolygon(points: Pos[]) {
-    const features = this.layers[this.selection.layerIndex].features;
+  handlePolygon(points: number[][]) {
+    const features = this.levels[this.selection.layerIndex].features;
     if (this.tools.walls.selected) {
-      const coordinates = [points.map(p => [p.x, p.y])];
-      coordinates[0].push([points[0].x, points[0].y]);
-      coordinates[0].push([points[0].x, points[0].y]);
       features.push({
-        type: 'Feature',
         geometry: {
-          type: 'Polygon',
-          coordinates: coordinates,
+          type: 'polygon',
+          coordinates: points,
         },
         properties: {
-          type: 'wall',
-          shape: 'polygon',
+          type: 'room',
         },
       });
     }
   }
 
   @modify()
-  handleBrush(points: Pos[]) {
-    const features = this.layers[this.selection.layerIndex].features;
+  handleBrush(points: number[][]) {
+    const features = this.levels[this.selection.layerIndex].features;
     if (this.tools.walls.selected && this.tools.brush.selected) {
       features.push({
-        type: 'Feature',
         geometry: {
-          type: 'MultiPoint',
-          coordinates: points.map(p => [p.x, p.y]),
+          type: 'brush',
+          coordinates: points,
         },
         properties: {
-          type: 'wall',
-          shape: 'brush',
+          type: 'room',
         },
       });
     }
@@ -222,7 +183,7 @@ export class State {
 
   @modify()
   handleDelete() {
-    const features = this.layers[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.layerIndex].features;
     if (this.selection.featureIndex === undefined) return;
     features.splice(this.selection.featureIndex, 1);
     this.selection.featureIndex = undefined;
@@ -272,12 +233,12 @@ export class State {
   }
 
   @modify()
-  setOffset(offset: Pos) {
+  setOffset(offset: number[]) {
     this.offset = offset;
   }
 
   @modify()
-  setZoom(scale: number, offset: Pos) {
+  setZoom(scale: number, offset: number[]) {
     this.scale = scale;
     this.offset = offset;
   }
@@ -290,7 +251,7 @@ export class State {
   @modify()
   setDescription(desc: Description | undefined) {
     if (this.selection.featureIndex === undefined) return;
-    const feature = this.layers[this.selection.layerIndex].features[this.selection.featureIndex];
+    const feature = this.levels[this.selection.layerIndex].features[this.selection.featureIndex];
     Object.assign(feature.properties, desc);
   }
 
@@ -300,19 +261,23 @@ export class State {
   }
 }
 
-export interface Pos {
-  x: number
-  y: number
+export interface Geometry {
+  type: 'polygon' | 'ellipse' | 'line' | 'brush'
+  coordinates: number[][]
 }
+
+export type FeatureType = 'room' | 'wall' | 'door' | 'stairs' | 'text'
 
 export interface FeatureProperties {
   type: FeatureType
-  shape: 'polygon' | 'ellipse' | 'line' | 'brush'
   name?: string
   description?: string
 }
 
-export type Feature = GeoJSON.Feature<GeoJSON.Geometry, FeatureProperties>;
+export interface Feature {
+  geometry: Geometry
+  properties: FeatureProperties
+}
 
 export interface Layer {
   features: Feature[]
