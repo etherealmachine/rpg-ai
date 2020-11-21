@@ -204,6 +204,31 @@ export class State {
   }
 
   @modify()
+  addDoor(door: {
+    closestFeature: {
+      feature: number
+      geometry: number
+      closestPoint: {
+        point: number[]
+        line: number[][]
+        distance: number
+      }
+    }
+    geometry: {
+      type: 'door'
+      coordinates: number[][]
+    }
+  }) {
+    const features = this.levels[this.selection.layerIndex].features;
+    features.push({
+      geometries: [door.geometry],
+      properties: {
+        type: 'door',
+      },
+    });
+  }
+
+  @modify()
   group(i: number, j: number) {
     const features = this.levels[this.selection.layerIndex].features;
     features[i].geometries = features[i].geometries.concat(features[j].geometries);

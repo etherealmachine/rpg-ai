@@ -80,6 +80,9 @@ class CanvasRenderer {
       } else {
         this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
       }
+    } else if (this.appState.tools.doors.selected && mouse) {
+      const door = this.detectDoorPlacement(this.canvasToTile(mouse));
+      if (door) this.appState.addDoor(door);
     }
   }
 
@@ -248,31 +251,29 @@ class CanvasRenderer {
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
         dragColor, dragColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
-      this.drawEllipse(
-        { type: 'ellipse', coordinates: boundingRect(start, end) },
-        dragColor, dragColor);
+      this.drawEllipse(boundingRect(start, end), dragColor, dragColor);
     } else {
-      this.drawLine(
-        { type: 'line', coordinates: [start, end] },
-        dragColor);
+      this.drawLine([start, end], dragColor);
     }
   }
 
   drawGeometry(geometry: Geometry, fillColor?: string, strokeColor?: string) {
     if (geometry.type === 'polygon') {
-      this.drawPolygon(geometry, fillColor, strokeColor);
+      this.drawPolygon(geometry.coordinates, fillColor, strokeColor);
     } else if (geometry.type === 'ellipse') {
-      this.drawEllipse(geometry, fillColor, strokeColor);
+      this.drawEllipse(geometry.coordinates, fillColor, strokeColor);
     } else if (geometry.type === 'line') {
-      this.drawLine(geometry, strokeColor);
+      this.drawLine(geometry.coordinates, strokeColor);
     } else if (geometry.type === 'brush') {
-      this.drawBrush(geometry, fillColor, strokeColor);
+      this.drawBrush(geometry.coordinates, fillColor, strokeColor);
+    } else if (geometry.type === 'door') {
+      this.drawDoor(geometry.coordinates, fillColor, strokeColor);
     }
   }
 
-  drawPolygon(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+  drawPolygon(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    this.pathPoints(geometry.coordinates, true);
+    this.pathPoints(points, true);
     if (fillColor) {
       ctx.fillStyle = fillColor;
       ctx.fill();
@@ -283,8 +284,8 @@ class CanvasRenderer {
       ctx.stroke();
     }
     if (fillColor && specialColors.includes(fillColor)) {
-      this.drawPoints(geometry.coordinates);
-      const box = bbox(geometry.coordinates);
+      this.drawPoints(points);
+      const box = bbox(points);
       ctx.fillStyle = '#000';
       ctx.save();
       ctx.translate(box.sw[0] + box.w / 2, box.ne[1] - 1);
@@ -293,9 +294,9 @@ class CanvasRenderer {
     }
   }
 
-  drawEllipse(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+  drawEllipse(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    this.pathEllipse(geometry.coordinates, true);
+    this.pathEllipse(points, true);
     if (fillColor) {
       ctx.fillStyle = fillColor;
       ctx.fill();
@@ -306,7 +307,7 @@ class CanvasRenderer {
       ctx.stroke();
     }
     if (fillColor && specialColors.includes(fillColor)) {
-      const box = bbox(geometry.coordinates);
+      const box = bbox(points);
       this.drawPoints([box.sw, [box.sw[0], box.ne[1]], box.ne, [box.ne[0], box.sw[1]]]);
       ctx.fillStyle = '#000';
       ctx.save();
@@ -316,9 +317,9 @@ class CanvasRenderer {
     }
   }
 
-  drawLine(geometry: Geometry, strokeColor?: string) {
+  drawLine(points: number[][], strokeColor?: string) {
     const { ctx } = this;
-    this.pathPoints(geometry.coordinates);
+    this.pathPoints(points);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 0.1;
@@ -326,9 +327,9 @@ class CanvasRenderer {
     }
   }
 
-  drawBrush(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+  drawBrush(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    const points = geometry.coordinates.map(p => [p[0] + 0.5, p[1] + 0.5]);
+    points = points.map(p => [p[0] + 0.5, p[1] + 0.5]);
     this.pathPoints(points);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
@@ -349,13 +350,13 @@ class CanvasRenderer {
     }
   }
 
-  drawDoor(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+  drawDoor(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    const start = geometry.coordinates[0];
-    const a = geometry.coordinates[1];
-    const b = geometry.coordinates[2];
+    const start = points[0];
+    const a = points[1];
+    const b = points[2];
     const d = dist(a, b);
-    const len = geometry.coordinates[3];
+    const len = points[3];
     const normDist = [
       (b[0] - a[0]) / d,
       (b[1] - a[1]) / d,
@@ -410,6 +411,50 @@ class CanvasRenderer {
     if (close) ctx.closePath();
   }
 
+  detectDoorPlacement(point: number[]): {
+    closestFeature: {
+      feature: number
+      geometry: number
+      closestPoint: {
+        point: number[]
+        line: number[][]
+        distance: number
+      }
+    }
+    geometry: {
+      type: 'door'
+      coordinates: number[][]
+    }
+  } | undefined {
+    const level = this.appState.levels[this.appState.selection.layerIndex];
+    const closestFeature = level.features.flatMap((feature, i) => {
+      return feature.geometries.flatMap((geometry, j) => {
+        if (geometry.type === 'polygon') {
+          return {
+            feature: i,
+            geometry: j,
+            closestPoint: closestPointToPolygon(point, geometry.coordinates),
+          };
+        }
+        return undefined;
+      });
+    }).sort((a, b) => {
+      if (a === undefined || b === undefined) return Infinity;
+      return a.closestPoint.distance - b.closestPoint.distance;
+    })[0];
+    if (closestFeature) {
+      const p = closestFeature.closestPoint;
+      return {
+        closestFeature: closestFeature,
+        geometry: {
+          type: 'door',
+          coordinates: [p.point, p.line[0], p.line[1], [1, 1]],
+        }
+      };
+    }
+    return undefined;
+  }
+
   drawLevels() {
     const { appState } = this;
     const { width, height } = this.canvas;
@@ -453,7 +498,7 @@ class CanvasRenderer {
         this.drawGeometry(geometry, floorColor, undefined);
       })
     });
-    this.ctx.globalCompositeOperation = 'destination-over';
+    this.ctx.globalCompositeOperation = 'source-over';
     level.features.forEach(feature => {
       feature.geometries.forEach(geometry => {
         this.drawGeometry(geometry, undefined, wallColor);
@@ -489,29 +534,8 @@ class CanvasRenderer {
 
     this.ctx.globalCompositeOperation = 'source-over';
     if (appState.tools.doors.selected && this.mouse) {
-      const mouseTilePos = this.canvasToTile(this.mouse);
-      const closestFeature = level.features.flatMap((feature, i) => {
-        return feature.geometries.flatMap((geometry, j) => {
-          if (geometry.type === 'polygon') {
-            return {
-              feature: i,
-              geometry: j,
-              closestPoint: closestPointToPolygon(mouseTilePos, geometry.coordinates),
-            };
-          }
-          return undefined;
-        });
-      }).sort((a, b) => {
-        if (a === undefined || b === undefined) return Infinity;
-        return a.closestPoint.distance - b.closestPoint.distance;
-      })[0];
-      if (closestFeature) {
-        const p = closestFeature.closestPoint;
-        this.drawDoor({
-          type: 'door',
-          coordinates: [p.point, p.line[0], p.line[1], [1, 1]],
-        }, floorColor, wallColor);
-      }
+      const door = this.detectDoorPlacement(this.canvasToTile(this.mouse));
+      if (door) this.drawDoor(door.geometry.coordinates, floorColor, wallColor);
     }
     this.ctx.restore();
 
@@ -560,15 +584,9 @@ class CanvasRenderer {
     ctx.save();
     ctx.scale(this.size, this.size);
     if (this.points.length > 0 && tools.polygon.selected) {
-      this.drawPolygon({
-        type: 'polygon',
-        coordinates: this.points,
-      }, dragColor, dragColor);
+      this.drawPolygon(this.points, dragColor, dragColor);
     } else if (this.points.length > 0 && tools.brush.selected) {
-      this.drawBrush({
-        type: 'brush',
-        coordinates: this.points,
-      }, dragColor, dragColor);
+      this.drawBrush(this.points, dragColor, dragColor);
     } else if (this.drag) {
       this.drawDrag();
     }
