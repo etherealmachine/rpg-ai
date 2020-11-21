@@ -75,7 +75,7 @@ class CanvasRenderer {
     if (this.appState.tools.pointer.selected) {
       const i = this.appState.selection.featureIndex;
       const j = this.hoverIndex;
-      if (i !== undefined && j !== undefined && i !== j) {
+      if (i !== undefined && j !== undefined && i !== j && e.shiftKey) {
         this.appState.group(i, j);
       } else {
         this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
@@ -345,6 +345,36 @@ class CanvasRenderer {
     }
   }
 
+  drawDoor(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+    const { ctx } = this;
+    const start = geometry.coordinates[0];
+    const a = geometry.coordinates[1];
+    const b = geometry.coordinates[2];
+    const d = dist(a, b);
+    const len = geometry.coordinates[3];
+    const normDist = [
+      (b[0] - a[0]) / d,
+      (b[1] - a[1]) / d,
+    ];
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineCap = 'square';
+      ctx.lineWidth = 0.1;
+      const end = [start[0] + normDist[0] * len[0], start[1] + normDist[1] * len[1]];
+      ctx.beginPath();
+      ctx.moveTo(start[0], start[1]);
+      ctx.lineTo(end[0], end[1]);
+      ctx.stroke();
+      const t1 = [start[0] + normDist[0] * 0.3, start[1] + normDist[1] * 0.3];
+      const t2 = [start[0] + normDist[0] * len[0] * 0.7, start[1] + normDist[1] * len[1] * 0.7];
+      ctx.lineWidth = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(t1[0], t1[1]);
+      ctx.lineTo(t2[0], t2[1]);
+      ctx.stroke();
+    }
+  }
+
   drawPoints(points: number[][]) {
     const { ctx } = this;
     ctx.fillStyle = pointColor;
@@ -418,14 +448,16 @@ class CanvasRenderer {
       feature.geometries.forEach(geometry => {
         this.drawGeometry(geometry, floorColor, undefined);
       })
-      this.ctx.globalCompositeOperation = 'destination-over';
+    });
+    this.ctx.globalCompositeOperation = 'destination-over';
+    level.features.forEach(feature => {
       feature.geometries.forEach(geometry => {
         this.drawGeometry(geometry, undefined, wallColor);
       })
     });
 
+    this.ctx.globalCompositeOperation = 'source-over';
     if (appState.tools.pointer.selected) {
-      this.ctx.globalCompositeOperation = 'source-over';
       if (this.hoverIndex !== undefined) {
         const hover = level.features[this.hoverIndex];
         if (hover !== undefined) {
@@ -448,17 +480,33 @@ class CanvasRenderer {
           });
           this.ctx.restore();
         }
-        /*
-        if (this.mouse) {
-          const closest = closestPointToPolygon(
-            this.canvasToTile(this.mouse),
-            selection.geometry.coordinates);
-          this.ctx.fillStyle = 'green';
-          this.ctx.beginPath();
-          this.ctx.ellipse(closest[0], closest[1], 0.1, 0.1, 0, 0, 2 * Math.PI);
-          this.ctx.fill();
-        }
-        */
+      }
+    }
+
+    this.ctx.globalCompositeOperation = 'source-over';
+    if (appState.tools.doors.selected && this.mouse) {
+      const mouseTilePos = this.canvasToTile(this.mouse);
+      const closestFeature = level.features.flatMap((feature, i) => {
+        return feature.geometries.flatMap((geometry, j) => {
+          if (geometry.type === 'polygon') {
+            return {
+              feature: i,
+              geometry: j,
+              closestPoint: closestPointToPolygon(mouseTilePos, geometry.coordinates),
+            };
+          }
+          return undefined;
+        });
+      }).sort((a, b) => {
+        if (a === undefined || b === undefined) return Infinity;
+        return a.closestPoint.distance - b.closestPoint.distance;
+      })[0];
+      if (closestFeature) {
+        const p = closestFeature.closestPoint;
+        this.drawDoor({
+          type: 'door',
+          coordinates: [p.point, p.line[0], p.line[1], [1, 1]],
+        }, floorColor, wallColor);
       }
     }
     this.ctx.restore();

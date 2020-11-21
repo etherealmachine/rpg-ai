@@ -283,7 +283,7 @@ export class State {
 }
 
 export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush'
+  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door'
   coordinates: number[][]
 }
 
