@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef } from 'react';
 
 import {
+  bbox,
   boundingRect,
   colorToIndex,
   dist,
@@ -62,8 +63,8 @@ class CanvasRenderer {
     const { mouse } = this;
     if (mouse) {
       this.drag = {
-        start: { ...mouse },
-        end: { ...mouse },
+        start: this.canvasToTile(mouse),
+        end: this.canvasToTile(mouse),
       }
     }
     if (this.appState.tools.pointer.selected && this.hoverIndex !== undefined) {
@@ -74,25 +75,23 @@ class CanvasRenderer {
   onMouseUp = () => {
     this.mouseDown = false;
     if (this.mouse && this.appState.tools.polygon.selected) {
-      const worldPos = this.canvasToWorld(this.mouse);
-      if (this.points.length >= 1 && dist(this.points[0][0], this.points[0][1], worldPos[0], worldPos[1]) < this.size) {
-        this.appState.handlePolygon(this.points.map(this.worldToTile));
+      const pos = this.canvasToTile(this.mouse);
+      if (this.points.length >= 1 && dist(this.points[0], pos) < 1) {
+        this.appState.handlePolygon(this.points);
         this.points = [];
       } else {
-        this.points.push(this.roundToTile(worldPos));
+        this.points.push(pos);
       }
     } else if (this.appState.tools.brush.selected) {
-      this.appState.handleBrush(this.points.map(p => [p[0] / this.size, p[1] / this.size]));
+      this.appState.handleBrush(this.points);
       this.points = [];
       this.drag = undefined;
     } else if (this.drag) {
-      let [from, to] = [this.canvasToWorld(this.drag.start), this.canvasToWorld(this.drag.end)];
+      let [from, to] = [this.drag.start, this.drag.end];
       if (this.appState.tools.rect.selected || this.appState.tools.ellipse.selected) {
         [from, to] = boundingRect(from, to);
       }
-      this.appState.handleDrag(
-        this.worldToTile(this.roundToTile(from)),
-        this.worldToTile(this.roundToTile(to)));
+      this.appState.handleDrag(from, to);
       this.drag = undefined;
       this.points = [];
     }
@@ -101,9 +100,9 @@ class CanvasRenderer {
   onMouseMove = (event: MouseEvent) => {
     this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
-      this.drag.end = { ...this.mouse };
+      this.drag.end = this.canvasToTile(this.mouse);
       if (this.appState.tools.brush) {
-        this.points.push(this.canvasToWorld(this.mouse));
+        this.points.push(this.canvasToTile(this.mouse));
       }
     }
   }
@@ -162,8 +161,8 @@ class CanvasRenderer {
     return [Math.round(p[0] / this.size) * this.size, Math.round(p[1] / this.size) * this.size];
   }
 
-  mouseToTile = (mouse: number[]) => {
-    return this.worldToTile(this.canvasToWorld(mouse));
+  canvasToTile = (p: number[]) => {
+    return this.worldToTile(this.canvasToWorld(p));
   }
 
   renderTextCenter(text: string, font: string) {
@@ -229,122 +228,22 @@ class CanvasRenderer {
     }
   }
 
-  drawRectSelection(from: number[], to: number[]) {
-    const { ctx } = this;
-    const [a, b] = boundingRect(from, to, this.size);
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(a[0], a[1], 2, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(b[0], b[1], 2, 0, 2 * Math.PI);
-    ctx.fill();
-
-    ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(a[0], b[1]);
-    ctx.lineTo(b[0], b[1]);
-    ctx.lineTo(b[0], a[1]);
-    ctx.lineTo(a[0], a[1]);
-    ctx.stroke();
-
-    const w = Math.abs(a[0] - b[0]) / this.size;
-    const h = Math.abs(a[1] - b[1]) / this.size;
-    ctx.translate(a[0] + (b[0] - a[0]) / 2, a[1] - 14);
-    ctx.fillStyle = '#000';
-    this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
-  }
-
-  drawEllipseSelection(from: number[], to: number[]) {
-    const { ctx } = this;
-    const [a, b] = boundingRect(from, to, this.size);
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(a[0], a[1], 2, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(b[0], b[1], 2, 0, 2 * Math.PI);
-    ctx.fill();
-
-    ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(a[0], b[1]);
-    ctx.lineTo(b[0], b[1]);
-    ctx.lineTo(b[0], a[1]);
-    ctx.lineTo(a[0], a[1]);
-    ctx.stroke();
-
-    ctx.save();
-    this.pathEllipse([a, b]);
-    ctx.stroke();
-    ctx.restore();
-
-    const w = Math.abs(a[0] - b[0]) / this.size;
-    const h = Math.abs(a[1] - b[1]) / this.size;
-    ctx.translate(a[0] + (b[0] - a[0]) / 2, a[1] - 14);
-    ctx.fillStyle = '#000';
-    this.renderTextCenter(`${w * 5}ft x ${h * 5}ft`, "14px Roboto, sans-serif");
-  }
-
-  drawLineSelection(from: number[], to: number[]) {
-    const { ctx, size } = this;
-    const S = size / 2;
-    from[0] = Math.round(from[0] / S) * S;
-    from[1] = Math.round(from[1] / S) * S;
-    to[0] = Math.round(to[0] / S) * S;
-    to[1] = Math.round(to[1] / S) * S;
-    ctx.beginPath();
-    ctx.moveTo(from[0], from[1]);
-    ctx.lineTo(to[0], to[1]);
-    ctx.stroke();
-    if (to[0] > from[0]) ctx.translate(to[0] + 14, to[1] - 7);
-    else ctx.translate(to[0] - 14, to[1] - 7);
-    ctx.fillStyle = '#000';
-    this.renderTextCenter(`${Math.floor(dist(from[0], from[1], to[0], to[1]) / size * 5).toFixed(0)}ft`, "14px Roboto, sans-serif");
-  }
-
-  drawPolygonSelection(points: number[][]) {
-    const { ctx } = this;
-    ctx.fillStyle = '#000';
-    for (let i = 0; i < points.length; i++) {
-      ctx.beginPath();
-      ctx.arc(points[i][0], points[i][1], 2, 0, 2 * Math.PI);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = 2;
-    this.pathPoints(points, true)
-    ctx.stroke();
-  }
-
-  drawBrushSelection(points: number[][]) {
-    const { ctx } = this;
-    ctx.strokeStyle = highlightColor;
-    ctx.lineWidth = this.size;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    this.pathPoints(points);
-    ctx.stroke();
-  }
-
   drawDrag() {
-    const { drag, size, appState } = this;
-    if (drag) {
-      const start = this.canvasToWorld(drag.start);
-      const end = this.canvasToWorld(drag.end);
-      if (dist(start[0], start[1], end[0], end[1]) > size && appState.tools.rect.selected) {
-        this.drawRectSelection(start, end);
-      } else if (dist(start[0], start[1], end[0], end[1]) > size && appState.tools.ellipse.selected) {
-        this.drawEllipseSelection(start, end);
-      } else {
-        this.drawLineSelection(start, end);
-      }
+    const { drag, appState } = this;
+    if (!drag) return;
+    const { start, end } = drag;
+    if (dist(start, end) > 1 && appState.tools.rect.selected) {
+      this.drawGeometry(
+        { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
+        highlightColor, highlightColor);
+    } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
+      this.drawEllipse(
+        { type: 'ellipse', coordinates: boundingRect(start, end) },
+        highlightColor, highlightColor);
+    } else {
+      this.drawLine(
+        { type: 'line', coordinates: [start, end] },
+        highlightColor);
     }
   }
 
@@ -372,6 +271,15 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
+    if (fillColor === highlightColor && strokeColor === highlightColor) {
+      this.drawPoints(geometry.coordinates);
+      const box = bbox(geometry.coordinates);
+      ctx.fillStyle = '#000';
+      ctx.save();
+      ctx.translate(box.sw[0] + box.w / 2, box.ne[1] - 1);
+      this.renderTextCenter(`${box.w * 5}ft x ${box.h * 5}ft`, "1px Roboto, sans-serif");
+      ctx.restore();
+    }
   }
 
   drawEllipse(geometry: Geometry, fillColor?: string, strokeColor?: string) {
@@ -385,6 +293,15 @@ class CanvasRenderer {
       ctx.strokeStyle = strokeColor;
       ctx.lineWidth = 0.1;
       ctx.stroke();
+    }
+    if (fillColor === highlightColor && strokeColor === highlightColor) {
+      const box = bbox(geometry.coordinates);
+      this.drawPoints([box.sw, [box.sw[0], box.ne[1]], box.ne, [box.ne[0], box.sw[1]]]);
+      ctx.fillStyle = '#000';
+      ctx.save();
+      ctx.translate(box.sw[0] + box.w / 2, box.ne[1] - 1);
+      this.renderTextCenter(`${box.w * 5}ft x ${box.h * 5}ft`, "1px Roboto, sans-serif");
+      ctx.restore();
     }
   }
 
@@ -417,6 +334,19 @@ class CanvasRenderer {
     }
   }
 
+  drawPoints(points: number[][]) {
+    const { ctx } = this;
+    ctx.fillStyle = '#fff238';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 0.05;
+    for (let i = 0; i < points.length; i++) {
+      ctx.beginPath();
+      ctx.ellipse(points[i][0], points[i][1], 0.25, 0.25, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
   pathPoints(points: number[][], close: boolean = false) {
     const { ctx } = this;
     ctx.beginPath();
@@ -431,9 +361,7 @@ class CanvasRenderer {
     const { ctx } = this;
     const [a, b] = points;
     ctx.beginPath();
-    ctx.translate(a[0], a[1]);
-    ctx.beginPath();
-    ctx.ellipse((b[0] - a[0]) / 2, (b[1] - a[1]) / 2, (b[0] - a[0]) / 2, (a[1] - b[1]) / 2, 0, 0, 2 * Math.PI);
+    ctx.ellipse(a[0] + (b[0] - a[0]) / 2, a[1] + (b[1] - a[1]) / 2, (b[0] - a[0]) / 2, (a[1] - b[1]) / 2, 0, 0, 2 * Math.PI);
     if (close) ctx.closePath();
   }
 
@@ -481,13 +409,22 @@ class CanvasRenderer {
 
     if (appState.tools.pointer.selected) {
       this.ctx.globalCompositeOperation = 'source-over';
-      level.features.forEach((feature, i) => {
-        if (this.hoverIndex === i || this.appState.selection.featureIndex === i) {
+      let selection = level.features.find((_feature, i) => this.appState.selection.featureIndex === i);
+      if (!selection) selection = level.features.find((_feature, i) => this.hoverIndex === i);
+      if (selection) {
+        this.ctx.save();
+        this.drawGeometry(selection.geometry, highlightColor, highlightColor);
+        this.ctx.restore();
+        if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
-          this.drawGeometry(feature.geometry, highlightColor, highlightColor);
+          const start = this.canvasToWorld(this.drag.start);
+          const end = this.canvasToWorld(this.drag.end);
+          const deltaDrag = [end[0] - start[0], end[1] - start[1]];
+          this.ctx.translate(deltaDrag[0] / this.size, deltaDrag[1] / this.size);
+          this.drawGeometry(selection.geometry, highlightColor, highlightColor);
           this.ctx.restore();
         }
-      });
+      }
     }
 
     tmp.drawImage(this.bufferCanvas, 0, 0);
@@ -518,23 +455,37 @@ class CanvasRenderer {
     ctx.restore();
 
     ctx.save();
+
     ctx.scale(appState.scale, appState.scale);
     ctx.translate(appState.offset[0], appState.offset[1]);
+
     ctx.save();
     this.drawGrid();
     ctx.restore();
+
     if (this.mouse) {
       ctx.save();
       this.drawMousePos(this.mouse);
       ctx.restore();
     }
+
+    ctx.save();
+    ctx.scale(this.size, this.size);
     if (this.points.length > 0 && tools.polygon.selected) {
-      this.drawPolygonSelection(this.points);
+      this.drawPolygon({
+        type: 'polygon',
+        coordinates: this.points,
+      }, highlightColor, highlightColor);
     } else if (this.points.length > 0 && tools.brush.selected) {
-      this.drawBrushSelection(this.points);
+      this.drawBrush({
+        type: 'brush',
+        coordinates: this.points,
+      }, highlightColor, highlightColor);
     } else if (this.drag) {
       this.drawDrag();
     }
+    ctx.restore();
+
     ctx.restore();
 
     if (appState.debug) {

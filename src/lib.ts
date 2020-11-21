@@ -21,8 +21,18 @@ export function sqDist(x0: number, y0: number, x1: number, y1: number): number {
   return (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
 }
 
-export function dist(x0: number, y0: number, x1: number, y1: number): number {
-  return Math.sqrt(sqDist(x0, y0, x1, y1));
+export function dist(a: number[], b: number[]): number {
+  return Math.sqrt(sqDist(a[0], a[1], b[0], b[1]));
+}
+
+export function area(points: number[][]) {
+  let a = 0;
+  for (let i = 0; i < points.length; i++) {
+    const curr = points[i];
+    const next = points[i + 1];
+    a += curr[0] * next[0] - curr[1] * next[1];
+  }
+  return Math.abs(a / 2);
 }
 
 export function rgbToHex(r: number, g: number, b: number): string {
@@ -49,6 +59,19 @@ export function boundingRect(from: number[], to: number[], closest: number = 1) 
   x2 = Math.round(x2 / closest) * closest;
   y2 = Math.round(y2 / closest) * closest;
   return [[x1, y1], [x2, y2]];
+}
+
+export function bbox(points: number[][]) {
+  const minX = Math.min(...points.map(p => p[0]));
+  const maxX = Math.max(...points.map(p => p[0]));
+  const minY = Math.min(...points.map(p => p[1]));
+  const maxY = Math.max(...points.map(p => p[1]));
+  return {
+    sw: [minX, maxY],
+    ne: [maxX, minY],
+    w: maxX - minX,
+    h: maxY - minY,
+  };
 }
 
 export function merge(features: GeoJSON.Feature[]) {

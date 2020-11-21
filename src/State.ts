@@ -125,6 +125,10 @@ export class State {
   handleDrag(from: number[], to: number[]) {
     if (from[0] === to[0] && from[1] === to[1]) return;
     const features = this.levels[this.selection.layerIndex].features;
+    if (this.selection.featureIndex !== undefined) {
+      const selection = features[this.selection.featureIndex];
+      return;
+    }
     if (!this.tools.walls.selected) return;
     if (this.tools.rect.selected) {
       features.push({
