@@ -45,7 +45,7 @@ export function colorToIndex(r: number, g: number, b: number): number {
 }
 
 export function indexToColor(i: number): string {
-  if (i < 0 || i > 255 * 255 * 255) throw new Error('Index out of range');
+  if (i < 0 || i >= 256 * 256 * 256) throw new Error('Index out of range');
   return '#' + i.toString(16).padStart(6, '0');
 }
 

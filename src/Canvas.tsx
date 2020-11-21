@@ -67,7 +67,7 @@ class CanvasRenderer {
         end: this.canvasToTile(mouse),
       }
     }
-    if (this.appState.tools.pointer.selected && this.hoverIndex !== undefined) {
+    if (this.appState.tools.pointer.selected) {
       this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
     }
   }
@@ -391,6 +391,7 @@ class CanvasRenderer {
     if (this.mouse) {
       const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
       this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
+      if (this.hoverIndex === 256 * 256 * 256 - 1) this.hoverIndex = undefined;
     }
     this.ctx.restore();
 
@@ -409,8 +410,10 @@ class CanvasRenderer {
 
     if (appState.tools.pointer.selected) {
       this.ctx.globalCompositeOperation = 'source-over';
-      let selection = level.features.find((_feature, i) => this.appState.selection.featureIndex === i);
-      if (!selection) selection = level.features.find((_feature, i) => this.hoverIndex === i);
+      let selection = this.appState.getSelectedFeature();
+      if (!selection && this.hoverIndex !== undefined) {
+        selection = level.features[this.hoverIndex];
+      }
       if (selection) {
         this.ctx.save();
         this.drawGeometry(selection.geometry, highlightColor, highlightColor);
