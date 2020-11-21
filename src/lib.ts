@@ -17,12 +17,12 @@ export function line(x0: number, y0: number, x1: number, y1: number): { x: numbe
   return points;
 }
 
-export function sqDist(x0: number, y0: number, x1: number, y1: number): number {
-  return (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+export function sqDist(a: number[], b: number[]): number {
+  return (b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]);
 }
 
 export function dist(a: number[], b: number[]): number {
-  return Math.sqrt(sqDist(a[0], a[1], b[0], b[1]));
+  return Math.sqrt(sqDist(a, b));
 }
 
 export function area(points: number[][]) {
@@ -95,4 +95,26 @@ export function merge(features: GeoJSON.Feature[]) {
     }
     if (!overlap) return;
   }
+}
+
+export function clamp(p: number, min: number, max: number): number {
+  if (p < min) return min;
+  if (p > max) return max;
+  return p;
+}
+
+export function closestPointToLine(p: number[], a: number[], b: number[]): number[] {
+  const ap = [p[0] - a[0], p[1] - a[1]]; // Line segment AP
+  const ab = [b[0] - a[0], b[1] - a[1]]; // Line segment AB
+  const ab2 = ab[0] * ab[0] + ab[1] * ab[1]; // Square magnitude of AB, ||AB||^2
+  const ap_dot_ab = ap[0] * ab[0] + ap[1] * ab[1] // Dot product, AP∙AB
+  const d = clamp(ap_dot_ab / ab2, 0, 1); // Normalized distance from A to closest point
+  return [a[0] + ab[0] * d, a[1] + ab[1] * d];
+}
+
+export function closestPointToPolygon(point: number[], polygon: number[][]): number[] {
+  const closestPoints = polygon.map((a: number[], i: number) => {
+    return closestPointToLine(point, a, polygon[(i + 1) % polygon.length]);
+  });
+  return closestPoints.sort((a, b) => sqDist(point, a) - sqDist(point, b))[0];
 }

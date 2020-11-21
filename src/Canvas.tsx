@@ -3,6 +3,7 @@ import React, { useContext, useEffect, useRef } from 'react';
 import {
   bbox,
   boundingRect,
+  closestPointToPolygon,
   colorToIndex,
   dist,
   indexToColor,
@@ -12,7 +13,11 @@ import { Context, Geometry, State } from './State';
 const floorColor = '#F1ECE0';
 const shadowColor = '#999';
 const backgroundColor = '#D9D2BF';
-const highlightColor = '#2f5574';
+const selectionColor = '#2f5574';
+const dragColor = '#2f5574';
+const hoverColor = '#668dad';
+const pointColor = '#fff238';
+const specialColors = [selectionColor, dragColor, hoverColor];
 const wallColor = '#000';
 
 class CanvasRenderer {
@@ -58,7 +63,7 @@ class CanvasRenderer {
     this.bufferCtx = bufferCtx;
   }
 
-  onMouseDown = () => {
+  onMouseDown = (e: MouseEvent) => {
     this.mouseDown = true;
     const { mouse } = this;
     if (mouse) {
@@ -68,7 +73,13 @@ class CanvasRenderer {
       }
     }
     if (this.appState.tools.pointer.selected) {
-      this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
+      const i = this.appState.selection.featureIndex;
+      const j = this.hoverIndex;
+      if (i !== undefined && j !== undefined && i !== j) {
+        this.appState.group(i, j);
+      } else {
+        this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
+      }
     }
   }
 
@@ -235,15 +246,15 @@ class CanvasRenderer {
     if (dist(start, end) > 1 && appState.tools.rect.selected) {
       this.drawGeometry(
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
-        highlightColor, highlightColor);
+        dragColor, dragColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       this.drawEllipse(
         { type: 'ellipse', coordinates: boundingRect(start, end) },
-        highlightColor, highlightColor);
+        dragColor, dragColor);
     } else {
       this.drawLine(
         { type: 'line', coordinates: [start, end] },
-        highlightColor);
+        dragColor);
     }
   }
 
@@ -271,7 +282,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor === highlightColor && strokeColor === highlightColor) {
+    if (fillColor && specialColors.includes(fillColor)) {
       this.drawPoints(geometry.coordinates);
       const box = bbox(geometry.coordinates);
       ctx.fillStyle = '#000';
@@ -294,7 +305,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor === highlightColor && strokeColor === highlightColor) {
+    if (fillColor && specialColors.includes(fillColor)) {
       const box = bbox(geometry.coordinates);
       this.drawPoints([box.sw, [box.sw[0], box.ne[1]], box.ne, [box.ne[0], box.sw[1]]]);
       ctx.fillStyle = '#000';
@@ -336,7 +347,7 @@ class CanvasRenderer {
 
   drawPoints(points: number[][]) {
     const { ctx } = this;
-    ctx.fillStyle = '#fff238';
+    ctx.fillStyle = pointColor;
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 0.05;
     for (let i = 0; i < points.length; i++) {
@@ -384,9 +395,9 @@ class CanvasRenderer {
     this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
     level.features.forEach((feature, i) => {
-      this.ctx.save();
-      this.drawGeometry(feature.geometry, indexToColor(i), indexToColor(i));
-      this.ctx.restore();
+      feature.geometries.forEach(geometry => {
+        this.drawGeometry(geometry, indexToColor(i), indexToColor(i));
+      });
     });
     if (this.mouse) {
       const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
@@ -398,35 +409,59 @@ class CanvasRenderer {
     // setup transform and clear buffer
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, width, height);
+    this.ctx.save();
     this.ctx.scale(appState.scale, appState.scale);
     this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
 
     level.features.forEach(feature => {
-      this.ctx.save();
-      this.drawGeometry(feature.geometry, floorColor, wallColor);
-      this.ctx.restore();
+      feature.geometries.forEach(geometry => {
+        this.drawGeometry(geometry, floorColor, undefined);
+      })
+      this.ctx.globalCompositeOperation = 'destination-over';
+      feature.geometries.forEach(geometry => {
+        this.drawGeometry(geometry, undefined, wallColor);
+      })
     });
 
     if (appState.tools.pointer.selected) {
       this.ctx.globalCompositeOperation = 'source-over';
-      let selection = this.appState.getSelectedFeature();
-      if (!selection && this.hoverIndex !== undefined) {
-        selection = level.features[this.hoverIndex];
+      if (this.hoverIndex !== undefined) {
+        const hover = level.features[this.hoverIndex];
+        if (hover !== undefined) {
+          hover.geometries.forEach(geometry => {
+            this.drawGeometry(geometry, hoverColor, hoverColor);
+          });
+        }
       }
+      const selection = this.appState.getSelectedFeature();
       if (selection) {
-        this.ctx.save();
-        this.drawGeometry(selection.geometry, highlightColor, highlightColor);
-        this.ctx.restore();
+        selection.geometries.forEach(geometry => {
+          this.drawGeometry(geometry, selectionColor, selectionColor);
+        });
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
           const deltaDrag = [this.drag.end[0] - this.drag.start[0], this.drag.end[1] - this.drag.start[1]];
           this.ctx.translate(deltaDrag[0], deltaDrag[1]);
-          this.drawGeometry(selection.geometry, highlightColor, highlightColor);
+          selection.geometries.forEach(geometry => {
+            this.drawGeometry(geometry, dragColor, dragColor);
+          });
           this.ctx.restore();
         }
+        /*
+        if (this.mouse) {
+          const closest = closestPointToPolygon(
+            this.canvasToTile(this.mouse),
+            selection.geometry.coordinates);
+          this.ctx.fillStyle = 'green';
+          this.ctx.beginPath();
+          this.ctx.ellipse(closest[0], closest[1], 0.1, 0.1, 0, 0, 2 * Math.PI);
+          this.ctx.fill();
+        }
+        */
       }
     }
+    this.ctx.restore();
 
     tmp.drawImage(this.bufferCanvas, 0, 0);
 
@@ -476,12 +511,12 @@ class CanvasRenderer {
       this.drawPolygon({
         type: 'polygon',
         coordinates: this.points,
-      }, highlightColor, highlightColor);
+      }, dragColor, dragColor);
     } else if (this.points.length > 0 && tools.brush.selected) {
       this.drawBrush({
         type: 'brush',
         coordinates: this.points,
-      }, highlightColor, highlightColor);
+      }, dragColor, dragColor);
     } else if (this.drag) {
       this.drawDrag();
     }

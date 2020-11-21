@@ -98,9 +98,10 @@ export class State {
   modalOpen = true
   setState = (state: any) => { }
 
-  getSelectedFeature(): Feature | undefined {
-    if (this.selection.featureIndex === undefined) return undefined;
-    return this.levels[this.selection.layerIndex].features[this.selection.featureIndex];
+  getSelectedFeature(i?: number): Feature | undefined {
+    if (i === undefined) i = this.selection.featureIndex;
+    if (i === undefined) return undefined;
+    return this.levels[this.selection.layerIndex].features[i];
   }
 
   @modify()
@@ -129,9 +130,11 @@ export class State {
       const selection = features[this.selection.featureIndex];
       if (selection !== undefined) {
         const deltaDrag = [to[0] - from[0], to[1] - from[1]];
-        selection.geometry.coordinates.forEach(p => {
-          p[0] += deltaDrag[0];
-          p[1] += deltaDrag[1];
+        selection.geometries.forEach(geometry => {
+          geometry.coordinates.forEach(p => {
+            p[0] += deltaDrag[0];
+            p[1] += deltaDrag[1];
+          });
         });
         return;
       }
@@ -139,20 +142,20 @@ export class State {
     if (!this.tools.walls.selected) return;
     if (this.tools.rect.selected) {
       features.push({
-        geometry: {
+        geometries: [{
           type: 'polygon',
           coordinates: [[from[0], from[1]], [from[0], to[1]], [to[0], to[1]], [to[0], from[1]]],
-        },
+        }],
         properties: {
           type: 'room',
         },
       });
     } else if (this.tools.ellipse.selected) {
       features.push({
-        geometry: {
+        geometries: [{
           type: 'ellipse',
           coordinates: [from, to],
-        },
+        }],
         properties: {
           type: 'room',
         },
@@ -165,10 +168,10 @@ export class State {
     const features = this.levels[this.selection.layerIndex].features;
     if (this.tools.walls.selected) {
       features.push({
-        geometry: {
+        geometries: [{
           type: 'polygon',
           coordinates: points,
-        },
+        }],
         properties: {
           type: 'room',
         },
@@ -181,10 +184,10 @@ export class State {
     const features = this.levels[this.selection.layerIndex].features;
     if (this.tools.walls.selected && this.tools.brush.selected) {
       features.push({
-        geometry: {
+        geometries: [{
           type: 'brush',
           coordinates: points,
-        },
+        }],
         properties: {
           type: 'room',
         },
@@ -198,6 +201,13 @@ export class State {
     if (this.selection.featureIndex === undefined) return;
     features.splice(this.selection.featureIndex, 1);
     this.selection.featureIndex = undefined;
+  }
+
+  @modify()
+  group(i: number, j: number) {
+    const features = this.levels[this.selection.layerIndex].features;
+    features[i].geometries = features[i].geometries.concat(features[j].geometries);
+    features.splice(j, 1);
   }
 
   @modify()
@@ -286,7 +296,7 @@ export interface FeatureProperties {
 }
 
 export interface Feature {
-  geometry: Geometry
+  geometries: Geometry[]
   properties: FeatureProperties
 }
 
