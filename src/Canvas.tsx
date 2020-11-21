@@ -328,7 +328,8 @@ class CanvasRenderer {
 
   drawBrush(geometry: Geometry, fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    this.pathPoints(geometry.coordinates);
+    const points = geometry.coordinates.map(p => [p[0] + 0.5, p[1] + 0.5]);
+    this.pathPoints(points);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
       ctx.lineJoin = 'round';
@@ -342,6 +343,9 @@ class CanvasRenderer {
       ctx.lineCap = 'round';
       ctx.lineWidth = 0.9;
       ctx.stroke();
+    }
+    if (fillColor && specialColors.includes(fillColor)) {
+      this.drawPoints(points);
     }
   }
 
