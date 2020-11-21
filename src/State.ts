@@ -127,7 +127,14 @@ export class State {
     const features = this.levels[this.selection.layerIndex].features;
     if (this.selection.featureIndex !== undefined) {
       const selection = features[this.selection.featureIndex];
-      return;
+      if (selection !== undefined) {
+        const deltaDrag = [to[0] - from[0], to[1] - from[1]];
+        selection.geometry.coordinates.forEach(p => {
+          p[0] += deltaDrag[0];
+          p[1] += deltaDrag[1];
+        });
+        return;
+      }
     }
     if (!this.tools.walls.selected) return;
     if (this.tools.rect.selected) {

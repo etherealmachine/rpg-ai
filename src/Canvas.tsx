@@ -417,10 +417,8 @@ class CanvasRenderer {
         this.ctx.restore();
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
-          const start = this.canvasToWorld(this.drag.start);
-          const end = this.canvasToWorld(this.drag.end);
-          const deltaDrag = [end[0] - start[0], end[1] - start[1]];
-          this.ctx.translate(deltaDrag[0] / this.size, deltaDrag[1] / this.size);
+          const deltaDrag = [this.drag.end[0] - this.drag.start[0], this.drag.end[1] - this.drag.start[1]];
+          this.ctx.translate(deltaDrag[0], deltaDrag[1]);
           this.drawGeometry(selection.geometry, highlightColor, highlightColor);
           this.ctx.restore();
         }
