@@ -1,9 +1,8 @@
-import React, { useContext, useState } from 'react';
+import React from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 
 import { DS } from './design_system';
-import * as State from './State';
 import Description from './Description';
 
 const classes = css`
@@ -32,47 +31,35 @@ const classes = css`
   }
 `;
 
-export default function DescriptionEditor() {
-  const appState = useContext(State.Context);
-  const selectedFeature = appState.selection.featureIndex ?
-    appState.levels[appState.selection.layerIndex].features[appState.selection.featureIndex] :
-    undefined;
-  const properties = selectedFeature?.properties;
-  const [name, setName] = useState(properties ? properties['name'] : undefined);
-  const [text, setText] = useState(properties ? properties['description'] : undefined);
+interface Props {
+  name: string
+  description: string
+  onNameChange(name: string): void
+  onDescriptionChange(text: string): void
+  onSave(): void
+  onUndo(): void
+  onDelete(): void
+}
+
+export default function DescriptionEditor(props: Props) {
   const onNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setName(event.target.value);
+    props.onNameChange(event.target.value);
   };
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(event.target.value);
-  };
-  const onSaveClicked = () => {
-    appState.setDescription({
-      name: name || '',
-      description: text || '',
-    });
-  };
-  const onUndoClicked = () => {
-    if (properties) {
-      setName(properties['name']);
-      setText(properties['description']);
-    }
-  };
-  const onDeleteClicked = () => {
-    appState.setDescription(undefined);
+    props.onDescriptionChange(event.target.value);
   };
   return <div className={classes.editor}>
     <div style={{ display: 'flex', alignContent: 'center' }}>
-      <input className={DS.input} style={{ flexGrow: 1 }} value={name === undefined && properties ? properties['name'] : name} onChange={onNameChange} />
+      <input className={DS.input} style={{ flexGrow: 1 }} value={props.name} onChange={onNameChange} />
     </div>
     <textarea
-      value={text}
+      value={props.description}
       onChange={onTextChange} />
     <div className={classes.actions}>
-      {(appState.selection || properties) && <button className={DS.button} onClick={onSaveClicked}>Save</button>}
-      {properties && <button className={classNames(DS.button)} onClick={onUndoClicked}>Undo</button>}
-      {properties && <button className={classNames(DS.button, DS.danger)} onClick={onDeleteClicked}>Delete</button>}
+      {<button className={DS.button} onClick={props.onSave}>Save</button>}
+      {<button className={classNames(DS.button)} onClick={props.onUndo}>Undo</button>}
+      {<button className={classNames(DS.button, DS.danger)} onClick={props.onDelete}>Delete</button>}
     </div>
-    <Description name={name === undefined ? '' : name} text={text || ''} />
+    <Description name={props.name} text={props.description} />
   </div>;
 }

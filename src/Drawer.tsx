@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -37,6 +37,15 @@ const classes = css`
 
 export default function Drawer() {
   const appState = useContext(Context);
+  const selection = appState.getSelectedFeature();
+  const [lastSelection, setLastSelection] = useState(appState.selection);
+  const [name, setName] = useState<string | undefined>(undefined);
+  const [description, setDescription] = useState<string | undefined>(undefined);
+  if (appState.selection.layerIndex !== lastSelection.layerIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
+    setLastSelection(appState.selection);
+    setName(undefined);
+    setDescription(undefined);
+  }
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
@@ -44,6 +53,14 @@ export default function Drawer() {
       {appState.drawerOpen && <FontAwesomeIcon icon={faCaretRight} />}
       {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
-    <DescriptionEditor />
+    {selection && <DescriptionEditor
+      name={name === undefined && selection.properties.name !== undefined ? selection.properties.name : name || ''}
+      description={description === undefined && selection.properties.description !== undefined ? selection.properties.description : description || ''}
+      onNameChange={setName}
+      onDescriptionChange={setDescription}
+      onSave={() => { appState.setDescription({ name, description }); setName(''); setDescription(''); }}
+      onUndo={() => { if (selection.properties.name) setName(selection.properties.name); if (selection.properties.description) setDescription(selection.properties.description) }}
+      onDelete={() => { appState.handleDelete() }}
+    />}
   </div>;
 }

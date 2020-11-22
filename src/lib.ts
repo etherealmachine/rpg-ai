@@ -111,7 +111,7 @@ export function merge(features: GeoJSON.Feature[]) {
   }
 }
 
-export function closestPointToLine(p: number[], a: number[], b: number[]): { point: number[], line: number[][], distance: number } {
+export function closestPointToLine(p: number[], a: number[], b: number[]): { point: number[], distance: number } {
   const ap = [p[0] - a[0], p[1] - a[1]]; // Line segment AP
   const ab = [b[0] - a[0], b[1] - a[1]]; // Line segment AB
   const ab2 = ab[0] * ab[0] + ab[1] * ab[1]; // Square magnitude of AB, ||AB||^2
@@ -120,13 +120,15 @@ export function closestPointToLine(p: number[], a: number[], b: number[]): { poi
   const point = [a[0] + ab[0] * d, a[1] + ab[1] * d];
   return {
     point: point,
-    line: [a, b],
     distance: dist(point, p),
   };
 }
 
-export function closestPointToPolygon(point: number[], polygon: number[][]): { point: number[], line: number[][], distance: number } {
+export function closestPointToPolygon(point: number[], polygon: number[][]): { point: number[], line: number[], distance: number } {
   return polygon.map((a: number[], i: number) => {
-    return closestPointToLine(point, a, polygon[(i + 1) % polygon.length]);
+    return {
+      ...closestPointToLine(point, a, polygon[(i + 1) % polygon.length]),
+      line: [i, (i + 1) % polygon.length],
+    };
   }).sort((a, b) => a.distance - b.distance)[0];
 }

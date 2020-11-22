@@ -81,7 +81,7 @@ class CanvasRenderer {
         this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
       }
     } else if (this.appState.tools.doors.selected && mouse) {
-      const door = this.detectDoorPlacement(this.canvasToTile(mouse));
+      const door = this.detectDoorPlacement(this.worldToTile(this.canvasToWorld(mouse), false));
       if (door) this.appState.addDoor(door);
     }
   }
@@ -115,8 +115,8 @@ class CanvasRenderer {
     this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = this.canvasToTile(this.mouse);
-      if (this.appState.tools.brush) {
-        this.points.push(this.canvasToTile(this.mouse));
+      if (this.appState.tools.brush.selected) {
+        this.points.push(this.worldToTile(this.canvasToWorld(this.mouse), false));
       }
     }
   }
@@ -167,8 +167,11 @@ class CanvasRenderer {
   }
 
   // world coordinates to tile coordinates
-  worldToTile = (p: number[]): number[] => {
-    return [Math.floor(p[0] / this.size), Math.floor(p[1] / this.size)];
+  worldToTile = (p: number[], round = true): number[] => {
+    if (round) {
+      return [Math.round(p[0] / this.size), Math.round(p[1] / this.size)];
+    }
+    return [p[0] / this.size, p[1] / this.size];
   }
 
   roundToTile = (p: number[]): number[] => {
@@ -266,8 +269,6 @@ class CanvasRenderer {
       this.drawLine(geometry.coordinates, strokeColor);
     } else if (geometry.type === 'brush') {
       this.drawBrush(geometry.coordinates, fillColor, strokeColor);
-    } else if (geometry.type === 'door') {
-      this.drawDoor(geometry.coordinates, fillColor, strokeColor);
     }
   }
 
@@ -329,7 +330,6 @@ class CanvasRenderer {
 
   drawBrush(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    points = points.map(p => [p[0] + 0.5, p[1] + 0.5]);
     this.pathPoints(points);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
@@ -411,21 +411,7 @@ class CanvasRenderer {
     if (close) ctx.closePath();
   }
 
-  detectDoorPlacement(point: number[]): {
-    closestFeature: {
-      feature: number
-      geometry: number
-      closestPoint: {
-        point: number[]
-        line: number[][]
-        distance: number
-      }
-    }
-    geometry: {
-      type: 'door'
-      coordinates: number[][]
-    }
-  } | undefined {
+  detectDoorPlacement(point: number[]) {
     const level = this.appState.levels[this.appState.selection.layerIndex];
     const closestFeature = level.features.flatMap((feature, i) => {
       return feature.geometries.flatMap((geometry, j) => {
@@ -442,17 +428,7 @@ class CanvasRenderer {
       if (a === undefined || b === undefined) return Infinity;
       return a.closestPoint.distance - b.closestPoint.distance;
     })[0];
-    if (closestFeature) {
-      const p = closestFeature.closestPoint;
-      return {
-        closestFeature: closestFeature,
-        geometry: {
-          type: 'door',
-          coordinates: [p.point, p.line[0], p.line[1], [1, 1]],
-        }
-      };
-    }
-    return undefined;
+    return closestFeature;
   }
 
   drawLevels() {
@@ -495,17 +471,10 @@ class CanvasRenderer {
 
     level.features.forEach(feature => {
       feature.geometries.forEach(geometry => {
-        this.drawGeometry(geometry, floorColor, undefined);
-      })
-    });
-    this.ctx.globalCompositeOperation = 'source-over';
-    level.features.forEach(feature => {
-      feature.geometries.forEach(geometry => {
-        this.drawGeometry(geometry, undefined, wallColor);
+        this.drawGeometry(geometry, floorColor, wallColor);
       })
     });
 
-    this.ctx.globalCompositeOperation = 'source-over';
     if (appState.tools.pointer.selected) {
       if (this.hoverIndex !== undefined) {
         const hover = level.features[this.hoverIndex];
@@ -534,8 +503,18 @@ class CanvasRenderer {
 
     this.ctx.globalCompositeOperation = 'source-over';
     if (appState.tools.doors.selected && this.mouse) {
-      const door = this.detectDoorPlacement(this.canvasToTile(this.mouse));
-      if (door) this.drawDoor(door.geometry.coordinates, floorColor, wallColor);
+      const door = this.detectDoorPlacement(this.worldToTile(this.canvasToWorld(this.mouse), false));
+      if (door) {
+        const geom = level.features[door.feature].geometries[door.geometry].coordinates;
+        this.drawLine([
+          geom[door.closestPoint.line[0]],
+          geom[door.closestPoint.line[1]]
+        ], 'red');
+        const from = geom[door.closestPoint.line[0]];
+        const to = geom[door.closestPoint.line[1]];
+        const center = door.closestPoint.point;
+        this.drawPoints([center]);
+      }
     }
     this.ctx.restore();
 

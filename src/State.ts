@@ -205,27 +205,19 @@ export class State {
 
   @modify()
   addDoor(door: {
-    closestFeature: {
-      feature: number
-      geometry: number
-      closestPoint: {
-        point: number[]
-        line: number[][]
-        distance: number
-      }
-    }
-    geometry: {
-      type: 'door'
-      coordinates: number[][]
+    feature: number
+    geometry: number
+    closestPoint: {
+      point: number[]
+      line: number[]
+      distance: number
     }
   }) {
     const features = this.levels[this.selection.layerIndex].features;
-    features.push({
-      geometries: [door.geometry],
-      properties: {
-        type: 'door',
-      },
-    });
+    const geometry = features[door.feature].geometries[door.geometry];
+    const a = geometry.coordinates[door.closestPoint.line[0]];
+    const b = geometry.coordinates[door.closestPoint.line[1]];
+    geometry.coordinates.splice(door.closestPoint.line[0], 1);
   }
 
   @modify()
@@ -308,16 +300,14 @@ export class State {
 }
 
 export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door'
+  type: 'polygon' | 'ellipse' | 'line' | 'brush'
   coordinates: number[][]
 }
 
 export type FeatureType = 'room' | 'wall' | 'door' | 'stairs' | 'text'
 
-export interface FeatureProperties {
+export interface FeatureProperties extends Description {
   type: FeatureType
-  name?: string
-  description?: string
 }
 
 export interface Feature {
@@ -330,8 +320,8 @@ export interface Layer {
 }
 
 export interface Description {
-  name: string
-  description: string
+  name?: string
+  description?: string
 }
 
 export const Context = React.createContext(new State());
