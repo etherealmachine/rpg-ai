@@ -1,5 +1,6 @@
 import React from 'react';
 import { produce } from 'immer';
+import { DoorPlacement } from './lib';
 
 function modify() {
   return function (
@@ -204,20 +205,12 @@ export class State {
   }
 
   @modify()
-  addDoor(door: {
-    feature: number
-    geometry: number
-    closestPoint: {
-      point: number[]
-      line: number[]
-      distance: number
-    }
-  }) {
-    const features = this.levels[this.selection.layerIndex].features;
-    const geometry = features[door.feature].geometries[door.geometry];
-    const a = geometry.coordinates[door.closestPoint.line[0]];
-    const b = geometry.coordinates[door.closestPoint.line[1]];
-    geometry.coordinates.splice(door.closestPoint.line[0], 1);
+  addDoor(door: DoorPlacement) {
+    const feature = this.levels[this.selection.layerIndex].features[door.feature];
+    feature.geometries.push({
+      type: 'door',
+      coordinates: [door.from, door.to],
+    });
   }
 
   @modify()
@@ -300,11 +293,11 @@ export class State {
 }
 
 export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush'
+  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door'
   coordinates: number[][]
 }
 
-export type FeatureType = 'room' | 'wall' | 'door' | 'stairs' | 'text'
+export type FeatureType = 'room' | 'wall' | 'text'
 
 export interface FeatureProperties extends Description {
   type: FeatureType

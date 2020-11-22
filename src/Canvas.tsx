@@ -3,10 +3,11 @@ import React, { useContext, useEffect, useRef } from 'react';
 import {
   bbox,
   boundingRect,
-  closestPointToPolygon,
   colorToIndex,
+  detectDoorPlacement,
   dist,
   indexToColor,
+  lerp2,
 } from './lib';
 import { Context, Geometry, State } from './State';
 
@@ -81,7 +82,9 @@ class CanvasRenderer {
         this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
       }
     } else if (this.appState.tools.doors.selected && mouse) {
-      const door = this.detectDoorPlacement(this.worldToTile(this.canvasToWorld(mouse), false));
+      const door = detectDoorPlacement(
+        this.worldToTile(this.canvasToWorld(mouse), false),
+        this.appState.levels[this.appState.selection.layerIndex].features);
       if (door) this.appState.addDoor(door);
     }
   }
@@ -269,6 +272,8 @@ class CanvasRenderer {
       this.drawLine(geometry.coordinates, strokeColor);
     } else if (geometry.type === 'brush') {
       this.drawBrush(geometry.coordinates, fillColor, strokeColor);
+    } else if (geometry.type === 'door') {
+      this.drawDoor(geometry.coordinates, fillColor, strokeColor);
     }
   }
 
@@ -352,30 +357,16 @@ class CanvasRenderer {
 
   drawDoor(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
-    const start = points[0];
-    const a = points[1];
-    const b = points[2];
-    const d = dist(a, b);
-    const len = points[3];
-    const normDist = [
-      (b[0] - a[0]) / d,
-      (b[1] - a[1]) / d,
-    ];
+    const [from, to] = points;
+    const a = lerp2(0.3, from, to);
+    const b = lerp2(0.7, from, to);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
       ctx.lineCap = 'square';
-      ctx.lineWidth = 0.1;
-      const end = [start[0] + normDist[0] * len[0], start[1] + normDist[1] * len[1]];
-      ctx.beginPath();
-      ctx.moveTo(start[0], start[1]);
-      ctx.lineTo(end[0], end[1]);
-      ctx.stroke();
-      const t1 = [start[0] + normDist[0] * 0.3, start[1] + normDist[1] * 0.3];
-      const t2 = [start[0] + normDist[0] * len[0] * 0.7, start[1] + normDist[1] * len[1] * 0.7];
       ctx.lineWidth = 0.3;
       ctx.beginPath();
-      ctx.moveTo(t1[0], t1[1]);
-      ctx.lineTo(t2[0], t2[1]);
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
       ctx.stroke();
     }
   }
@@ -409,26 +400,6 @@ class CanvasRenderer {
     ctx.beginPath();
     ctx.ellipse(a[0] + (b[0] - a[0]) / 2, a[1] + (b[1] - a[1]) / 2, (b[0] - a[0]) / 2, (a[1] - b[1]) / 2, 0, 0, 2 * Math.PI);
     if (close) ctx.closePath();
-  }
-
-  detectDoorPlacement(point: number[]) {
-    const level = this.appState.levels[this.appState.selection.layerIndex];
-    const closestFeature = level.features.flatMap((feature, i) => {
-      return feature.geometries.flatMap((geometry, j) => {
-        if (geometry.type === 'polygon') {
-          return {
-            feature: i,
-            geometry: j,
-            closestPoint: closestPointToPolygon(point, geometry.coordinates),
-          };
-        }
-        return undefined;
-      });
-    }).sort((a, b) => {
-      if (a === undefined || b === undefined) return Infinity;
-      return a.closestPoint.distance - b.closestPoint.distance;
-    })[0];
-    return closestFeature;
   }
 
   drawLevels() {
@@ -503,17 +474,11 @@ class CanvasRenderer {
 
     this.ctx.globalCompositeOperation = 'source-over';
     if (appState.tools.doors.selected && this.mouse) {
-      const door = this.detectDoorPlacement(this.worldToTile(this.canvasToWorld(this.mouse), false));
+      const door = detectDoorPlacement(
+        this.worldToTile(this.canvasToWorld(this.mouse), false),
+        level.features);
       if (door) {
-        const geom = level.features[door.feature].geometries[door.geometry].coordinates;
-        this.drawLine([
-          geom[door.closestPoint.line[0]],
-          geom[door.closestPoint.line[1]]
-        ], 'red');
-        const from = geom[door.closestPoint.line[0]];
-        const to = geom[door.closestPoint.line[1]];
-        const center = door.closestPoint.point;
-        this.drawPoints([center]);
+        this.drawDoor([door.from, door.to], undefined, wallColor);
       }
     }
     this.ctx.restore();

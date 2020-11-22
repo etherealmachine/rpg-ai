@@ -1,4 +1,5 @@
 import * as martinez from 'martinez-polygon-clipping';
+import { Feature } from './State';
 
 export function line(x0: number, y0: number, x1: number, y1: number): { x: number, y: number }[] {
   const dx = Math.abs(x1 - x0);
@@ -35,12 +36,12 @@ export function area(points: number[][]) {
   return Math.abs(a / 2);
 }
 
-export function lerp(from: number, to: number, d: number): number {
-  return from + (from - to) * d;
+export function lerp(d: number, from: number, to: number): number {
+  return from + (to - from) * d;
 }
 
-export function lerp2(from: number[], to: number[], d: number): number[] {
-  return [lerp(from[0], to[0], d), lerp(from[1], to[1], d)];
+export function lerp2(d: number, from: number[], to: number[]): number[] {
+  return [lerp(d, from[0], to[0]), lerp(d, from[1], to[1])];
 }
 
 export function clamp(p: number, min: number, max: number): number {
@@ -124,11 +125,91 @@ export function closestPointToLine(p: number[], a: number[], b: number[]): { poi
   };
 }
 
-export function closestPointToPolygon(point: number[], polygon: number[][]): { point: number[], line: number[], distance: number } {
+interface ClosestPoint {
+  point: number[]
+  line: number[]
+  distance: number
+}
+
+interface ClosestFeature {
+  feature: number
+  geometry: number
+  closestPoint: ClosestPoint
+}
+
+export interface DoorPlacement extends ClosestFeature {
+  from: number[]
+  to: number[]
+}
+
+export function closestPointToPolygon(point: number[], polygon: number[][]): ClosestPoint {
   return polygon.map((a: number[], i: number) => {
     return {
       ...closestPointToLine(point, a, polygon[(i + 1) % polygon.length]),
       line: [i, (i + 1) % polygon.length],
     };
   }).sort((a, b) => a.distance - b.distance)[0];
+}
+
+export function detectDoorPlacement(point: number[], features: Feature[]): DoorPlacement | undefined {
+  const closestFeature = features.flatMap((feature, i) => {
+    return feature.geometries.flatMap((geometry, j) => {
+      if (geometry.type === 'polygon') {
+        return {
+          feature: i,
+          geometry: j,
+          closestPoint: closestPointToPolygon(point, geometry.coordinates),
+        };
+      }
+      return undefined;
+    });
+  }).sort((a, b) => {
+    if (a === undefined || b === undefined) return Infinity;
+    return a.closestPoint.distance - b.closestPoint.distance;
+  })[0];
+  if (!closestFeature) return undefined;
+  return computeDoorPlacement(closestFeature, features);
+}
+
+function computeDoorPlacement(f: ClosestFeature, features: Feature[]): DoorPlacement | undefined {
+  const geom = features[f.feature].geometries[f.geometry];
+  if (geom.type !== 'polygon') return undefined;
+  const coords = geom.coordinates;
+  const from = coords[f.closestPoint.line[0]];
+  const to = coords[f.closestPoint.line[1]];
+  const center = f.closestPoint.point;
+  const slope = (to[1] - from[1]) / (to[0] - from[0]);
+
+  const vdy1 = (Math.floor(center[1]) - from[1]);
+  const vdx1 = vdy1 / slope;
+  const vdy2 = (Math.ceil(center[1]) - from[1]);
+  const vdx2 = vdy2 / slope;
+
+  const hdx1 = (Math.floor(center[0]) - from[0]);
+  const hdy1 = hdx1 * slope;
+  const hdx2 = (Math.ceil(center[0]) - from[0]);
+  const hdy2 = hdx2 * slope;
+
+  const vfrom = [from[0] + vdx1, from[1] + vdy1];
+  const vto = [from[0] + vdx2, from[1] + vdy2];
+  const vdist = dist(vfrom, vto);
+
+  const hfrom = [from[0] + hdx1, from[1] + hdy1];
+  const hto = [from[0] + hdx2, from[1] + hdy2];
+  const hdist = dist(hfrom, hto);
+
+  if ((isNaN(hdist) || vdist <= hdist) && vdist > 0) {
+    return {
+      ...f,
+      from: vfrom,
+      to: vto,
+    };
+  } else if ((isNaN(vdist) || hdist < vdist) && hdist > 0) {
+    return {
+      ...f,
+      from: hfrom,
+      to: hto,
+    };
+  }
+  return undefined;
 }
