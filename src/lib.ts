@@ -160,6 +160,15 @@ export function detectDoorPlacement(point: number[], features: Feature[]): DoorP
           geometry: j,
           closestPoint: closestPointToPolygon(point, geometry.coordinates),
         };
+      } else if (geometry.type === 'line') {
+        return {
+          feature: i,
+          geometry: j,
+          closestPoint: {
+            ...closestPointToLine(point, geometry.coordinates[0], geometry.coordinates[1]),
+            line: [0, 1],
+          },
+        };
       }
       return undefined;
     });
@@ -173,7 +182,7 @@ export function detectDoorPlacement(point: number[], features: Feature[]): DoorP
 
 function computeDoorPlacement(f: ClosestFeature, features: Feature[]): DoorPlacement | undefined {
   const geom = features[f.feature].geometries[f.geometry];
-  if (geom.type !== 'polygon') return undefined;
+  if (!['polygon', 'line'].includes(geom.type)) return undefined;
   const coords = geom.coordinates;
   const from = coords[f.closestPoint.line[0]];
   const to = coords[f.closestPoint.line[1]];

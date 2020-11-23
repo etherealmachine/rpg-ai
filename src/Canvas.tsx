@@ -107,8 +107,7 @@ class CanvasRenderer {
       let [from, to] = [this.drag.start, this.drag.end];
       if (
         this.appState.tools.rect.selected ||
-        this.appState.tools.ellipse.selected ||
-        this.appState.tools.stairs.selected) {
+        this.appState.tools.ellipse.selected) {
         [from, to] = boundingRect(from, to);
       }
       this.appState.handleDrag(from, to);

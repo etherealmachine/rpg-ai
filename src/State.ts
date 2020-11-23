@@ -156,6 +156,16 @@ export class State {
           type: 'room',
         },
       });
+    } else if (this.tools.walls.selected) {
+      features.push({
+        geometries: [{
+          type: 'line',
+          coordinates: [from, to],
+        }],
+        properties: {
+          type: 'wall',
+        },
+      });
     }
   }
 

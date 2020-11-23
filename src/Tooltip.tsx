@@ -13,8 +13,15 @@ const classes = css`
 
 export default function Tooltip(props: React.PropsWithChildren<{ tooltip: string }>) {
   const parentRef = useRef<HTMLDivElement>(null);
+  const hoverRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
-  const [show, setShow] = useState(false);
+  const [shown, setShown] = useState(false);
+  const show = () => {
+    setShown(true);
+  };
+  const hide = () => {
+    setShown(false);
+  }
   useEffect(() => {
     if (parentRef.current && tooltipRef.current) {
       createPopper(parentRef.current, tooltipRef.current, {
@@ -29,22 +36,20 @@ export default function Tooltip(props: React.PropsWithChildren<{ tooltip: string
         ],
       });
     }
+    if (hoverRef.current) {
+      hoverRef.current.addEventListener('mouseenter', show);
+      hoverRef.current.addEventListener('mouseleave', hide);
+    }
   }, [parentRef, tooltipRef]);
-  const onMouseEnter = () => {
-    setShow(true);
-  }
-  const onMouseLeave = () => {
-    setShow(false);
-  }
   return <div ref={parentRef}>
     <span
       ref={tooltipRef}
-      style={show ? {} : { visibility: 'hidden' }}
+      style={shown ? {} : { visibility: 'hidden' }}
       className={classes.tooltip}>
       {props.tooltip}
     </span>
-    <span onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <div ref={hoverRef}>
       {props.children}
-    </span>
+    </div>
   </div>;
 }
