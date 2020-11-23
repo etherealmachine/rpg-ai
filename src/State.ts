@@ -1,6 +1,6 @@
 import React from 'react';
 import { produce } from 'immer';
-import { DoorPlacement } from './lib';
+import { detectStairsPlacement, DoorPlacement } from './lib';
 
 function modify() {
   return function (
@@ -41,18 +41,6 @@ const initialTools = () => ({
     selected: false,
     group: 1,
     polygon: false,
-    disabled: false,
-  },
-  'text': {
-    selected: false,
-    group: 1,
-    polygon: false,
-    disabled: false,
-  },
-  'eraser': {
-    selected: false,
-    group: 1,
-    polygon: true,
     disabled: false,
   },
   'brush': {
@@ -140,8 +128,15 @@ export class State {
         return;
       }
     }
-    if (!this.tools.walls.selected) return;
-    if (this.tools.rect.selected) {
+    if (this.tools.stairs.selected) {
+      const stairs = detectStairsPlacement(from, to, features);
+      if (stairs) {
+        features[stairs.feature].geometries.push({
+          type: 'stairs',
+          coordinates: [from, to],
+        });
+      }
+    } else if (this.tools.rect.selected) {
       features.push({
         geometries: [{
           type: 'polygon',
@@ -293,7 +288,7 @@ export class State {
 }
 
 export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door'
+  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door' | 'stairs'
   coordinates: number[][]
 }
 

@@ -213,3 +213,35 @@ function computeDoorPlacement(f: ClosestFeature, features: Feature[]): DoorPlace
   }
   return undefined;
 }
+
+export interface StairsPlacement extends ClosestFeature {
+  from: number[]
+  to: number[]
+}
+
+export function detectStairsPlacement(from: number[], to: number[], features: Feature[]) {
+  const midPoint = [from[0] + (to[0] - from[0]) / 2, from[1] + (to[1] - from[1]) / 2];
+  const closestFeature = features.flatMap((feature, i) => {
+    return feature.geometries.flatMap((geometry, j) => {
+      if (geometry.type === 'polygon') {
+        return {
+          feature: i,
+          geometry: j,
+          closestPoint: closestPointToPolygon(midPoint, geometry.coordinates),
+        };
+      }
+      return undefined;
+    });
+  }).sort((a, b) => {
+    if (a === undefined || b === undefined) return Infinity;
+    return a.closestPoint.distance - b.closestPoint.distance;
+  })[0];
+  if (closestFeature) {
+    return {
+      ...closestFeature,
+      from: from,
+      to: to,
+    };
+  }
+  return undefined;
+}

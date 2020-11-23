@@ -105,7 +105,10 @@ class CanvasRenderer {
       this.drag = undefined;
     } else if (this.drag) {
       let [from, to] = [this.drag.start, this.drag.end];
-      if (this.appState.tools.rect.selected || this.appState.tools.ellipse.selected) {
+      if (
+        this.appState.tools.rect.selected ||
+        this.appState.tools.ellipse.selected ||
+        this.appState.tools.stairs.selected) {
         [from, to] = boundingRect(from, to);
       }
       this.appState.handleDrag(from, to);
@@ -256,6 +259,10 @@ class CanvasRenderer {
       this.drawGeometry(
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
         dragColor, dragColor);
+    } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
+      this.drawGeometry(
+        { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
+        undefined, dragColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       this.drawEllipse(boundingRect(start, end), dragColor, dragColor);
     } else {
@@ -274,6 +281,8 @@ class CanvasRenderer {
       this.drawBrush(geometry.coordinates, fillColor, strokeColor);
     } else if (geometry.type === 'door') {
       this.drawDoor(geometry.coordinates, fillColor, strokeColor);
+    } else if (geometry.type === 'stairs') {
+      this.drawStairs(geometry.coordinates, fillColor, strokeColor);
     }
   }
 
@@ -368,6 +377,33 @@ class CanvasRenderer {
       ctx.moveTo(a[0], a[1]);
       ctx.lineTo(b[0], b[1]);
       ctx.stroke();
+    }
+  }
+
+  drawStairs(points: number[][], fillColor?: string, strokeColor?: string) {
+    if (!strokeColor) return;
+    const { ctx } = this;
+    const [from, to] = points;
+    const w = Math.abs(to[0] - from[0]);
+    const h = Math.abs(to[1] - from[1]);
+    const sx = Math.sign(to[0] - from[0]);
+    const sy = Math.sign(to[1] - from[1]);
+    const L = Math.max(w, h);
+    const W = Math.min(w, h);
+    let l = 0.1;
+    for (let i = 0; i <= L; i++) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      if (w > h) {
+        ctx.moveTo(from[0] + i * sx, to[1] + (1 - l) / 2);
+        ctx.lineTo(from[0] + i * sx, to[1] + (1 - l) / 2 + l);
+      } else {
+        ctx.moveTo(from[0] + (W - l) / 2, from[1] + i * sy);
+        ctx.lineTo(from[0] + (W - l) / 2 + l, from[1] + i * sy);
+      }
+      ctx.stroke();
+      l += (W / L);
     }
   }
 
