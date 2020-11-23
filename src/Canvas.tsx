@@ -5,6 +5,7 @@ import {
   boundingRect,
   colorToIndex,
   detectDoorPlacement,
+  detectStairsPlacement,
   dist,
   indexToColor,
   lerp2,
@@ -259,9 +260,10 @@ class CanvasRenderer {
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
         dragColor, dragColor);
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
-      this.drawGeometry(
-        { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
-        undefined, dragColor);
+      const stairs = detectStairsPlacement(start, end, appState.levels[appState.selection.layerIndex].features);
+      if (stairs) {
+        this.drawStairs([stairs.from, stairs.to], undefined, dragColor);
+      }
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       this.drawEllipse(boundingRect(start, end), dragColor, dragColor);
     } else {
@@ -395,11 +397,11 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.beginPath();
       if (w > h) {
-        ctx.moveTo(from[0] + i * sx, to[1] + (1 - l) / 2);
-        ctx.lineTo(from[0] + i * sx, to[1] + (1 - l) / 2 + l);
+        ctx.moveTo(from[0] + i * sx, Math.min(from[1], to[1]) + (W - l) / 2);
+        ctx.lineTo(from[0] + i * sx, Math.min(from[1], to[1]) + (W - l) / 2 + l);
       } else {
-        ctx.moveTo(from[0] + (W - l) / 2, from[1] + i * sy);
-        ctx.lineTo(from[0] + (W - l) / 2 + l, from[1] + i * sy);
+        ctx.moveTo(Math.min(from[0], to[0]) + (W - l) / 2, from[1] + i * sy);
+        ctx.lineTo(Math.min(from[0], to[0]) + (W - l) / 2 + l, from[1] + i * sy);
       }
       ctx.stroke();
       l += (W / L);
