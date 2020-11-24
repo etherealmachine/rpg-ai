@@ -77,11 +77,12 @@ export class State {
   offset = [0, 0]
   levels = [{
     features: [],
-  }] as Layer[]
+  }] as Level[]
   drawerOpen = false
   selection = {
-    layerIndex: 0 as number,
-    featureIndex: undefined as number | undefined
+    levelIndex: 0 as number,
+    featureIndex: undefined as number | undefined,
+    geometryIndex: undefined as number | undefined
   }
   debug = false
   modalOpen = true
@@ -90,7 +91,7 @@ export class State {
   getSelectedFeature(i?: number): Feature | undefined {
     if (i === undefined) i = this.selection.featureIndex;
     if (i === undefined) return undefined;
-    return this.levels[this.selection.layerIndex].features[i];
+    return this.levels[this.selection.levelIndex].features[i];
   }
 
   @modify()
@@ -101,7 +102,7 @@ export class State {
   @modify()
   newMap() {
     this.levels = [{ features: [] }];
-    this.selection = { layerIndex: 0, featureIndex: undefined };
+    this.selection = { levelIndex: 0, featureIndex: undefined, geometryIndex: undefined };
     this.scale = 1;
     this.offset = [0, 0];
   }
@@ -114,7 +115,7 @@ export class State {
   @modify()
   handleDrag(from: number[], to: number[]) {
     if (from[0] === to[0] && from[1] === to[1]) return;
-    const features = this.levels[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.levelIndex].features;
     if (this.selection.featureIndex !== undefined) {
       const selection = features[this.selection.featureIndex];
       if (selection !== undefined) {
@@ -171,7 +172,7 @@ export class State {
 
   @modify()
   handlePolygon(points: number[][]) {
-    const features = this.levels[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.levelIndex].features;
     if (this.tools.walls.selected) {
       features.push({
         geometries: [{
@@ -187,7 +188,7 @@ export class State {
 
   @modify()
   handleBrush(points: number[][]) {
-    const features = this.levels[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.levelIndex].features;
     if (this.tools.walls.selected && this.tools.brush.selected) {
       features.push({
         geometries: [{
@@ -203,7 +204,7 @@ export class State {
 
   @modify()
   handleDelete() {
-    const features = this.levels[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.levelIndex].features;
     if (this.selection.featureIndex === undefined) return;
     features.splice(this.selection.featureIndex, 1);
     this.selection.featureIndex = undefined;
@@ -211,7 +212,7 @@ export class State {
 
   @modify()
   addDoor(door: DoorPlacement) {
-    const feature = this.levels[this.selection.layerIndex].features[door.feature];
+    const feature = this.levels[this.selection.levelIndex].features[door.feature];
     feature.geometries.push({
       type: 'door',
       coordinates: [door.from, door.to],
@@ -220,7 +221,7 @@ export class State {
 
   @modify()
   group(i: number, j: number) {
-    const features = this.levels[this.selection.layerIndex].features;
+    const features = this.levels[this.selection.levelIndex].features;
     features[i].geometries = features[i].geometries.concat(features[j].geometries);
     features.splice(j, 1);
   }
@@ -264,7 +265,7 @@ export class State {
   }
 
   @modify()
-  setSelection(selection: { layerIndex: number, featureIndex: undefined | number }) {
+  setSelection(selection: { levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
     this.selection = selection;
   }
 
@@ -287,7 +288,7 @@ export class State {
   @modify()
   setDescription(desc: Description | undefined) {
     if (this.selection.featureIndex === undefined) return;
-    const feature = this.levels[this.selection.layerIndex].features[this.selection.featureIndex];
+    const feature = this.levels[this.selection.levelIndex].features[this.selection.featureIndex];
     Object.assign(feature.properties, desc);
   }
 
@@ -313,7 +314,7 @@ export interface Feature {
   properties: FeatureProperties
 }
 
-export interface Layer {
+export interface Level {
   features: Feature[]
 }
 

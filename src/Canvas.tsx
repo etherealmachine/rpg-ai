@@ -10,7 +10,7 @@ import {
   indexToColor,
   lerp2,
 } from './lib';
-import { Context, Geometry, State } from './State';
+import { Context, Geometry, Level, State } from './State';
 
 const floorColor = '#F1ECE0';
 const shadowColor = '#999';
@@ -31,7 +31,10 @@ class CanvasRenderer {
   }
   points: number[][] = []
   polygonToolSelected: boolean = false
-  hoverIndex?: number
+  hover?: {
+    featureIndex: number | undefined
+    geometryIndex: number | undefined
+  }
   size: number = 30
   lastTime: number = 0
   requestID?: number
@@ -76,16 +79,20 @@ class CanvasRenderer {
     }
     if (this.appState.tools.pointer.selected) {
       const i = this.appState.selection.featureIndex;
-      const j = this.hoverIndex;
+      const j = this.hover?.featureIndex;
       if (i !== undefined && j !== undefined && i !== j && e.shiftKey) {
         this.appState.group(i, j);
       } else {
-        this.appState.setSelection({ ...this.appState.selection, featureIndex: this.hoverIndex });
+        this.appState.setSelection({
+          levelIndex: this.appState.selection.levelIndex,
+          featureIndex: this.hover?.featureIndex,
+          geometryIndex: this.hover?.geometryIndex,
+        });
       }
     } else if (this.appState.tools.doors.selected && mouse) {
       const door = detectDoorPlacement(
         this.worldToTile(this.canvasToWorld(mouse), false),
-        this.appState.levels[this.appState.selection.layerIndex].features);
+        this.appState.levels[this.appState.selection.levelIndex].features);
       if (door) this.appState.addDoor(door);
     }
   }
@@ -260,7 +267,7 @@ class CanvasRenderer {
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
         dragColor, dragColor);
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
-      const stairs = detectStairsPlacement(start, end, appState.levels[appState.selection.layerIndex].features);
+      const stairs = detectStairsPlacement(start, end, appState.levels[appState.selection.levelIndex].features);
       if (stairs) {
         this.drawStairs([stairs.from, stairs.to], undefined, dragColor);
       }
@@ -368,11 +375,16 @@ class CanvasRenderer {
   drawDoor(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     const [from, to] = points;
-    const a = lerp2(0.3, from, to);
-    const b = lerp2(0.7, from, to);
+    const a = lerp2(0.1, from, to);
+    const b = lerp2(0.9, from, to);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
-      ctx.lineCap = 'square';
+      ctx.lineCap = 'butt';
+      ctx.lineWidth = 0.1;
+      ctx.beginPath();
+      ctx.moveTo(from[0], from[1]);
+      ctx.lineTo(to[0], to[1]);
+      ctx.stroke();
       ctx.lineWidth = 0.3;
       ctx.beginPath();
       ctx.moveTo(a[0], a[1]);
@@ -391,10 +403,11 @@ class CanvasRenderer {
     const sy = Math.sign(to[1] - from[1]);
     const L = Math.max(w, h);
     const W = Math.min(w, h);
-    let l = 0.1;
-    for (let i = 0; i <= L; i++) {
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 0.1;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 0.1;
+    ctx.lineCap = 'butt';
+    for (let i = 0; i <= L; i += 0.5) {
+      const l = (i + 0.5) / (L + 0.5);
       ctx.beginPath();
       if (w > h) {
         ctx.moveTo(from[0] + i * sx, Math.min(from[1], to[1]) + (W - l) / 2);
@@ -404,8 +417,14 @@ class CanvasRenderer {
         ctx.lineTo(Math.min(from[0], to[0]) + (W - l) / 2 + l, from[1] + i * sy);
       }
       ctx.stroke();
-      l += (W / L);
     }
+    ctx.lineWidth = 0.05;
+    ctx.beginPath();
+    ctx.moveTo(from[0], from[1]);
+    ctx.lineTo(from[0], to[1]);
+    ctx.lineTo(to[0], to[1]);
+    ctx.lineTo(to[0], from[1]);
+    ctx.stroke();
   }
 
   drawPoints(points: number[][]) {
@@ -439,12 +458,45 @@ class CanvasRenderer {
     if (close) ctx.closePath();
   }
 
+  drawFeatures(level: Level, colorIndex: boolean = false) {
+    const featureDrawOrder = ['room', 'wall', 'text'];
+    const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs'];
+    const overdraw = ['polygon', 'ellipse', 'brush'];
+    featureDrawOrder.forEach(featureType => {
+      geometryDrawOrder.forEach(geometryType => {
+        level.features.forEach((feature, i) => {
+          if (feature.properties.type !== featureType) return;
+          this.ctx.globalCompositeOperation = 'source-over';
+          feature.geometries.forEach((geometry, j) => {
+            if (geometry.type !== geometryType) return;
+            if (colorIndex) {
+              this.drawGeometry(geometry, indexToColor(j + i * level.features.length), indexToColor(j + i * level.features.length));
+            } else {
+              this.drawGeometry(geometry, floorColor, overdraw.includes(geometryType) ? undefined : wallColor);
+            }
+          });
+          if (overdraw.includes(geometryType)) {
+            this.ctx.globalCompositeOperation = 'destination-over';
+            feature.geometries.forEach((geometry, j) => {
+              if (geometry.type !== geometryType) return;
+              if (colorIndex) {
+                this.drawGeometry(geometry, indexToColor(j + i * level.features.length), indexToColor(j + i * level.features.length));
+              } else {
+                this.drawGeometry(geometry, undefined, wallColor);
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
   drawLevels() {
     const { appState } = this;
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
-    const level = this.appState.levels[this.appState.selection.layerIndex];
+    const level = this.appState.levels[this.appState.selection.levelIndex];
 
     this.ctx = this.bufferCtx;
 
@@ -457,15 +509,16 @@ class CanvasRenderer {
     this.ctx.scale(appState.scale, appState.scale);
     this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
-    level.features.forEach((feature, i) => {
-      feature.geometries.forEach(geometry => {
-        this.drawGeometry(geometry, indexToColor(i), indexToColor(i));
-      });
-    });
+    this.drawFeatures(level, true);
     if (this.mouse) {
       const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
-      this.hoverIndex = colorToIndex(p[0], p[1], p[2]);
-      if (this.hoverIndex === 256 * 256 * 256 - 1) this.hoverIndex = undefined;
+      const i = colorToIndex(p[0], p[1], p[2]);
+      const [featureIndex, geometryIndex] = [Math.floor(i / level.features.length), i % level.features.length];
+      if (featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
+        this.hover = undefined;
+      } else {
+        this.hover = { featureIndex, geometryIndex };
+      }
     }
     this.ctx.restore();
 
@@ -477,25 +530,19 @@ class CanvasRenderer {
     this.ctx.translate(appState.offset[0], appState.offset[1]);
     this.ctx.scale(this.size, this.size);
 
-    level.features.forEach(feature => {
-      feature.geometries.forEach(geometry => {
-        this.drawGeometry(geometry, floorColor, wallColor);
-      })
-    });
+    this.drawFeatures(level);
 
     if (appState.tools.pointer.selected) {
-      if (this.hoverIndex !== undefined) {
-        const hover = level.features[this.hoverIndex];
-        if (hover !== undefined) {
-          hover.geometries.forEach(geometry => {
-            this.drawGeometry(geometry, hoverColor, hoverColor);
-          });
+      if (this.hover !== undefined && this.hover.featureIndex !== undefined) {
+        const hover = level.features[this.hover.featureIndex];
+        if (this.hover.geometryIndex !== undefined && hover !== undefined) {
+          this.drawGeometry(hover.geometries[this.hover.geometryIndex], hoverColor + '66', hoverColor);
         }
       }
       const selection = this.appState.getSelectedFeature();
       if (selection) {
         selection.geometries.forEach(geometry => {
-          this.drawGeometry(geometry, selectionColor, selectionColor);
+          this.drawGeometry(geometry, selectionColor + '66', selectionColor);
         });
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();

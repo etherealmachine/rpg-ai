@@ -41,7 +41,7 @@ export default function Drawer() {
   const [lastSelection, setLastSelection] = useState(appState.selection);
   const [name, setName] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
-  if (appState.selection.layerIndex !== lastSelection.layerIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
+  if (appState.selection.levelIndex !== lastSelection.levelIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
     setLastSelection(appState.selection);
     setName(undefined);
     setDescription(undefined);
