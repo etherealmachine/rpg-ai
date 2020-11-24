@@ -35,6 +35,11 @@ class CanvasRenderer {
     start: number[]
     end: number[]
   }
+  specialKeys = {
+    shift: false,
+    alt: false,
+    ctrl: false,
+  }
   points: number[][] = []
   polygonToolSelected: boolean = false
   hover?: {
@@ -61,6 +66,7 @@ class CanvasRenderer {
     canvas.addEventListener('mouseup', this.onMouseUp);
     canvas.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('wheel', this.onWheel);
     this.requestID = requestAnimationFrame(this.render);
 
@@ -103,7 +109,8 @@ class CanvasRenderer {
     } else if (this.appState.tools.doors.selected && mouse) {
       const door = detectDoorPlacement(
         this.worldToTile(this.canvasToWorld(mouse), false),
-        this.appState.levels[this.appState.selection.levelIndex].features);
+        this.appState.levels[this.appState.selection.levelIndex].features,
+        e.shiftKey);
       if (door) this.appState.addDoor(door);
     }
   }
@@ -164,6 +171,9 @@ class CanvasRenderer {
   }
 
   onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') this.specialKeys.shift = true;
+    if (event.key === 'Control') this.specialKeys.ctrl = true;
+    if (event.key === 'Alt') this.specialKeys.alt = true;
     if (document.activeElement !== document.body) return;
     const { appState } = this;
     const S = this.size * this.appState.scale;
@@ -178,6 +188,12 @@ class CanvasRenderer {
     if (event.key === 'Backspace' || event.key === 'Delete') {
       appState.handleDelete();
     }
+  }
+
+  onKeyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Shift') this.specialKeys.shift = false;
+    if (event.key === 'Control') this.specialKeys.ctrl = false;
+    if (event.key === 'Alt') this.specialKeys.alt = false;
   }
 
   // canvas coordinates to world coordinates
@@ -298,7 +314,7 @@ class CanvasRenderer {
       const box = bbox([start, end]);
       this.drawEllipse([box.sw, box.ne], dragFillColor, dragStrokeColor);
     } else {
-      this.drawLine([start, end], dragStrokeColor);
+      this.drawLine([start, end], 0.1, dragStrokeColor);
     }
   }
 
@@ -308,7 +324,7 @@ class CanvasRenderer {
     } else if (geometry.type === 'ellipse') {
       this.drawEllipse(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'line') {
-      this.drawLine(geometry.coordinates, strokeColor || indexColor);
+      this.drawLine(geometry.coordinates, indexColor !== undefined ? 0.5 : 0.1, strokeColor || indexColor);
     } else if (geometry.type === 'brush') {
       this.drawBrush(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'door') {
@@ -364,12 +380,12 @@ class CanvasRenderer {
     }
   }
 
-  drawLine(points: number[][], strokeColor?: string) {
+  drawLine(points: number[][], width: number, strokeColor?: string) {
     const { ctx } = this;
     this.pathPoints(points);
     if (strokeColor) {
       ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = 0.1;
+      ctx.lineWidth = width;
       ctx.stroke();
     }
   }
@@ -597,7 +613,8 @@ class CanvasRenderer {
     if (appState.tools.doors.selected && this.mouse) {
       const door = detectDoorPlacement(
         this.worldToTile(this.canvasToWorld(this.mouse), false),
-        level.features);
+        level.features,
+        this.specialKeys.shift);
       if (door) {
         this.drawDoor([door.from, door.to], undefined, wallColor);
       }

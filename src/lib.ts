@@ -139,7 +139,7 @@ export function closestPointToPolygon(point: number[], polygon: number[][]): Clo
   }).sort((a, b) => a.distance - b.distance)[0];
 }
 
-export function detectDoorPlacement(point: number[], features: Feature[]): DoorPlacement | undefined {
+export function detectDoorPlacement(point: number[], features: Feature[], fullWidth: boolean): DoorPlacement | undefined {
   const closestFeature = features.flatMap((feature, i) => {
     return feature.geometries.flatMap((geometry, j) => {
       if (geometry.type === 'polygon') {
@@ -165,15 +165,20 @@ export function detectDoorPlacement(point: number[], features: Feature[]): DoorP
     return a.closestPoint.distance - b.closestPoint.distance;
   })[0];
   if (!closestFeature) return undefined;
-  return computeDoorPlacement(closestFeature, features);
+  return computeDoorPlacement(closestFeature, features, fullWidth);
 }
 
-function computeDoorPlacement(f: ClosestFeature, features: Feature[]): DoorPlacement | undefined {
+function computeDoorPlacement(f: ClosestFeature, features: Feature[], fullWidth: boolean): DoorPlacement | undefined {
   const geom = features[f.feature].geometries[f.geometry];
   if (!['polygon', 'line'].includes(geom.type)) return undefined;
   const coords = geom.coordinates;
   const from = coords[f.closestPoint.line[0]];
   const to = coords[f.closestPoint.line[1]];
+
+  if (fullWidth) {
+    return { ...f, from, to };
+  }
+
   const center = f.closestPoint.point;
   const slope = (to[1] - from[1]) / (to[0] - from[0]);
 
