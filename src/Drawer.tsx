@@ -39,12 +39,33 @@ export default function Drawer() {
   const appState = useContext(Context);
   const selection = appState.getSelectedFeature();
   const [lastSelection, setLastSelection] = useState(appState.selection);
-  const [name, setName] = useState<string | undefined>(undefined);
-  const [description, setDescription] = useState<string | undefined>(undefined);
+  const [tmpName, setTmpName] = useState<string | undefined>(undefined);
+  const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
   if (appState.selection.levelIndex !== lastSelection.levelIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
     setLastSelection(appState.selection);
-    setName(undefined);
-    setDescription(undefined);
+    setTmpName(undefined);
+    setTmpDescription(undefined);
+  }
+  const onSave = () => {
+    appState.setDescription({ name: tmpName, description: tmpDescription });
+    setTmpName('');
+    setTmpDescription('');
+  };
+  const onUndo = () => {
+    if (!selection) return;
+    if (selection.feature.properties.name) setTmpName(selection.feature.properties.name);
+    if (selection.feature.properties.description) setTmpDescription(selection.feature.properties.description);
+  };
+  const onDelete = () => {
+    appState.handleDelete();
+  }
+  let name = tmpName || '';
+  if (tmpName === undefined && selection?.feature.properties.name !== undefined) {
+    name = selection?.feature.properties.name;
+  }
+  let description = tmpDescription || '';
+  if (tmpDescription === undefined && selection?.feature.properties.description !== undefined) {
+    description = selection?.feature.properties.description;
   }
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
@@ -54,13 +75,13 @@ export default function Drawer() {
       {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
     {selection && <DescriptionEditor
-      name={name === undefined && selection.properties.name !== undefined ? selection.properties.name : name || ''}
-      description={description === undefined && selection.properties.description !== undefined ? selection.properties.description : description || ''}
-      onNameChange={setName}
-      onDescriptionChange={setDescription}
-      onSave={() => { appState.setDescription({ name, description }); setName(''); setDescription(''); }}
-      onUndo={() => { if (selection.properties.name) setName(selection.properties.name); if (selection.properties.description) setDescription(selection.properties.description) }}
-      onDelete={() => { appState.handleDelete() }}
+      name={name}
+      description={description}
+      onNameChange={setTmpName}
+      onDescriptionChange={setTmpDescription}
+      onSave={onSave}
+      onUndo={onUndo}
+      onDelete={onDelete}
     />}
   </div>;
 }

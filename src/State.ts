@@ -89,10 +89,14 @@ export class State {
   modalOpen = true
   setState = (state: any) => { }
 
-  getSelectedFeature(i?: number): Feature | undefined {
-    if (i === undefined) i = this.selection.featureIndex;
-    if (i === undefined) return undefined;
-    return this.levels[this.selection.levelIndex].features[i];
+  getSelectedFeature(): { feature: Feature, geometry: Geometry } | undefined {
+    if (this.selection.featureIndex === undefined) return undefined;
+    if (this.selection.geometryIndex === undefined) return undefined;
+    const feature = this.levels[this.selection.levelIndex].features[this.selection.featureIndex];
+    return {
+      feature: feature,
+      geometry: feature.geometries[this.selection.geometryIndex],
+    };
   }
 
   @modify()
@@ -212,8 +216,15 @@ export class State {
   handleDelete() {
     const features = this.levels[this.selection.levelIndex].features;
     if (this.selection.featureIndex === undefined) return;
-    features.splice(this.selection.featureIndex, 1);
+    if (this.selection.geometryIndex === undefined) return;
+    const feature = features[this.selection.featureIndex];
+    if (this.selection.geometryIndex === 0 || feature.geometries.length === 1) {
+      features.splice(this.selection.featureIndex, 1);
+    } else {
+      feature.geometries.splice(this.selection.geometryIndex, 1);
+    }
     this.selection.featureIndex = undefined;
+    this.selection.geometryIndex = undefined;
   }
 
   @modify()

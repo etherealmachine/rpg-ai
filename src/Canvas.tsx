@@ -22,7 +22,11 @@ const dragStrokeColor = '#2f5574';
 const hoverFillColor = '#668dad66';
 const hoverStrokeColor = '#668dad';
 const pointColor = '#fff238';
-const specialFillColors = [selectionFillColor, dragFillColor, hoverFillColor];
+const specialColors = [
+  selectionFillColor, selectionStrokeColor,
+  dragFillColor, dragStrokeColor,
+  hoverFillColor, hoverStrokeColor,
+];
 
 class CanvasRenderer {
   mouse?: number[] = undefined
@@ -328,7 +332,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor && specialFillColors.includes(fillColor)) {
+    if (fillColor && specialColors.includes(fillColor)) {
       this.drawPoints(points);
       const box = bbox(points);
       ctx.fillStyle = '#000';
@@ -351,7 +355,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor && specialFillColors.includes(fillColor)) {
+    if (fillColor && specialColors.includes(fillColor)) {
       const box = bbox(points);
       this.drawPoints([box.sw, [box.sw[0], box.ne[1]], box.ne, [box.ne[0], box.sw[1]]]);
       ctx.fillStyle = '#000';
@@ -389,7 +393,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.9;
       ctx.stroke();
     }
-    if (fillColor && specialFillColors.includes(fillColor)) {
+    if (fillColor && specialColors.includes(fillColor)) {
       this.drawPoints(points);
     }
   }
@@ -447,6 +451,9 @@ class CanvasRenderer {
     ctx.lineTo(to[0], to[1]);
     ctx.lineTo(to[0], from[1]);
     ctx.stroke();
+    if (strokeColor && specialColors.includes(strokeColor)) {
+      this.drawPoints(points);
+    }
   }
 
   drawPoints(points: number[][]) {
@@ -563,14 +570,12 @@ class CanvasRenderer {
       }
       const selection = this.appState.getSelectedFeature();
       if (selection) {
-        selection.geometries.forEach(geometry => {
-          this.drawGeometry(geometry, selectionFillColor, selectionStrokeColor);
-        });
+        this.drawGeometry(selection.geometry, selectionFillColor, selectionStrokeColor);
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
           const deltaDrag = [this.drag.end[0] - this.drag.start[0], this.drag.end[1] - this.drag.start[1]];
           this.ctx.translate(deltaDrag[0], deltaDrag[1]);
-          selection.geometries.forEach(geometry => {
+          selection.feature.geometries.forEach(geometry => {
             this.drawGeometry(geometry, dragFillColor, dragStrokeColor);
           });
           this.ctx.restore();
