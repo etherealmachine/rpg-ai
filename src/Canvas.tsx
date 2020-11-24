@@ -298,7 +298,8 @@ class CanvasRenderer {
         this.drawStairs([stairs.from, stairs.to], undefined, dragStrokeColor);
       }
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
-      this.drawEllipse([start, end], dragFillColor, dragStrokeColor);
+      const box = bbox([start, end]);
+      this.drawEllipse([box.sw, box.ne], dragFillColor, dragStrokeColor);
     } else {
       this.drawLine([start, end], dragStrokeColor);
     }
