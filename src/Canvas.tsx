@@ -80,10 +80,15 @@ class CanvasRenderer {
       };
     }
     if (this.appState.tools.pointer.selected) {
-      const i = this.appState.selection.featureIndex;
-      const j = this.hover?.featureIndex;
-      if (i !== undefined && j !== undefined && i !== j && e.shiftKey) {
-        this.appState.group(i, j);
+      const selectedFeatureIndex = this.appState.selection.featureIndex;
+      const hoverFeatureIndex = this.hover?.featureIndex;
+      const hoverGeometryIndex = this.hover?.geometryIndex;
+      if (e.shiftKey && selectedFeatureIndex !== undefined && hoverFeatureIndex !== undefined && hoverGeometryIndex !== undefined) {
+        if (selectedFeatureIndex === hoverFeatureIndex) {
+          this.appState.ungroup(selectedFeatureIndex, hoverGeometryIndex);
+        } else {
+          this.appState.group(selectedFeatureIndex, hoverFeatureIndex);
+        }
       } else {
         this.appState.setSelection({
           levelIndex: this.appState.selection.levelIndex,

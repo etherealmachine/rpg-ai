@@ -233,6 +233,20 @@ export class State {
   }
 
   @modify()
+  ungroup(i: number, j: number) {
+    const features = this.levels[this.selection.levelIndex].features;
+    const feature = features[i];
+    const geometry = feature.geometries[j];
+    feature.geometries.splice(j, 1);
+    features.push({
+      geometries: [geometry],
+      properties: {
+        type: feature.properties.type,
+      },
+    });
+  }
+
+  @modify()
   setSelectedTool(name: ToolName) {
     const tool = this.tools[name];
     if (tool.selected) {
