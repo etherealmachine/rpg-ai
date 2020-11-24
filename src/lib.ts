@@ -64,18 +64,6 @@ export function indexToColor(i: number): string {
   return '#' + i.toString(16).padStart(6, '0');
 }
 
-export function boundingRect(from: number[], to: number[], closest: number = 1) {
-  let x1 = Math.min(from[0], to[0]);
-  let y1 = Math.max(from[1], to[1]);
-  let x2 = Math.max(from[0], to[0]);
-  let y2 = Math.min(from[1], to[1]);
-  x1 = Math.round(x1 / closest) * closest;
-  y1 = Math.round(y1 / closest) * closest;
-  x2 = Math.round(x2 / closest) * closest;
-  y2 = Math.round(y2 / closest) * closest;
-  return [[x1, y1], [x2, y2]];
-}
-
 export function bbox(points: number[][]) {
   const minX = Math.min(...points.map(p => p[0]));
   const maxX = Math.max(...points.map(p => p[0]));

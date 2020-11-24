@@ -13,6 +13,7 @@ import {
 
 import { Context, ToolName } from './State';
 import Tooltip from './Tooltip';
+import Toggle from './Toggle';
 import { stairsIcon } from './icons/custom_icons';
 import { faCircle } from '@fortawesome/free-regular-svg-icons';
 
@@ -85,6 +86,9 @@ export default function Toolbar() {
   const handleButtonClick = (tool: ToolName) => () => {
     state.setSelectedTool(tool);
   };
+  const toggleGridSteps = () => {
+    state.setGridSteps(state.gridSteps === 1 ? 2 : 1);
+  };
   return <div className={classes.toolbar}>
     {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name as ToolName].tooltip}>
       <button
@@ -94,5 +98,6 @@ export default function Toolbar() {
         <FontAwesomeIcon icon={buttons[name as ToolName].icon} />
       </button>
     </Tooltip>)}
+    <Toggle toggled={state.gridSteps === 2} onToggle={toggleGridSteps} />
   </div>;
 }

@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useRef } from 'react';
 
 import {
   bbox,
-  boundingRect,
   colorToIndex,
   detectDoorPlacement,
   detectStairsPlacement,
@@ -12,15 +11,18 @@ import {
 } from './lib';
 import { Context, Geometry, Level, State } from './State';
 
-const floorColor = '#F1ECE0';
 const shadowColor = '#999';
 const backgroundColor = '#D9D2BF';
-const selectionColor = '#2f5574';
-const dragColor = '#2f5574';
-const hoverColor = '#668dad';
-const pointColor = '#fff238';
-const specialColors = [selectionColor, dragColor, hoverColor];
+const floorColor = '#F1ECE0';
 const wallColor = '#000';
+const selectionFillColor = '#2f557466';
+const selectionStrokeColor = '#2f5574';
+const dragFillColor = '#2f557466';
+const dragStrokeColor = '#2f5574';
+const hoverFillColor = '#668dad66';
+const hoverStrokeColor = '#668dad';
+const pointColor = '#fff238';
+const specialFillColors = [selectionFillColor, dragFillColor, hoverFillColor];
 
 class CanvasRenderer {
   mouse?: number[] = undefined
@@ -75,7 +77,7 @@ class CanvasRenderer {
       this.drag = {
         start: this.canvasToTile(mouse),
         end: this.canvasToTile(mouse),
-      }
+      };
     }
     if (this.appState.tools.pointer.selected) {
       const i = this.appState.selection.featureIndex;
@@ -116,7 +118,9 @@ class CanvasRenderer {
       if (
         this.appState.tools.rect.selected ||
         this.appState.tools.ellipse.selected) {
-        [from, to] = boundingRect(from, to);
+        const bounds = bbox([from, to]);
+        from = bounds.sw;
+        to = bounds.ne;
       }
       this.appState.handleDrag(from, to);
       this.drag = undefined;
@@ -182,13 +186,10 @@ class CanvasRenderer {
   // world coordinates to tile coordinates
   worldToTile = (p: number[], round = true): number[] => {
     if (round) {
-      return [Math.round(p[0] / this.size), Math.round(p[1] / this.size)];
+      const S = this.size / this.appState.gridSteps;
+      return [Math.round(p[0] / S) / this.appState.gridSteps, Math.round(p[1] / S) / this.appState.gridSteps];
     }
     return [p[0] / this.size, p[1] / this.size];
-  }
-
-  roundToTile = (p: number[]): number[] => {
-    return [Math.round(p[0] / this.size) * this.size, Math.round(p[1] / this.size) * this.size];
   }
 
   canvasToTile = (p: number[]) => {
@@ -237,23 +238,39 @@ class CanvasRenderer {
       ctx.lineTo(max.x, y);
       ctx.stroke();
     }
+    if (this.appState.gridSteps !== 1) {
+      ctx.lineWidth = 0.25;
+      ctx.strokeStyle = '#666666';
+      for (let x = Math.floor(min.x / this.size) * this.size; x <= max.x; x += this.size / this.appState.gridSteps) {
+        ctx.beginPath();
+        ctx.moveTo(x, min.y);
+        ctx.lineTo(x, max.y);
+        ctx.stroke();
+      }
+      for (let y = Math.floor(min.y / this.size) * this.size; y <= max.y; y += this.size / this.appState.gridSteps) {
+        ctx.beginPath();
+        ctx.moveTo(min.x, y);
+        ctx.lineTo(max.x, y);
+        ctx.stroke();
+      }
+    }
   }
 
   drawMousePos(mouse: number[]) {
     const { ctx } = this;
-    const p = this.roundToTile(this.canvasToWorld(mouse));
+    const p = this.worldToTile(this.canvasToWorld(mouse), true);
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(p[0], p[1], 2, 0, 2 * Math.PI);
+    ctx.arc(p[0], p[1], 0.1, 0, 2 * Math.PI);
     ctx.fill();
 
     if (this.appState.debug) {
-      const font = "14px Roboto, sans-serif";
-      ctx.translate(p[0], p[1] - 16);
+      const font = "0.5px Roboto, sans-serif";
+      ctx.translate(p[0], p[1] - 1);
       this.renderTextCenter(`Mouse: ${mouse[0].toFixed(0)},${mouse[1].toFixed(0)}`, font);
-      ctx.translate(0, -16);
+      ctx.translate(0, -0.5);
       this.renderTextCenter(`World: ${p[0].toFixed(0)},${p[1].toFixed(0)}`, font);
-      ctx.translate(0, -16);
+      ctx.translate(0, -0.5);
       this.renderTextCenter(`Tile: ${Math.floor(p[0] / this.size).toFixed(0)},${Math.floor(p[1] / this.size).toFixed(0)}`, font);
     }
   }
@@ -265,16 +282,16 @@ class CanvasRenderer {
     if (dist(start, end) > 1 && appState.tools.rect.selected) {
       this.drawGeometry(
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
-        dragColor, dragColor);
+        dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
       const stairs = detectStairsPlacement(start, end, appState.levels[appState.selection.levelIndex].features);
       if (stairs) {
-        this.drawStairs([stairs.from, stairs.to], undefined, dragColor);
+        this.drawStairs([stairs.from, stairs.to], undefined, dragStrokeColor);
       }
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
-      this.drawEllipse(boundingRect(start, end), dragColor, dragColor);
+      this.drawEllipse([start, end], dragFillColor, dragStrokeColor);
     } else {
-      this.drawLine([start, end], dragColor);
+      this.drawLine([start, end], dragStrokeColor);
     }
   }
 
@@ -306,7 +323,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor && specialColors.includes(fillColor)) {
+    if (fillColor && specialFillColors.includes(fillColor)) {
       this.drawPoints(points);
       const box = bbox(points);
       ctx.fillStyle = '#000';
@@ -329,7 +346,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.1;
       ctx.stroke();
     }
-    if (fillColor && specialColors.includes(fillColor)) {
+    if (fillColor && specialFillColors.includes(fillColor)) {
       const box = bbox(points);
       this.drawPoints([box.sw, [box.sw[0], box.ne[1]], box.ne, [box.ne[0], box.sw[1]]]);
       ctx.fillStyle = '#000';
@@ -367,7 +384,7 @@ class CanvasRenderer {
       ctx.lineWidth = 0.9;
       ctx.stroke();
     }
-    if (fillColor && specialColors.includes(fillColor)) {
+    if (fillColor && specialFillColors.includes(fillColor)) {
       this.drawPoints(points);
     }
   }
@@ -514,7 +531,7 @@ class CanvasRenderer {
       const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
       const i = colorToIndex(p[0], p[1], p[2]);
       const [featureIndex, geometryIndex] = [Math.floor(i / level.features.length), i % level.features.length];
-      if (featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
+      if (featureIndex === Infinity || featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
         this.hover = undefined;
       } else {
         this.hover = { featureIndex, geometryIndex };
@@ -536,20 +553,20 @@ class CanvasRenderer {
       if (this.hover !== undefined && this.hover.featureIndex !== undefined) {
         const hover = level.features[this.hover.featureIndex];
         if (this.hover.geometryIndex !== undefined && hover !== undefined) {
-          this.drawGeometry(hover.geometries[this.hover.geometryIndex], hoverColor + '66', hoverColor);
+          this.drawGeometry(hover.geometries[this.hover.geometryIndex], hoverFillColor, hoverStrokeColor);
         }
       }
       const selection = this.appState.getSelectedFeature();
       if (selection) {
         selection.geometries.forEach(geometry => {
-          this.drawGeometry(geometry, selectionColor + '66', selectionColor);
+          this.drawGeometry(geometry, selectionFillColor, selectionStrokeColor);
         });
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
           const deltaDrag = [this.drag.end[0] - this.drag.start[0], this.drag.end[1] - this.drag.start[1]];
           this.ctx.translate(deltaDrag[0], deltaDrag[1]);
           selection.geometries.forEach(geometry => {
-            this.drawGeometry(geometry, dragColor, dragColor);
+            this.drawGeometry(geometry, dragFillColor, dragStrokeColor);
           });
           this.ctx.restore();
         }
@@ -603,18 +620,19 @@ class CanvasRenderer {
     this.drawGrid();
     ctx.restore();
 
+    ctx.save();
+    ctx.scale(this.size, this.size);
+
     if (this.mouse) {
       ctx.save();
       this.drawMousePos(this.mouse);
       ctx.restore();
     }
 
-    ctx.save();
-    ctx.scale(this.size, this.size);
     if (this.points.length > 0 && tools.polygon.selected) {
-      this.drawPolygon(this.points, dragColor, dragColor);
+      this.drawPolygon(this.points, dragFillColor, dragStrokeColor);
     } else if (this.points.length > 0 && tools.brush.selected) {
-      this.drawBrush(this.points, dragColor, dragColor);
+      this.drawBrush(this.points, dragFillColor, dragStrokeColor);
     } else if (this.drag) {
       this.drawDrag();
     }

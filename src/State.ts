@@ -84,6 +84,7 @@ export class State {
     featureIndex: undefined as number | undefined,
     geometryIndex: undefined as number | undefined
   }
+  gridSteps: number = 1
   debug = false
   modalOpen = true
   setState = (state: any) => { }
@@ -110,6 +111,11 @@ export class State {
   @modify()
   setDebug(debug: boolean) {
     this.debug = debug;
+  }
+
+  @modify()
+  setGridSteps(gridSteps: number) {
+    this.gridSteps = gridSteps;
   }
 
   @modify()
