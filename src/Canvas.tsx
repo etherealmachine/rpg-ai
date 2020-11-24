@@ -4,9 +4,9 @@ import {
   bbox,
   colorToIndex,
   detectDoorPlacement,
-  detectStairsPlacement,
   dist,
   indexToColor,
+  lerp,
   lerp2,
 } from './lib';
 import { Context, Geometry, Level, State } from './State';
@@ -293,10 +293,7 @@ class CanvasRenderer {
         { type: 'polygon', coordinates: [start, [start[0], end[1]], end, [end[0], start[1]]] },
         dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
-      const stairs = detectStairsPlacement(start, end, appState.levels[appState.selection.levelIndex].features);
-      if (stairs) {
-        this.drawStairs([stairs.from, stairs.to], undefined, dragStrokeColor);
-      }
+      this.drawStairs([start, end], dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       const box = bbox([start, end]);
       this.drawEllipse([box.sw, box.ne], dragFillColor, dragStrokeColor);
@@ -305,19 +302,19 @@ class CanvasRenderer {
     }
   }
 
-  drawGeometry(geometry: Geometry, fillColor?: string, strokeColor?: string) {
+  drawGeometry(geometry: Geometry, fillColor?: string, strokeColor?: string, indexColor?: string) {
     if (geometry.type === 'polygon') {
-      this.drawPolygon(geometry.coordinates, fillColor, strokeColor);
+      this.drawPolygon(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'ellipse') {
-      this.drawEllipse(geometry.coordinates, fillColor, strokeColor);
+      this.drawEllipse(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'line') {
-      this.drawLine(geometry.coordinates, strokeColor);
+      this.drawLine(geometry.coordinates, strokeColor || indexColor);
     } else if (geometry.type === 'brush') {
-      this.drawBrush(geometry.coordinates, fillColor, strokeColor);
+      this.drawBrush(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'door') {
-      this.drawDoor(geometry.coordinates, fillColor, strokeColor);
+      this.drawDoor(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'stairs') {
-      this.drawStairs(geometry.coordinates, fillColor, strokeColor);
+      this.drawStairs(geometry.coordinates, indexColor, strokeColor || indexColor);
     }
   }
 
@@ -433,8 +430,8 @@ class CanvasRenderer {
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 0.1;
     ctx.lineCap = 'butt';
-    for (let i = 0; i <= L; i += 0.5) {
-      const l = (i + 0.5) / (L + 0.5);
+    for (let i = 0; i < L; i += 0.5) {
+      const l = lerp(i / (L + .5), 0.1, W);
       ctx.beginPath();
       if (w > h) {
         ctx.moveTo(from[0] + i * sx, Math.min(from[1], to[1]) + (W - l) / 2);
@@ -447,11 +444,23 @@ class CanvasRenderer {
     }
     ctx.lineWidth = 0.05;
     ctx.beginPath();
-    ctx.moveTo(from[0], from[1]);
-    ctx.lineTo(from[0], to[1]);
-    ctx.lineTo(to[0], to[1]);
-    ctx.lineTo(to[0], from[1]);
+    if (w > h) {
+      ctx.moveTo(from[0], from[1]);
+      ctx.lineTo(to[0], from[1]);
+      ctx.lineTo(to[0], to[1]);
+      ctx.lineTo(from[0], to[1]);
+    } else {
+      ctx.moveTo(from[0], from[1]);
+      ctx.lineTo(from[0], to[1]);
+      ctx.lineTo(to[0], to[1]);
+      ctx.lineTo(to[0], from[1]);
+    }
     ctx.stroke();
+    if (fillColor) {
+      ctx.closePath();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
     if (strokeColor && specialColors.includes(strokeColor)) {
       this.drawPoints(points);
     }
@@ -489,7 +498,7 @@ class CanvasRenderer {
   }
 
   drawFeatures(level: Level, colorIndex: boolean = false) {
-    const featureDrawOrder = ['room', 'wall', 'text'];
+    const featureDrawOrder = ['room', 'geometry', 'text'];
     const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs'];
     const overdraw = ['polygon', 'ellipse', 'brush'];
     featureDrawOrder.forEach(featureType => {
@@ -500,7 +509,7 @@ class CanvasRenderer {
           feature.geometries.forEach((geometry, j) => {
             if (geometry.type !== geometryType) return;
             if (colorIndex) {
-              this.drawGeometry(geometry, indexToColor(j + i * level.features.length), indexToColor(j + i * level.features.length));
+              this.drawGeometry(geometry, undefined, undefined, indexToColor(j + i * level.features.length));
             } else {
               this.drawGeometry(geometry, floorColor, overdraw.includes(geometryType) ? undefined : wallColor);
             }

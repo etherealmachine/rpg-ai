@@ -1,6 +1,6 @@
 import React from 'react';
 import { produce } from 'immer';
-import { detectStairsPlacement, DoorPlacement } from './lib';
+import { DoorPlacement } from './lib';
 
 function modify() {
   return function (
@@ -126,27 +126,16 @@ export class State {
   handleDrag(from: number[], to: number[]) {
     if (from[0] === to[0] && from[1] === to[1]) return;
     const features = this.levels[this.selection.levelIndex].features;
-    if (this.selection.featureIndex !== undefined) {
-      const selection = features[this.selection.featureIndex];
-      if (selection !== undefined) {
-        const deltaDrag = [to[0] - from[0], to[1] - from[1]];
-        selection.geometries.forEach(geometry => {
-          geometry.coordinates.forEach(p => {
-            p[0] += deltaDrag[0];
-            p[1] += deltaDrag[1];
-          });
-        });
-        return;
-      }
-    }
     if (this.tools.stairs.selected) {
-      const stairs = detectStairsPlacement(from, to, features);
-      if (stairs) {
-        features[stairs.feature].geometries.push({
+      features.push({
+        properties: {
+          type: 'geometry',
+        },
+        geometries: [{
           type: 'stairs',
           coordinates: [from, to],
-        });
-      }
+        }],
+      });
     } else if (this.tools.rect.selected) {
       features.push({
         geometries: [{
@@ -174,9 +163,21 @@ export class State {
           coordinates: [from, to],
         }],
         properties: {
-          type: 'wall',
+          type: 'geometry',
         },
       });
+    } else if (this.selection.featureIndex !== undefined) {
+      const selection = features[this.selection.featureIndex];
+      if (selection !== undefined) {
+        const deltaDrag = [to[0] - from[0], to[1] - from[1]];
+        selection.geometries.forEach(geometry => {
+          geometry.coordinates.forEach(p => {
+            p[0] += deltaDrag[0];
+            p[1] += deltaDrag[1];
+          });
+        });
+        return;
+      }
     }
   }
 
@@ -334,7 +335,7 @@ export interface Geometry {
   coordinates: number[][]
 }
 
-export type FeatureType = 'room' | 'wall' | 'text'
+export type FeatureType = 'room' | 'geometry' | 'text'
 
 export interface FeatureProperties extends Description {
   type: FeatureType
