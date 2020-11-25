@@ -98,6 +98,7 @@ class CanvasRenderer {
         this.appState.handleGroup(hoverFeatureIndex, hoverGeometryIndex);
       } else {
         this.appState.setSelection({
+          mapIndex: this.appState.selection.mapIndex,
           levelIndex: this.appState.selection.levelIndex,
           featureIndex: this.hover?.featureIndex,
           geometryIndex: this.hover?.geometryIndex,
@@ -106,7 +107,7 @@ class CanvasRenderer {
     } else if (this.appState.tools.doors.selected && mouse) {
       const door = detectDoorPlacement(
         this.worldToTile(this.canvasToWorld(mouse), false),
-        this.appState.levels[this.appState.selection.levelIndex].features,
+        this.appState.maps[this.appState.selection.mapIndex].levels[this.appState.selection.levelIndex].features,
         e.shiftKey);
       if (door) this.appState.addDoor(door);
     }
@@ -558,7 +559,7 @@ class CanvasRenderer {
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
-    const level = this.appState.levels[this.appState.selection.levelIndex];
+    const level = this.appState.maps[this.appState.selection.mapIndex].levels[this.appState.selection.levelIndex];
 
     this.ctx = this.bufferCtx;
 

@@ -11,6 +11,7 @@ import Drawer from './Drawer';
 import Toolbar from './Toolbar';
 import Menubar from './Menubar';
 import Modal from './Modal';
+import TODO from './TODO';
 import { Context, State } from './State';
 import { useLocalStorageState } from './Persistence';
 
@@ -43,7 +44,7 @@ export default function App() {
       <Context.Provider value={state}>
         <Menubar />
         <div className={classes.canvasWrapper}>
-          <Modal />
+          <Modal open={state.showTodo} toggle={state.toggleTodo.bind(state)}><TODO /></Modal>
           <Canvas />
           <Drawer />
           <Toolbar />

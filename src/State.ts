@@ -78,25 +78,31 @@ export class State {
   tools = initialTools()
   scale = 1
   offset = [0, 0]
-  levels = [{
-    features: [],
-  }] as Level[]
+  maps = [{
+    name: '',
+    description: '',
+    levels: [{
+      features: [],
+    }]
+  }] as Map[]
   drawerOpen = false
   selection = {
+    mapIndex: 0 as number,
     levelIndex: 0 as number,
     featureIndex: undefined as number | undefined,
     geometryIndex: undefined as number | undefined
   }
   gridSteps: number = 1
   debug = false
-  modalOpen = true
+  showTodo = true
   setState = (state: any) => { }
   notifyChange = () => { }
 
   getSelectedFeature(): { feature: Feature, geometry: Geometry } | undefined {
     if (this.selection.featureIndex === undefined) return undefined;
     if (this.selection.geometryIndex === undefined) return undefined;
-    const feature = this.levels[this.selection.levelIndex].features[this.selection.featureIndex];
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const feature = level.features[this.selection.featureIndex];
     return {
       feature: feature,
       geometry: feature.geometries[this.selection.geometryIndex],
@@ -104,14 +110,24 @@ export class State {
   }
 
   @modify()
-  toggleModal() {
-    this.modalOpen = !this.modalOpen;
+  save(mapName: string) {
+    this.maps[this.selection.mapIndex].name = mapName;
+    if (this.maps[this.maps.length - 1].name !== '' || this.maps[this.maps.length - 1].levels[0].features.length > 0) {
+      this.maps.push({ name: '', description: '', levels: [{ features: [] }] });
+    }
+  }
+
+  @modify()
+  toggleTodo() {
+    this.showTodo = !this.showTodo;
   }
 
   @modify()
   newMap() {
-    this.levels = [{ features: [] }];
-    this.selection = { levelIndex: 0, featureIndex: undefined, geometryIndex: undefined };
+    if (this.maps[this.maps.length - 1].name !== '' || this.maps[this.maps.length - 1].levels[0].features.length > 0) {
+      this.maps.push({ name: '', description: '', levels: [{ features: [] }] });
+    }
+    this.selection = { mapIndex: this.maps.length - 1, levelIndex: 0, featureIndex: undefined, geometryIndex: undefined };
     this.scale = 1;
     this.offset = [0, 0];
   }
@@ -129,7 +145,8 @@ export class State {
   @modify()
   handleDrag(from: number[], to: number[]) {
     if (from[0] === to[0] && from[1] === to[1]) return;
-    const features = this.levels[this.selection.levelIndex].features;
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const features = level.features;
     if (this.tools.stairs.selected) {
       features.push({
         properties: {
@@ -187,7 +204,8 @@ export class State {
 
   @modify()
   handlePolygon(points: number[][]) {
-    const features = this.levels[this.selection.levelIndex].features;
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const features = level.features;
     if (this.tools.walls.selected) {
       features.push({
         geometries: [{
@@ -203,7 +221,8 @@ export class State {
 
   @modify()
   handleBrush(points: number[][]) {
-    const features = this.levels[this.selection.levelIndex].features;
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const features = level.features;
     if (this.tools.walls.selected && this.tools.brush.selected) {
       features.push({
         geometries: [{
@@ -219,7 +238,8 @@ export class State {
 
   @modify()
   handleDelete() {
-    const features = this.levels[this.selection.levelIndex].features;
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const features = level.features;
     if (this.selection.featureIndex === undefined) return;
     if (this.selection.geometryIndex === undefined) return;
     const feature = features[this.selection.featureIndex];
@@ -234,7 +254,8 @@ export class State {
 
   @modify()
   addDoor(door: DoorPlacement) {
-    const feature = this.levels[this.selection.levelIndex].features[door.feature];
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const feature = level.features[door.feature];
     feature.geometries.push({
       type: 'door',
       coordinates: [door.from, door.to],
@@ -243,7 +264,8 @@ export class State {
 
   @modify()
   handleGroup(featureIndex: number, geometryIndex: number) {
-    const features = this.levels[this.selection.levelIndex].features;
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const features = level.features;
     if (this.selection.featureIndex === undefined) return;
     if (this.selection.geometryIndex === undefined) return;
     const selectedFeature = features[this.selection.featureIndex];
@@ -303,7 +325,7 @@ export class State {
   }
 
   @modify()
-  setSelection(selection: { levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
+  setSelection(selection: { mapIndex: number, levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
     this.selection = selection;
   }
 
@@ -326,7 +348,8 @@ export class State {
   @modify()
   setDescription(desc: Description | undefined) {
     if (this.selection.featureIndex === undefined) return;
-    const feature = this.levels[this.selection.levelIndex].features[this.selection.featureIndex];
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const feature = level.features[this.selection.featureIndex];
     Object.assign(feature.properties, desc);
   }
 
@@ -334,6 +357,12 @@ export class State {
   reset() {
     Object.assign(this, new State());
   }
+}
+
+export interface Map {
+  name: string
+  description: string
+  levels: Level[]
 }
 
 export interface Geometry {
