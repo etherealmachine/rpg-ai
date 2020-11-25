@@ -2,19 +2,26 @@ import React from 'react';
 import { produce } from 'immer';
 import { DoorPlacement } from './lib';
 
-function modify() {
+let undoStack = [] as Map[];
+let redoStack = [] as Map[];
+
+function modify(options?: { undoable: boolean }) {
   return function (
-    target: any,
+    state: State,
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const modifierFn = descriptor.value;
     descriptor.value = function () {
       const args = Array.from(arguments);
-      (this as any).setState(produce(this, (newTarget: any) => {
-        modifierFn.bind(newTarget)(...args);
-        if (newTarget.hasOwnProperty('notifyChange')) {
-          newTarget.notifyChange();
+      (this as any).setState(produce(this, (newState: State) => {
+        if (options && options.undoable) {
+          undoStack.push(JSON.parse(JSON.stringify(newState.maps[newState.selection.mapIndex])));
+          if (undoStack.length > 10) undoStack.splice(0, undoStack.length - 10);
+        }
+        modifierFn.bind(newState)(...args);
+        if (newState.hasOwnProperty('notifyChange')) {
+          newState.notifyChange();
         }
       }));
     };
@@ -118,12 +125,33 @@ export class State {
   }
 
   @modify()
+  undo() {
+    if (undoStack.length === 0) return;
+    const prev = undoStack.pop();
+    if (!prev) return;
+    redoStack.push(JSON.parse(JSON.stringify(this.maps[this.selection.mapIndex])));
+    if (redoStack.length > 10) redoStack.splice(0, undoStack.length - 10);
+    this.maps[this.selection.mapIndex] = prev;
+  }
+
+  @modify()
+  redo() {
+    if (redoStack.length === 0) return;
+    const prev = redoStack.pop();
+    undoStack.push(JSON.parse(JSON.stringify(this.maps[this.selection.mapIndex])));
+    if (undoStack.length > 10) undoStack.splice(0, undoStack.length - 10);
+    if (prev) this.maps[this.selection.mapIndex] = prev;
+  }
+
+  @modify()
   toggleTodo() {
     this.showTodo = !this.showTodo;
   }
 
   @modify()
   newMap() {
+    undoStack = [];
+    redoStack = [];
     if (this.maps[this.maps.length - 1].name !== '' || this.maps[this.maps.length - 1].levels[0].features.length > 0) {
       this.maps.push({ name: '', description: '', levels: [{ features: [] }] });
     }
@@ -142,7 +170,7 @@ export class State {
     this.gridSteps = gridSteps;
   }
 
-  @modify()
+  @modify({ undoable: true })
   handleDrag(from: number[], to: number[]) {
     if (from[0] === to[0] && from[1] === to[1]) return;
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
@@ -202,7 +230,7 @@ export class State {
     }
   }
 
-  @modify()
+  @modify({ undoable: true })
   handlePolygon(points: number[][]) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
@@ -219,7 +247,7 @@ export class State {
     }
   }
 
-  @modify()
+  @modify({ undoable: true })
   handleBrush(points: number[][]) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
@@ -236,7 +264,7 @@ export class State {
     }
   }
 
-  @modify()
+  @modify({ undoable: true })
   handleDelete() {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
@@ -252,7 +280,7 @@ export class State {
     this.selection.geometryIndex = undefined;
   }
 
-  @modify()
+  @modify({ undoable: true })
   addDoor(door: DoorPlacement) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const feature = level.features[door.feature];
@@ -262,7 +290,7 @@ export class State {
     });
   }
 
-  @modify()
+  @modify({ undoable: true })
   handleGroup(featureIndex: number, geometryIndex: number) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
@@ -326,6 +354,10 @@ export class State {
 
   @modify()
   setSelection(selection: { mapIndex: number, levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
+    if (selection.mapIndex !== this.selection.mapIndex) {
+      undoStack = [];
+      redoStack = [];
+    }
     this.selection = selection;
   }
 

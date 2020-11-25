@@ -190,6 +190,8 @@ class CanvasRenderer {
     if (event.key === 'Backspace' || event.key === 'Delete') {
       appState.handleDelete();
     }
+    if (event.key === 'z' && this.specialKeys.ctrl) appState.undo();
+    if (event.key === 'y' && this.specialKeys.ctrl) appState.redo();
   }
 
   onKeyUp = (event: KeyboardEvent) => {

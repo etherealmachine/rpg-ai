@@ -87,12 +87,22 @@ export default function Menubar() {
         className={DS.buttonSmall}
         onClick={() => { appState.newMap(); }}>
         New
-    </button>
+      </button>
+      <button
+        className={DS.buttonSmall}
+        onClick={() => { appState.undo(); }}>
+        Undo
+      </button>
+      <button
+        className={DS.buttonSmall}
+        onClick={() => { appState.redo(); }}>
+        Redo
+      </button>
       <button
         className={DS.buttonSmall}
         onClick={() => { appState.toggleTodo(); }}>
         Help
-    </button>
+      </button>
       {appState.debug &&
         <button
           className={DS.buttonSmall}
