@@ -11,7 +11,6 @@ import {
 } from './lib';
 import { Context, Geometry, Level, State } from './State';
 
-const shadowColor = '#999';
 const backgroundColor = '#D9D2BF';
 const floorColor = '#F1ECE0';
 const wallColor = '#000';
@@ -405,14 +404,14 @@ class CanvasRenderer {
       ctx.strokeStyle = strokeColor;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      ctx.lineWidth = 1.1;
+      ctx.lineWidth = 1.05;
       ctx.stroke();
     }
     if (fillColor) {
       ctx.strokeStyle = fillColor;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      ctx.lineWidth = 0.9;
+      ctx.lineWidth = 0.95;
       ctx.stroke();
     }
     if (fillColor && specialColors.includes(fillColor)) {
@@ -539,7 +538,7 @@ class CanvasRenderer {
             }
           });
           if (overdraw.includes(geometryType)) {
-            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.globalCompositeOperation = 'destination-over';
             feature.geometries.forEach((geometry, j) => {
               if (geometry.type !== geometryType) return;
               if (colorIndex) {
@@ -632,7 +631,7 @@ class CanvasRenderer {
       }
     }
 
-    this.ctx.globalCompositeOperation = 'source-atop';
+    this.ctx.globalCompositeOperation = 'source-over';
     this.drawGrid();
 
     this.ctx.restore();
@@ -658,13 +657,6 @@ class CanvasRenderer {
 
       // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
       // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
-
-      ctx.save();
-      ctx.scale(appState.scale, appState.scale);
-      ctx.translate(appState.offset[0], appState.offset[1]);
-      ctx.scale(this.size, this.size);
-      this.drawGrid();
-      ctx.restore();
 
       this.drawLevels();
 
