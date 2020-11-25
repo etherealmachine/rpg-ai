@@ -52,8 +52,9 @@ class CanvasRenderer {
   appState = new State()
   canvas: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
-  bufferCanvas: HTMLCanvasElement;
-  bufferCtx: CanvasRenderingContext2D;
+  bufferCanvas: HTMLCanvasElement
+  bufferCtx: CanvasRenderingContext2D
+  dirty: boolean = true
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: true });
@@ -81,6 +82,7 @@ class CanvasRenderer {
   }
 
   onMouseDown = (e: MouseEvent) => {
+    this.dirty = true;
     this.mouseDown = true;
     const { mouse } = this;
     if (mouse) {
@@ -94,11 +96,7 @@ class CanvasRenderer {
       const hoverFeatureIndex = this.hover?.featureIndex;
       const hoverGeometryIndex = this.hover?.geometryIndex;
       if (e.shiftKey && selectedFeatureIndex !== undefined && hoverFeatureIndex !== undefined && hoverGeometryIndex !== undefined) {
-        if (selectedFeatureIndex === hoverFeatureIndex) {
-          this.appState.ungroup(selectedFeatureIndex, hoverGeometryIndex);
-        } else {
-          this.appState.group(selectedFeatureIndex, hoverFeatureIndex);
-        }
+        this.appState.handleGroup(hoverFeatureIndex, hoverGeometryIndex);
       } else {
         this.appState.setSelection({
           levelIndex: this.appState.selection.levelIndex,
@@ -116,6 +114,7 @@ class CanvasRenderer {
   }
 
   onMouseUp = () => {
+    this.dirty = true;
     this.mouseDown = false;
     if (this.mouse && this.appState.tools.polygon.selected) {
       const pos = this.canvasToTile(this.mouse);
@@ -145,6 +144,7 @@ class CanvasRenderer {
   }
 
   onMouseMove = (event: MouseEvent) => {
+    this.dirty = true;
     this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
       this.drag.end = this.canvasToTile(this.mouse);
@@ -155,6 +155,7 @@ class CanvasRenderer {
   }
 
   onWheel = (event: WheelEvent) => {
+    this.dirty = true;
     const { mouse } = this;
     const { scale, offset } = this.appState;
     if (!mouse) return;
@@ -171,6 +172,7 @@ class CanvasRenderer {
   }
 
   onKeyDown = (event: KeyboardEvent) => {
+    this.dirty = true;
     if (event.key === 'Shift') this.specialKeys.shift = true;
     if (event.key === 'Control') this.specialKeys.ctrl = true;
     if (event.key === 'Alt') this.specialKeys.alt = true;
@@ -191,6 +193,7 @@ class CanvasRenderer {
   }
 
   onKeyUp = (event: KeyboardEvent) => {
+    this.dirty = true;
     if (event.key === 'Shift') this.specialKeys.shift = false;
     if (event.key === 'Control') this.specialKeys.ctrl = false;
     if (event.key === 'Alt') this.specialKeys.alt = false;
@@ -230,8 +233,11 @@ class CanvasRenderer {
 
   renderFPS(time: number) {
     const fps = (1000 / (time - this.lastTime)).toFixed(0);
+    this.ctx.save();
     this.ctx.translate(this.canvas.width - 48, 12);
+    this.ctx.fillStyle = '#000';
     this.renderTextCenter(fps, "18px Roboto Mono, monospace");
+    this.ctx.restore();
   }
 
   clearScreen() {
@@ -249,30 +255,30 @@ class CanvasRenderer {
     const iT = ctx.getTransform().inverse();
     const min = iT.transformPoint({ x: 0, y: 0 });
     const max = iT.transformPoint({ x: canvas.width, y: canvas.height });
-    ctx.lineWidth = 0.5;
+    ctx.lineWidth = 0.01;
     ctx.strokeStyle = '#000';
-    for (let x = Math.floor(min.x / this.size) * this.size; x <= max.x; x += this.size) {
+    for (let x = Math.floor(min.x); x <= max.x; x++) {
       ctx.beginPath();
       ctx.moveTo(x, min.y);
       ctx.lineTo(x, max.y);
       ctx.stroke();
     }
-    for (let y = Math.floor(min.y / this.size) * this.size; y <= max.y; y += this.size) {
+    for (let y = Math.floor(min.y); y <= max.y; y++) {
       ctx.beginPath();
       ctx.moveTo(min.x, y);
       ctx.lineTo(max.x, y);
       ctx.stroke();
     }
     if (this.appState.gridSteps !== 1) {
-      ctx.lineWidth = 0.25;
+      ctx.lineWidth = 0.005;
       ctx.strokeStyle = '#666666';
-      for (let x = Math.floor(min.x / this.size) * this.size; x <= max.x; x += this.size / this.appState.gridSteps) {
+      for (let x = Math.floor(min.x); x <= max.x; x += 1 / this.appState.gridSteps) {
         ctx.beginPath();
         ctx.moveTo(x, min.y);
         ctx.lineTo(x, max.y);
         ctx.stroke();
       }
-      for (let y = Math.floor(min.y / this.size) * this.size; y <= max.y; y += this.size / this.appState.gridSteps) {
+      for (let y = Math.floor(min.y); y <= max.y; y += 1 / this.appState.gridSteps) {
         ctx.beginPath();
         ctx.moveTo(min.x, y);
         ctx.lineTo(max.x, y);
@@ -283,6 +289,7 @@ class CanvasRenderer {
 
   drawMousePos(mouse: number[]) {
     const { ctx } = this;
+    ctx.save();
     const p = this.worldToTile(this.canvasToWorld(mouse), true);
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -298,6 +305,7 @@ class CanvasRenderer {
       ctx.translate(0, -0.5);
       this.renderTextCenter(`Tile: ${Math.floor(p[0] / this.size).toFixed(0)},${Math.floor(p[1] / this.size).toFixed(0)}`, font);
     }
+    ctx.restore();
   }
 
   drawDrag() {
@@ -525,17 +533,17 @@ class CanvasRenderer {
           feature.geometries.forEach((geometry, j) => {
             if (geometry.type !== geometryType) return;
             if (colorIndex) {
-              this.drawGeometry(geometry, undefined, undefined, indexToColor(j + i * level.features.length));
+              this.drawGeometry(geometry, undefined, undefined, indexToColor(i, j));
             } else {
               this.drawGeometry(geometry, floorColor, overdraw.includes(geometryType) ? undefined : wallColor);
             }
           });
           if (overdraw.includes(geometryType)) {
-            this.ctx.globalCompositeOperation = 'destination-over';
+            this.ctx.globalCompositeOperation = 'source-over';
             feature.geometries.forEach((geometry, j) => {
               if (geometry.type !== geometryType) return;
               if (colorIndex) {
-                this.drawGeometry(geometry, indexToColor(j + i * level.features.length), indexToColor(j + i * level.features.length));
+                this.drawGeometry(geometry, indexToColor(i, j), indexToColor(i, j));
               } else {
                 this.drawGeometry(geometry, undefined, wallColor);
               }
@@ -567,8 +575,7 @@ class CanvasRenderer {
     this.drawFeatures(level, true);
     if (this.mouse) {
       const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
-      const i = colorToIndex(p[0], p[1], p[2]);
-      const [featureIndex, geometryIndex] = [Math.floor(i / level.features.length), i % level.features.length];
+      const [featureIndex, geometryIndex] = colorToIndex(p[0], p[1], p[2]);
       if (featureIndex === Infinity || featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
         this.hover = undefined;
       } else {
@@ -596,7 +603,12 @@ class CanvasRenderer {
       }
       const selection = this.appState.getSelectedFeature();
       if (selection) {
-        this.drawGeometry(selection.geometry, selectionFillColor, selectionStrokeColor);
+        selection.feature.geometries.forEach(geometry => {
+          this.drawGeometry(
+            geometry,
+            geometry === selection.geometry ? selectionFillColor : hoverFillColor,
+            geometry === selection.geometry ? selectionStrokeColor : hoverFillColor);
+        });
         if (this.drag && dist(this.drag.start, this.drag.end)) {
           this.ctx.save();
           const deltaDrag = [this.drag.end[0] - this.drag.start[0], this.drag.end[1] - this.drag.start[1]];
@@ -619,6 +631,10 @@ class CanvasRenderer {
         this.drawDoor([door.from, door.to], undefined, wallColor);
       }
     }
+
+    this.ctx.globalCompositeOperation = 'source-atop';
+    this.drawGrid();
+
     this.ctx.restore();
 
     tmp.drawImage(this.bufferCanvas, 0, 0);
@@ -627,63 +643,58 @@ class CanvasRenderer {
   }
 
   render = (time: number) => {
-    const { ctx, appState } = this;
-    const { tools } = appState;
-    if (this.polygonToolSelected && !appState.tools.polygon.selected) {
-      this.points = [];
-    }
-    this.polygonToolSelected = appState.tools.polygon.selected;
+    if (this.dirty) {
+      const { ctx, appState } = this;
+      const { tools } = appState;
+      if (this.polygonToolSelected && !appState.tools.polygon.selected) {
+        this.points = [];
+      }
+      this.polygonToolSelected = appState.tools.polygon.selected;
 
-    ctx.resetTransform();
-    this.bufferCtx.resetTransform();
+      ctx.resetTransform();
+      this.bufferCtx.resetTransform();
 
-    ctx.save();
-    this.clearScreen();
-    ctx.restore();
+      this.clearScreen();
 
-    // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
-    // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
+      // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
+      // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
 
-    ctx.save();
-    this.drawLevels();
-    ctx.restore();
-
-    ctx.save();
-
-    ctx.scale(appState.scale, appState.scale);
-    ctx.translate(appState.offset[0], appState.offset[1]);
-
-    ctx.save();
-    this.drawGrid();
-    ctx.restore();
-
-    ctx.save();
-    ctx.scale(this.size, this.size);
-
-    if (this.mouse) {
       ctx.save();
-      this.drawMousePos(this.mouse);
+      ctx.scale(appState.scale, appState.scale);
+      ctx.translate(appState.offset[0], appState.offset[1]);
+      ctx.scale(this.size, this.size);
+      this.drawGrid();
       ctx.restore();
-    }
 
-    if (this.points.length > 0 && tools.polygon.selected) {
-      this.drawPolygon(this.points, dragFillColor, dragStrokeColor);
-    } else if (this.points.length > 0 && tools.brush.selected) {
-      this.drawBrush(this.points, dragFillColor, dragStrokeColor);
-    } else if (this.drag) {
-      this.drawDrag();
-    }
-    ctx.restore();
+      this.drawLevels();
 
-    ctx.restore();
-
-    if (appState.debug) {
       ctx.save();
-      this.renderFPS(time);
+
+      ctx.scale(appState.scale, appState.scale);
+      ctx.translate(appState.offset[0], appState.offset[1]);
+      ctx.scale(this.size, this.size);
+
+      if (this.mouse) {
+        this.drawMousePos(this.mouse);
+      }
+
+      if (this.points.length > 0 && tools.polygon.selected) {
+        this.drawPolygon(this.points, dragFillColor, dragStrokeColor);
+      } else if (this.points.length > 0 && tools.brush.selected) {
+        this.drawBrush(this.points, dragFillColor, dragStrokeColor);
+      } else if (this.drag) {
+        this.drawDrag();
+      }
+
       ctx.restore();
+
+      if (appState.debug) {
+        this.renderFPS(time);
+      }
+      this.lastTime = time;
     }
-    this.lastTime = time;
     this.requestID = requestAnimationFrame(this.render);
+    this.dirty = false;
   }
 }
 
@@ -693,16 +704,19 @@ export default function Canvas() {
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
+    const renderer: CanvasRenderer = (canvas as any).renderer || new CanvasRenderer(canvas);
+    (canvas as any).renderer = renderer;
     const syncSize = () => {
       canvas.width = canvas.offsetWidth || canvas.width;
       canvas.height = canvas.offsetHeight || canvas.height;
+      renderer.dirty = true;
     };
     syncSize();
     window.addEventListener('resize', syncSize);
-    if ((canvas as any).renderer === undefined) {
-      (canvas as any).renderer = new CanvasRenderer(canvas);
-    }
-    (canvas as any).renderer.appState = appState;
+    renderer.appState = appState;
+    appState.notifyChange = () => {
+      renderer.dirty = true;
+    };
     return () => {
       window.removeEventListener('resize', syncSize);
     }

@@ -55,13 +55,14 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return ((r << 16) | (g << 8) | b).toString(16);
 }
 
-export function colorToIndex(r: number, g: number, b: number): number {
-  return ((r << 16) | (g << 8) | b);
+export function colorToIndex(r: number, g: number, b: number): number[] {
+  return [r, g];
 }
 
-export function indexToColor(i: number): string {
-  if (i < 0 || i >= 256 * 256 * 256) throw new Error('Index out of range');
-  return '#' + i.toString(16).padStart(6, '0');
+export function indexToColor(i: number, j: number): string {
+  if (i < 0 || i >= 256) throw new Error('Index out of range');
+  if (j < 0 || j >= 256) throw new Error('Index out of range');
+  return `rgb(${i}, ${j}, 0)`;
 }
 
 export function bbox(points: number[][]) {

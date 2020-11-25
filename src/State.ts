@@ -13,6 +13,9 @@ function modify() {
       const args = Array.from(arguments);
       (this as any).setState(produce(this, (newTarget: any) => {
         modifierFn.bind(newTarget)(...args);
+        if (newTarget.hasOwnProperty('notifyChange')) {
+          newTarget.notifyChange();
+        }
       }));
     };
   };
@@ -88,6 +91,7 @@ export class State {
   debug = false
   modalOpen = true
   setState = (state: any) => { }
+  notifyChange = () => { }
 
   getSelectedFeature(): { feature: Feature, geometry: Geometry } | undefined {
     if (this.selection.featureIndex === undefined) return undefined;
@@ -238,24 +242,26 @@ export class State {
   }
 
   @modify()
-  group(i: number, j: number) {
+  handleGroup(featureIndex: number, geometryIndex: number) {
     const features = this.levels[this.selection.levelIndex].features;
-    features[i].geometries = features[i].geometries.concat(features[j].geometries);
-    features.splice(j, 1);
-  }
-
-  @modify()
-  ungroup(i: number, j: number) {
-    const features = this.levels[this.selection.levelIndex].features;
-    const feature = features[i];
-    const geometry = feature.geometries[j];
-    feature.geometries.splice(j, 1);
-    features.push({
-      geometries: [geometry],
-      properties: {
-        type: feature.properties.type,
-      },
-    });
+    if (this.selection.featureIndex === undefined) return;
+    if (this.selection.geometryIndex === undefined) return;
+    const selectedFeature = features[this.selection.featureIndex];
+    if (this.selection.featureIndex === featureIndex) {
+      if (selectedFeature.geometries.length === 1) return;
+      const geom = selectedFeature.geometries[geometryIndex];
+      selectedFeature.geometries.splice(geometryIndex, 1);
+      features.push({
+        properties: {
+          type: ['polygon', 'ellipse'].includes(geom.type) ? 'room' : 'geometry',
+        },
+        geometries: [geom],
+      });
+    } else {
+      selectedFeature.geometries = selectedFeature.geometries.concat(features[featureIndex].geometries);
+      features.splice(featureIndex, 1);
+      if (this.selection.featureIndex > featureIndex) this.selection.featureIndex--;
+    }
   }
 
   @modify()
