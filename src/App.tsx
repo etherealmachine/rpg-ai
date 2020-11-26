@@ -5,6 +5,11 @@
 */
 import React, { useState } from 'react';
 import { css } from 'astroturf';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+} from "react-router-dom";
 
 import Canvas from './Canvas';
 import Drawer from './Drawer';
@@ -41,19 +46,32 @@ export default function App() {
     setState(newState);
     setCount(i + 1);
   };
-  return (
-    <div className={classes.app}>
-      <Context.Provider value={state}>
-        <Menubar />
-        <div className={classes.canvasWrapper}>
-          <Modal open={state.showTodo} toggle={state.toggleTodo.bind(state)}><TODO /></Modal>
-          <Canvas />
-          <Drawer />
-          <Toolbar />
-          <Levels />
-          <Navigation />
+  return <Router>
+    <Switch>
+      <Route path="/print">
+        <div className={classes.app}>
+          <Context.Provider value={state}>
+            <div className={classes.canvasWrapper}>
+              <Canvas />
+            </div>
+          </Context.Provider>
         </div>
-      </Context.Provider>
-    </div>
-  );
+      </Route>
+      <Route path="/">
+        <div className={classes.app}>
+          <Context.Provider value={state}>
+            <Menubar />
+            <div className={classes.canvasWrapper}>
+              <Modal open={state.showTodo} toggle={state.toggleTodo.bind(state)}><TODO /></Modal>
+              <Canvas />
+              <Drawer />
+              <Toolbar />
+              <Levels />
+              <Navigation />
+            </div>
+          </Context.Provider>
+        </div>
+      </Route>
+    </Switch>
+  </Router>;
 }

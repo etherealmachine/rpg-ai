@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { css } from 'astroturf';
+import { useHistory } from "react-router-dom";
 
 import Modal from './Modal';
 import { DS } from './design_system';
@@ -49,6 +50,7 @@ function MapSelector(props: { onSelect: (map: number) => void }) {
 
 export default function Menubar() {
   const appState = useContext(Context);
+  const history = useHistory();
   const [tmpName, setTmpName] = useState<string | undefined>(undefined);
   const updateTmpName = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTmpName(event.target.value);
@@ -97,6 +99,11 @@ export default function Menubar() {
         className={DS.buttonSmall}
         onClick={() => { appState.redo(); }}>
         Redo
+      </button>
+      <button
+        className={DS.buttonSmall}
+        onClick={() => { history.push('/print'); }}>
+        Print
       </button>
       <button
         className={DS.buttonSmall}
