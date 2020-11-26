@@ -11,6 +11,7 @@ import Drawer from './Drawer';
 import Levels from './Levels';
 import Menubar from './Menubar';
 import Modal from './Modal';
+import Navigation from './Navigation';
 import TODO from './TODO';
 import Toolbar from './Toolbar';
 import { Context, State } from './State';
@@ -50,6 +51,7 @@ export default function App() {
           <Drawer />
           <Toolbar />
           <Levels />
+          <Navigation />
         </div>
       </Context.Provider>
     </div>

@@ -38,6 +38,7 @@ class CanvasRenderer {
     shift: false,
     alt: false,
     ctrl: false,
+    space: false,
   }
   points: number[][] = []
   polygonToolSelected: boolean = false
@@ -147,9 +148,20 @@ class CanvasRenderer {
     this.dirty = true;
     this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
-      this.drag.end = this.canvasToTile(this.mouse);
-      if (this.appState.tools.brush.selected) {
-        this.points.push(this.worldToTile(this.canvasToWorld(this.mouse), false));
+      if (this.specialKeys.space) {
+        const end = this.canvasToWorld(this.mouse);
+        const delta = [(this.drag.start[0] * this.size) - end[0], (this.drag.start[1] * this.size) - end[1]];
+        let newOffset = this.appState.offset;
+        newOffset[0] -= delta[0];
+        newOffset[1] -= delta[1];
+        this.appState.setOffset(newOffset);
+        this.drag.start = this.canvasToTile(this.mouse);
+        this.drag.end = this.canvasToTile(this.mouse);
+      } else {
+        this.drag.end = this.canvasToTile(this.mouse);
+        if (this.appState.tools.brush.selected) {
+          this.points.push(this.worldToTile(this.canvasToWorld(this.mouse), false));
+        }
       }
     }
   }
@@ -192,6 +204,10 @@ class CanvasRenderer {
     }
     if (event.key === 'z' && this.specialKeys.ctrl) appState.undo();
     if (event.key === 'y' && this.specialKeys.ctrl) appState.redo();
+    if (event.key === ' ') {
+      this.canvas.style.cursor = "pointer";
+      this.specialKeys.space = true;
+    }
   }
 
   onKeyUp = (event: KeyboardEvent) => {
@@ -199,6 +215,10 @@ class CanvasRenderer {
     if (event.key === 'Shift') this.specialKeys.shift = false;
     if (event.key === 'Control') this.specialKeys.ctrl = false;
     if (event.key === 'Alt') this.specialKeys.alt = false;
+    if (event.key === ' ') {
+      this.canvas.style.cursor = "auto";
+      this.specialKeys.space = false;
+    }
   }
 
   // canvas coordinates to world coordinates
@@ -524,7 +544,7 @@ class CanvasRenderer {
   }
 
   drawFeatures(level: Level, colorIndex: boolean = false) {
-    const featureDrawOrder = ['room', 'geometry', 'text'];
+    const featureDrawOrder = ['room', 'wall', 'text'];
     const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs'];
     const overdraw = ['polygon', 'ellipse', 'brush'];
     featureDrawOrder.forEach(featureType => {
@@ -536,8 +556,10 @@ class CanvasRenderer {
             if (geometry.type !== geometryType) return;
             if (colorIndex) {
               this.drawGeometry(geometry, undefined, undefined, indexToColor(i, j));
-            } else {
+            } else if (feature.properties.type === 'room') {
               this.drawGeometry(geometry, floorColor, overdraw.includes(geometryType) ? undefined : wallColor);
+            } else {
+              this.drawGeometry(geometry, undefined, overdraw.includes(geometryType) ? undefined : wallColor);
             }
           });
           if (overdraw.includes(geometryType)) {

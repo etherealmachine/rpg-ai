@@ -75,7 +75,7 @@ export default function Levels() {
   const state = useContext(Context);
   return <div className={classes.levels}>
     <h4>Levels</h4>
-    {state.maps[state.selection.mapIndex].levels.map((level, i) => <div className={classes.level}>
+    {state.maps[state.selection.mapIndex].levels.map((level, i) => <div key={i} className={classes.level}>
       <button
         className={classNames(classes.link, state.selection.levelIndex === i && classes.selected)}
         onClick={() => state.selectLevel(i)}>

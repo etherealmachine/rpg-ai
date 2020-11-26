@@ -21,6 +21,7 @@ const classes = css`
     &.open {
       width: 400px;
       transition: .2s ease-out;
+      z-index: 100;
     }
   }
   .toggleButton {

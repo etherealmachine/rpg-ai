@@ -207,7 +207,7 @@ export class State {
     if (this.tools.stairs.selected) {
       features.push({
         properties: {
-          type: 'geometry',
+          type: 'wall',
         },
         geometries: [{
           type: 'stairs',
@@ -241,13 +241,14 @@ export class State {
           coordinates: [from, to],
         }],
         properties: {
-          type: 'geometry',
+          type: 'wall',
         },
       });
     } else if (this.selection.featureIndex !== undefined) {
       const selection = features[this.selection.featureIndex];
       if (selection !== undefined) {
         const deltaDrag = [to[0] - from[0], to[1] - from[1]];
+        console.log(deltaDrag);
         selection.geometries.forEach(geometry => {
           geometry.coordinates.forEach(p => {
             p[0] += deltaDrag[0];
@@ -263,17 +264,15 @@ export class State {
   handlePolygon(points: number[][]) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
-    if (this.tools.walls.selected) {
-      features.push({
-        geometries: [{
-          type: 'polygon',
-          coordinates: points,
-        }],
-        properties: {
-          type: 'room',
-        },
-      });
-    }
+    features.push({
+      geometries: [{
+        type: 'polygon',
+        coordinates: points,
+      }],
+      properties: {
+        type: this.tools.walls.selected ? 'room' : 'wall',
+      },
+    });
   }
 
   @modify({ undoable: true })
@@ -332,7 +331,7 @@ export class State {
       selectedFeature.geometries.splice(geometryIndex, 1);
       features.push({
         properties: {
-          type: ['polygon', 'ellipse'].includes(geom.type) ? 'room' : 'geometry',
+          type: ['polygon', 'ellipse'].includes(geom.type) ? 'room' : 'wall',
         },
         geometries: [geom],
       });
@@ -431,7 +430,7 @@ export interface Geometry {
   coordinates: number[][]
 }
 
-export type FeatureType = 'room' | 'geometry' | 'text'
+export type FeatureType = 'room' | 'wall' | 'text'
 
 export interface FeatureProperties extends Description {
   type: FeatureType

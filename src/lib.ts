@@ -177,7 +177,7 @@ function computeDoorPlacement(f: ClosestFeature, features: Feature[], fullWidth:
   const to = coords[f.closestPoint.line[1]];
 
   if (fullWidth) {
-    return { ...f, from, to };
+    return { ...f, from: [...from], to: [...to] };
   }
 
   const center = f.closestPoint.point;
