@@ -8,10 +8,11 @@ import { css } from 'astroturf';
 
 import Canvas from './Canvas';
 import Drawer from './Drawer';
-import Toolbar from './Toolbar';
+import Levels from './Levels';
 import Menubar from './Menubar';
 import Modal from './Modal';
 import TODO from './TODO';
+import Toolbar from './Toolbar';
 import { Context, State } from './State';
 import { useLocalStorageState } from './Persistence';
 
@@ -48,6 +49,7 @@ export default function App() {
           <Canvas />
           <Drawer />
           <Toolbar />
+          <Levels />
         </div>
       </Context.Provider>
     </div>

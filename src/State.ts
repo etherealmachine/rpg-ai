@@ -160,6 +160,35 @@ export class State {
     this.offset = [0, 0];
   }
 
+  @modify({ undoable: true })
+  addLevel() {
+    this.maps[this.selection.mapIndex].levels.push({
+      features: []
+    });
+    this.selection.levelIndex = this.maps[this.selection.mapIndex].levels.length - 1;
+    this.selection.featureIndex = undefined;
+    this.selection.geometryIndex = undefined;
+  }
+
+  @modify()
+  selectLevel(i: number) {
+    this.selection.levelIndex = i;
+    this.selection.featureIndex = undefined;
+    this.selection.geometryIndex = undefined;
+  }
+
+  @modify({ undoable: true })
+  removeLevel(i: number) {
+    const levels = this.maps[this.selection.mapIndex].levels;
+    if (levels.length <= 1) return;
+    levels.splice(i, 1);
+    if (this.selection.levelIndex === levels.length) {
+      this.selection.levelIndex--;
+    }
+    this.selection.featureIndex = undefined;
+    this.selection.geometryIndex = undefined;
+  }
+
   @modify()
   setDebug(debug: boolean) {
     this.debug = debug;
