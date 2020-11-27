@@ -6,6 +6,7 @@ import {
   detectDoorPlacement,
   dist,
   indexToColor,
+  isCCW,
   lerp,
   lerp2,
 } from './lib';
@@ -323,9 +324,7 @@ class CanvasRenderer {
       ctx.translate(p[0], p[1] - 1);
       this.renderTextCenter(`Mouse: ${mouse[0].toFixed(0)},${mouse[1].toFixed(0)}`, font);
       ctx.translate(0, -0.5);
-      this.renderTextCenter(`World: ${p[0].toFixed(0)},${p[1].toFixed(0)}`, font);
-      ctx.translate(0, -0.5);
-      this.renderTextCenter(`Tile: ${Math.floor(p[0] / this.size).toFixed(0)},${Math.floor(p[1] / this.size).toFixed(0)}`, font);
+      this.renderTextCenter(`Tile: ${p[0].toFixed(0)},${p[1].toFixed(0)}`, font);
     }
     ctx.restore();
   }
@@ -423,20 +422,22 @@ class CanvasRenderer {
   drawBrush(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     this.pathPoints(points);
-    if (strokeColor) {
-      ctx.strokeStyle = strokeColor;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 1.05;
-      ctx.stroke();
-    }
     if (fillColor) {
       ctx.strokeStyle = fillColor;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      ctx.lineWidth = 0.95;
+      ctx.lineWidth = 0.9;
       ctx.stroke();
     }
+    this.ctx.globalCompositeOperation = 'destination-over';
+    if (strokeColor) {
+      ctx.strokeStyle = strokeColor;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+    this.ctx.globalCompositeOperation = 'source-over';
     if (fillColor && specialColors.includes(fillColor)) {
       this.drawPoints(points);
     }
@@ -546,33 +547,22 @@ class CanvasRenderer {
   drawFeatures(level: Level, colorIndex: boolean = false) {
     const featureDrawOrder = ['room', 'wall', 'text'];
     const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs'];
-    const overdraw = ['polygon', 'ellipse', 'brush'];
     featureDrawOrder.forEach(featureType => {
       geometryDrawOrder.forEach(geometryType => {
         level.features.forEach((feature, i) => {
           if (feature.properties.type !== featureType) return;
-          this.ctx.globalCompositeOperation = 'source-over';
           feature.geometries.forEach((geometry, j) => {
             if (geometry.type !== geometryType) return;
             if (colorIndex) {
               this.drawGeometry(geometry, undefined, undefined, indexToColor(i, j));
-            } else if (feature.properties.type === 'room') {
-              this.drawGeometry(geometry, floorColor, overdraw.includes(geometryType) ? undefined : wallColor);
             } else {
-              this.drawGeometry(geometry, undefined, overdraw.includes(geometryType) ? undefined : wallColor);
+              let areaColor = floorColor;
+              if (geometry.type === 'polygon' && !isCCW(geometry.coordinates)) {
+                areaColor = backgroundColor;
+              }
+              this.drawGeometry(geometry, areaColor, wallColor);
             }
           });
-          if (overdraw.includes(geometryType)) {
-            this.ctx.globalCompositeOperation = 'destination-over';
-            feature.geometries.forEach((geometry, j) => {
-              if (geometry.type !== geometryType) return;
-              if (colorIndex) {
-                this.drawGeometry(geometry, indexToColor(i, j), indexToColor(i, j));
-              } else {
-                this.drawGeometry(geometry, undefined, wallColor);
-              }
-            });
-          }
         });
       });
     });

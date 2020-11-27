@@ -1,6 +1,7 @@
 import React from 'react';
 import { produce } from 'immer';
-import { DoorPlacement } from './lib';
+
+import { DoorPlacement, merge } from './lib';
 
 let undoStack = [] as Map[];
 let redoStack = [] as Map[];
@@ -48,6 +49,12 @@ const initialTools = () => ({
     disabled: false,
   },
   'doors': {
+    selected: false,
+    group: 1,
+    polygon: false,
+    disabled: false,
+  },
+  'decoration': {
     selected: false,
     group: 1,
     polygon: false,
@@ -218,7 +225,13 @@ export class State {
       features.push({
         geometries: [{
           type: 'polygon',
-          coordinates: [[from[0], from[1]], [from[0], to[1]], [to[0], to[1]], [to[0], from[1]]],
+          coordinates: [
+            [from[0], from[1]],
+            [to[0], from[1]],
+            [to[0], to[1]],
+            [from[0], to[1]],
+            [from[0], from[1]]
+          ],
         }],
         properties: {
           type: 'room',
@@ -248,7 +261,6 @@ export class State {
       const selection = features[this.selection.featureIndex];
       if (selection !== undefined) {
         const deltaDrag = [to[0] - from[0], to[1] - from[1]];
-        console.log(deltaDrag);
         selection.geometries.forEach(geometry => {
           geometry.coordinates.forEach(p => {
             p[0] += deltaDrag[0];
@@ -336,7 +348,15 @@ export class State {
         geometries: [geom],
       });
     } else {
-      selectedFeature.geometries = selectedFeature.geometries.concat(features[featureIndex].geometries);
+      const geom1 = selectedFeature.geometries.find(geom => geom.type === 'polygon');
+      const geom2 = features[featureIndex].geometries[geometryIndex];
+      if (geom1 && geom2.type === 'polygon') {
+        const mergedGeoms = merge(selectedFeature.geometries.filter(geom => geom.type === 'polygon'), geom2);
+        const prevGeoms = selectedFeature.geometries.filter(geom => geom.type !== 'polygon');
+        selectedFeature.geometries = prevGeoms.concat(mergedGeoms);
+      } else {
+        selectedFeature.geometries = selectedFeature.geometries.concat(features[featureIndex].geometries);
+      }
       features.splice(featureIndex, 1);
       if (this.selection.featureIndex > featureIndex) this.selection.featureIndex--;
     }

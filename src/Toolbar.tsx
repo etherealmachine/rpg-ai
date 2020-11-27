@@ -9,6 +9,7 @@ import {
   faDoorClosed,
   faSquare,
   faBrush,
+  faStar,
 } from '@fortawesome/free-solid-svg-icons'
 
 import { Context, ToolName } from './State';
@@ -71,11 +72,12 @@ interface Button {
 }
 
 const buttons: { [key in ToolName]: Button } = {
-  'pointer': { icon: faMousePointer, tooltip: 'Select (TODO)' },
+  'pointer': { icon: faMousePointer, tooltip: 'Select' },
   'walls': { icon: faSquare, tooltip: 'Walls' },
-  'stairs': { icon: stairsIcon, tooltip: 'Stairs (TODO)' },
+  'stairs': { icon: stairsIcon, tooltip: 'Stairs' },
   'doors': { icon: faDoorClosed, tooltip: 'Doors' },
-  'brush': { icon: faBrush, tooltip: 'Paint (TODO)' },
+  'decoration': { icon: faStar, tooltip: 'Items and Decoration' },
+  'brush': { icon: faBrush, tooltip: 'Paint Caves and Natural Features' },
   'rect': { icon: faVectorSquare, tooltip: 'Rectangle' },
   'polygon': { icon: faDrawPolygon, tooltip: 'Polygon' },
   'ellipse': { icon: faCircle, tooltip: 'Circle/Ellipse' },

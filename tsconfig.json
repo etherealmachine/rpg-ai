@@ -19,9 +19,9 @@
     "isolatedModules": true,
     "experimentalDecorators": true,
     "noEmit": true,
-    "jsx": "react"
+    "jsx": "react",
   },
   "include": [
-    "src"
+    "src/**/*.ts"
   ]
 }

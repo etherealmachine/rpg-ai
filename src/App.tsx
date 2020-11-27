@@ -46,6 +46,7 @@ export default function App() {
     setState(newState);
     setCount(i + 1);
   };
+  (window as any).app = state;
   return <Router>
     <Switch>
       <Route path="/print">

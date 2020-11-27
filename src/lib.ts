@@ -1,5 +1,6 @@
-import * as martinez from 'martinez-polygon-clipping';
-import { Feature } from './State';
+import * as PolyBool from 'polybooljs';
+
+import { Feature, Geometry } from './State';
 
 export function line(x0: number, y0: number, x1: number, y1: number): { x: number, y: number }[] {
   const dx = Math.abs(x1 - x0);
@@ -78,27 +79,38 @@ export function bbox(points: number[][]) {
   };
 }
 
-export function merge(features: GeoJSON.Feature[]) {
-  while (true) {
-    let overlap = false;
-    for (let i = 0; i < features.length; i++) {
-      for (let j = 0; j < features.length; j++) {
-        if (i === j) continue;
-        const f1 = features[i];
-        const f2 = features[j];
-        if (f1.geometry.type === 'Polygon' && f2.geometry.type === 'Polygon') {
-          const union = martinez.union(f1.geometry.coordinates, f2.geometry.coordinates);
-          if (union.length === 1) {
-            f1.geometry.coordinates = union[0] as number[][][];
-            features.splice(j, 1);
-            overlap = true;
-            break;
-          }
-        }
-      }
-    }
-    if (!overlap) return;
-  }
+export function isCCW(ring: number[][]): boolean {
+  let signedArea = 0
+  ring.slice(0, ring.length - 1).forEach((point, i) => {
+    const [x2, y2] = ring[i + 1];
+    signedArea += (point[0] * y2 - x2 * point[1]);
+  });
+  return signedArea < 0;
+}
+
+function toPolyBoolPoly(geoms: Geometry[]): PolyBool.Polygon {
+  return {
+    regions: geoms.map(geom => geom.coordinates),
+    inverted: false,
+  };
+}
+
+function fromPolyBoolPoly(points: number[][]): Geometry {
+  return {
+    type: 'polygon',
+    coordinates: points,
+  };
+}
+
+export function merge(geoms: Geometry[], geom: Geometry): Geometry[] {
+  const poly = PolyBool.union(toPolyBoolPoly(geoms), toPolyBoolPoly([geom]));
+  const merged = poly.regions.map(region => fromPolyBoolPoly(region));
+  merged.sort((a, b) => {
+    if (isCCW(a.coordinates) && isCCW(b.coordinates)) return 0;
+    if (isCCW(a.coordinates) && !isCCW(b.coordinates)) return -1;
+    return 1;
+  });
+  return merged;
 }
 
 export function closestPointToLine(p: number[], a: number[], b: number[]): { point: number[], distance: number } {
