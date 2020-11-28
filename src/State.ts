@@ -447,6 +447,16 @@ export class State {
   }
 
   @modify()
+  setMapDescription(desc: Description) {
+    if (desc.name !== undefined) {
+      this.maps[this.selection.mapIndex].name = desc.name;
+    }
+    if (desc.description !== undefined) {
+      this.maps[this.selection.mapIndex].description = desc.description;
+    }
+  }
+
+  @modify()
   setDescription(desc: Description | undefined) {
     if (this.selection.featureIndex === undefined) return;
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];

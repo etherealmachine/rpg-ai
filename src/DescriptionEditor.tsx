@@ -38,7 +38,7 @@ interface Props {
   onDescriptionChange(text: string): void
   onSave(): void
   onUndo(): void
-  onDelete(): void
+  onDelete?: () => void
 }
 
 export default function DescriptionEditor(props: Props) {
@@ -58,7 +58,7 @@ export default function DescriptionEditor(props: Props) {
     <div className={classes.actions}>
       {<button className={DS.button} onClick={props.onSave}>Save</button>}
       {<button className={classNames(DS.button)} onClick={props.onUndo}>Undo</button>}
-      {<button className={classNames(DS.button, DS.danger)} onClick={props.onDelete}>Delete</button>}
+      {props.onDelete && <button className={classNames(DS.button, DS.danger)} onClick={props.onDelete}>Delete</button>}
     </div>
     <Description name={props.name} text={props.description} />
   </div>;

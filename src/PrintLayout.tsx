@@ -10,6 +10,7 @@ const classes = css`
   .print {
     display: flex;
     flex-direction: column;
+    font-family: Helvetica serif;
   }
   .page {
     width: 8in;
@@ -20,6 +21,11 @@ const classes = css`
     margin-right: auto;
     border-bottom: 1px solid black;
     padding: 0.25in;
+  }
+  @media print {
+    .page {
+      border-bottom: none !important;
+    }
   }
   .pages {
     width: 8in;
@@ -51,7 +57,7 @@ export default function PrintLayout() {
   return <div className={classes.print}>
     <div className={classes.page}>
       <h2>{map.name}</h2>
-      <p>{map.description}</p>
+      <div dangerouslySetInnerHTML={{ __html: sanitize(marked(map.description)) }} />
       <div className={classes.canvasWrapper}>
         <Canvas mode="print" />
       </div>

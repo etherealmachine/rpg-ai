@@ -1,10 +1,11 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 
-import DescriptionEditor from './DescriptionEditor';
+import FeatureEditor from './FeatureEditor';
+import MapEditor from './MapEditor';
 import { Context } from './State';
 
 const classes = css`
@@ -39,38 +40,6 @@ const classes = css`
 export default function Drawer() {
   const appState = useContext(Context);
   const selection = appState.getSelectedFeature();
-  const [lastSelection, setLastSelection] = useState(appState.selection);
-  const [tmpName, setTmpName] = useState<string | undefined>(undefined);
-  const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
-  if (appState.selection.levelIndex !== lastSelection.levelIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
-    setLastSelection(appState.selection);
-    setTmpName(undefined);
-    setTmpDescription(undefined);
-  }
-  const onSave = () => {
-    appState.setDescription({
-      name: tmpName === undefined ? selection.feature.properties.name : tmpName,
-      description: tmpDescription === undefined ? selection.feature.properties.description : tmpDescription
-    });
-    setTmpName(undefined);
-    setTmpDescription(undefined);
-  };
-  const onUndo = () => {
-    if (!selection) return;
-    if (selection.feature.properties.name) setTmpName(selection.feature.properties.name);
-    if (selection.feature.properties.description) setTmpDescription(selection.feature.properties.description);
-  };
-  const onDelete = () => {
-    appState.handleDelete();
-  }
-  let name = tmpName || '';
-  if (tmpName === undefined && selection?.feature.properties.name !== undefined) {
-    name = selection?.feature.properties.name;
-  }
-  let description = tmpDescription || '';
-  if (tmpDescription === undefined && selection?.feature.properties.description !== undefined) {
-    description = selection?.feature.properties.description;
-  }
   return <div className={classNames(classes.drawer, appState.drawerOpen && classes.open)}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
@@ -78,14 +47,6 @@ export default function Drawer() {
       {appState.drawerOpen && <FontAwesomeIcon icon={faCaretRight} />}
       {!appState.drawerOpen && <FontAwesomeIcon icon={faCaretLeft} />}
     </button>
-    {selection && <DescriptionEditor
-      name={name}
-      description={description}
-      onNameChange={setTmpName}
-      onDescriptionChange={setTmpDescription}
-      onSave={onSave}
-      onUndo={onUndo}
-      onDelete={onDelete}
-    />}
+    {selection ? <FeatureEditor /> : <MapEditor />}
   </div>;
 }
