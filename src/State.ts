@@ -3,8 +3,8 @@ import { produce } from 'immer';
 
 import { DoorPlacement, isCCW, merge } from './lib';
 
-let undoStack = [] as Map[];
-let redoStack = [] as Map[];
+let undoStack = [] as string[];
+let redoStack = [] as string[];
 
 function modify(options?: { undoable: boolean }) {
   return function (
@@ -16,11 +16,13 @@ function modify(options?: { undoable: boolean }) {
     descriptor.value = function () {
       const args = Array.from(arguments);
       (this as any).setState(produce(this, (newState: State) => {
-        if (options && options.undoable) {
-          undoStack.push(JSON.parse(JSON.stringify(newState.maps[newState.selection.mapIndex])));
+        const prev = JSON.stringify(newState.maps[newState.selection.mapIndex]);
+        modifierFn.bind(newState)(...args);
+        const curr = JSON.stringify(newState.maps[newState.selection.mapIndex]);
+        if (options && options.undoable && (undoStack.length === 0 || undoStack[undoStack.length - 1] !== prev) && curr !== prev) {
+          undoStack.push(prev);
           if (undoStack.length > 10) undoStack.splice(0, undoStack.length - 10);
         }
-        modifierFn.bind(newState)(...args);
         if (newState.hasOwnProperty('notifyChange')) {
           newState.notifyChange();
         }
@@ -139,7 +141,7 @@ export class State {
     if (!prev) return;
     redoStack.push(JSON.parse(JSON.stringify(this.maps[this.selection.mapIndex])));
     if (redoStack.length > 10) redoStack.splice(0, undoStack.length - 10);
-    this.maps[this.selection.mapIndex] = prev;
+    this.maps[this.selection.mapIndex] = JSON.parse(prev);
   }
 
   @modify()
@@ -148,7 +150,7 @@ export class State {
     const prev = redoStack.pop();
     undoStack.push(JSON.parse(JSON.stringify(this.maps[this.selection.mapIndex])));
     if (undoStack.length > 10) undoStack.splice(0, undoStack.length - 10);
-    if (prev) this.maps[this.selection.mapIndex] = prev;
+    if (prev) this.maps[this.selection.mapIndex] = JSON.parse(prev);
   }
 
   @modify()

@@ -9,11 +9,6 @@ export default function FeatureEditor() {
   const [lastSelection, setLastSelection] = useState(appState.selection);
   const [tmpName, setTmpName] = useState<string | undefined>(undefined);
   const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
-  if (appState.selection.levelIndex !== lastSelection.levelIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
-    setLastSelection(appState.selection);
-    setTmpName(undefined);
-    setTmpDescription(undefined);
-  }
   const onSave = () => {
     appState.setDescription({
       name: tmpName === undefined ? selection.feature.properties.name : tmpName,
@@ -22,6 +17,11 @@ export default function FeatureEditor() {
     setTmpName(undefined);
     setTmpDescription(undefined);
   };
+  if (appState.selection.levelIndex !== lastSelection.levelIndex || appState.selection.featureIndex !== lastSelection.featureIndex) {
+    setLastSelection(appState.selection);
+    setTmpName(undefined);
+    setTmpDescription(undefined);
+  }
   const onUndo = () => {
     if (!selection) return;
     if (selection.feature.properties.name) setTmpName(selection.feature.properties.name);

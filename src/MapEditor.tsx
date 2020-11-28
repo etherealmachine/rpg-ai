@@ -9,11 +9,6 @@ export default function MapEditor() {
   const [lastSelection, setLastSelection] = useState(appState.selection);
   const [tmpName, setTmpName] = useState<string | undefined>(undefined);
   const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
-  if (appState.selection.mapIndex !== lastSelection.mapIndex) {
-    setLastSelection(appState.selection);
-    setTmpName(undefined);
-    setTmpDescription(undefined);
-  }
   const onSave = () => {
     appState.setMapDescription({
       name: tmpName === undefined ? map.name : tmpName,
@@ -22,6 +17,11 @@ export default function MapEditor() {
     setTmpName(undefined);
     setTmpDescription(undefined);
   };
+  if (appState.selection.mapIndex !== lastSelection.mapIndex) {
+    setLastSelection(appState.selection);
+    setTmpName(undefined);
+    setTmpDescription(undefined);
+  }
   const onUndo = () => {
     setTmpName(map.name);
     setTmpDescription(map.description);
