@@ -56,7 +56,7 @@ class CanvasRenderer {
   ctx: CanvasRenderingContext2D
   bufferCanvas: HTMLCanvasElement
   bufferCtx: CanvasRenderingContext2D
-  dirty?: Date = undefined
+  dirty: Date = new Date()
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: true });

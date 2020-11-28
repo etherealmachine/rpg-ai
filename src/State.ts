@@ -1,7 +1,7 @@
 import React from 'react';
 import { produce } from 'immer';
 
-import { DoorPlacement, merge } from './lib';
+import { DoorPlacement, isCCW, merge } from './lib';
 
 let undoStack = [] as Map[];
 let redoStack = [] as Map[];
@@ -288,6 +288,9 @@ export class State {
   handlePolygon(points: number[][]) {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const features = level.features;
+    if (!isCCW(points)) {
+      points.reverse();
+    }
     features.push({
       geometries: [{
         type: 'polygon',

@@ -110,6 +110,11 @@ export function merge(geoms: Geometry[], geom: Geometry): Geometry[] {
     if (isCCW(a.coordinates) && !isCCW(b.coordinates)) return -1;
     return 1;
   });
+  merged.forEach(geom => {
+    if (geom.type === 'polygon' && geom.coordinates[0] !== geom.coordinates[geom.coordinates.length - 1]) {
+      geom.coordinates.push([geom.coordinates[0][0], geom.coordinates[0][1]]);
+    }
+  })
   return merged;
 }
 
