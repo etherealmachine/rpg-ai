@@ -86,7 +86,9 @@ class CanvasRenderer {
     this.canvas.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
-    window.addEventListener('wheel', this.onWheel);
+    window.addEventListener('scroll', this.onWheel, { passive: false });
+    window.addEventListener('touchmove', this.onWheel, { passive: false });
+    window.addEventListener('mousewheel', this.onWheel, { passive: false });
   }
 
   detachListeners() {
@@ -95,7 +97,9 @@ class CanvasRenderer {
     this.canvas.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
-    window.removeEventListener('wheel', this.onWheel);
+    window.removeEventListener('scroll', this.onWheel);
+    window.removeEventListener('touchmove', this.onWheel);
+    window.removeEventListener('mousewheel', this.onWheel);
   }
 
   onMouseDown = (e: MouseEvent) => {
@@ -185,7 +189,9 @@ class CanvasRenderer {
   }
 
   onWheel = (event: WheelEvent) => {
-    if (this.mode === 'print') return;
+    if (event.x === undefined || event.y === undefined || document.elementFromPoint(event.x, event.y) !== this.canvas) return;
+    event.stopPropagation();
+    event.preventDefault();
     this.dirty = new Date();
     const { mouse } = this;
     const { scale, offset } = this.appState;
@@ -226,6 +232,7 @@ class CanvasRenderer {
     if (event.key === ' ') {
       this.canvas.style.cursor = "pointer";
       this.specialKeys.space = true;
+      event.preventDefault();
     }
   }
 
