@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef } from 'react';
+import seedrandom from 'seedrandom';
 
 import {
   bbox,
@@ -10,7 +11,7 @@ import {
   lerp,
   lerp2,
 } from './lib';
-import { Context, Geometry, Level, State } from './State';
+import { Context, DecorationType, Geometry, Level, State } from './State';
 
 const backgroundColor = '#D9D2BF';
 const floorColor = '#F1ECE0';
@@ -340,7 +341,7 @@ class CanvasRenderer {
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
       this.drawStairs([start, end], dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.decoration.selected) {
-      this.drawDecoration([start, end], dragFillColor, dragStrokeColor);
+      this.drawDecoration(appState.tools.decoration.subtype, [start, end], dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       const box = bbox([start, end]);
       this.drawEllipse([box.sw, box.ne], dragFillColor, dragStrokeColor);
@@ -363,7 +364,7 @@ class CanvasRenderer {
     } else if (geometry.type === 'stairs') {
       this.drawStairs(geometry.coordinates, indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'decoration') {
-      this.drawDecoration(geometry.coordinates, indexColor, strokeColor || indexColor);
+      this.drawDecoration(geometry.subtype, geometry.coordinates, indexColor, strokeColor || indexColor);
     }
   }
 
@@ -443,7 +444,7 @@ class CanvasRenderer {
     }
     this.ctx.globalCompositeOperation = 'source-over';
     if (fillColor && specialColors.includes(fillColor)) {
-      this.drawPoints(points);
+      this.drawPoints(points, 0.1);
     }
   }
 
@@ -517,7 +518,23 @@ class CanvasRenderer {
     }
   }
 
-  drawDecoration(points: number[][], fillColor?: string, strokeColor?: string) {
+  drawDecoration(type: DecorationType, points: number[][], fillColor?: string, strokeColor?: string) {
+    switch (type) {
+      case 'statue':
+        this.drawStatue(points, fillColor, strokeColor);
+        break;
+      case 'column':
+        this.drawColumn(points, fillColor, strokeColor);
+        break;
+      case 'stalacmite':
+        this.drawStalacmite(points, fillColor, strokeColor);
+        break;
+      default:
+        throw new Error(`unsupported decoration type ${type}`);
+    }
+  }
+
+  drawStatue(points: number[][], fillColor?: string, strokeColor?: string) {
     if (!strokeColor) return;
     const { ctx } = this;
     const [from, to] = points;
@@ -554,14 +571,63 @@ class CanvasRenderer {
     }
   }
 
-  drawPoints(points: number[][]) {
+  drawColumn(points: number[][], fillColor?: string, strokeColor?: string) {
+    if (!strokeColor) return;
+    const { ctx } = this;
+    const [from, to] = points;
+    const r = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])) / 2;
+    const [cx, cy] = [from[0] + r, from[1] + r];
+    ctx.fillStyle = strokeColor;
+    ctx.lineWidth = 0.05;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    if (strokeColor && specialColors.includes(strokeColor)) {
+      this.drawPoints(points);
+    }
+  }
+
+  drawStalacmite(points: number[][], fillColor?: string, strokeColor?: string) {
+    if (!strokeColor) return;
+    const { ctx } = this;
+    const [from, to] = points;
+    const rng = seedrandom(`(${from[0]},${from[1]}),(${to[0]},${to[1]})`);
+    const r = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])) / 2;
+    const [cx, cy] = [from[0] + r, from[1] + r];
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 0.1;
+    ctx.beginPath();
+    let currRadius = r * Math.max(0.5, rng());
+    let theta = -0.1 * Math.PI;
+    for (let i = 0; i < 20; i++) {
+      if (i === 0) {
+        ctx.moveTo(cx + currRadius * Math.cos(theta), cy + currRadius * Math.sin(theta));
+      } else {
+        ctx.lineTo(cx + currRadius * Math.cos(theta), cy + currRadius * Math.sin(theta));
+      }
+      theta += rng() * 0.2 * Math.PI;
+      if (theta + 0.1 * Math.PI >= 2 * Math.PI) break;
+      if (rng() < 0.5) currRadius += rng() * 0.3;
+      else currRadius -= rng() * 0.3;
+      currRadius = Math.max(0, Math.min(r, currRadius));
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    if (strokeColor && specialColors.includes(strokeColor)) {
+      this.drawPoints(points);
+    }
+  }
+
+  drawPoints(points: number[][], size: number = 0.25) {
     const { ctx } = this;
     ctx.fillStyle = pointColor;
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 0.05;
     for (let i = 0; i < points.length; i++) {
       ctx.beginPath();
-      ctx.ellipse(points[i][0], points[i][1], 0.25, 0.25, 0, 0, 2 * Math.PI);
+      ctx.ellipse(points[i][0], points[i][1], size, size, 0, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
     }

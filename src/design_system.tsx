@@ -72,4 +72,46 @@ export const DS = css`
     border-bottom: 2px solid white;
     margin-bottom: 0px;
   }
+
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.2);
+    color: white;
+  }
+  .toolbar svg {
+    color: white;
+    font-size: 24px;
+  }
+  .toolbar .selected svg {
+    color: black;
+  }
+  .toolbar button {
+    background: black;
+    width: 50px;
+    height: 50px;
+    border: 1px solid white;
+    outline: none;
+    margin: 4px;
+  }
+  .toolbar button:hover {
+    background: #505050;
+    box-shadow: -2px -2px 8px rgba(255, 255, 255, 0.9), 2px 2px 8px rgba(255, 255, 255, 0.9);
+  }
+  .toolbar button:active {
+    outline: none;
+    border: none;
+    scale: 0.9;
+  }
+  .toolbar button.selected {
+    background: #bbb;
+    box-shadow: -1px -1px 8px rgba(255, 255, 255, 0.5), 1px 1px 8px rgba(255, 255, 255, 0.5);
+  }
+  .toolbar button[disabled] {
+    background: #444;
+    box-shadow: none;
+  }
 `;

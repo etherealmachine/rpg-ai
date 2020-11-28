@@ -59,6 +59,7 @@ const initialTools = () => ({
     group: 1,
     polygon: false,
     disabled: false,
+    subtype: 'statue' as DecorationType,
   },
   'brush': {
     selected: false,
@@ -229,6 +230,7 @@ export class State {
         geometries: [{
           type: 'decoration',
           coordinates: [from, to],
+          subtype: this.tools.decoration.subtype,
         }],
       });
     } else if (this.tools.rect.selected) {
@@ -411,6 +413,12 @@ export class State {
   }
 
   @modify()
+  setToolOption(name: ToolName, option: string) {
+    const tool = this.tools[name];
+    (tool as any).subtype = option;
+  }
+
+  @modify()
   setSelection(selection: { mapIndex: number, levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
     if (selection.mapIndex !== this.selection.mapIndex) {
       undoStack = [];
@@ -455,9 +463,44 @@ export interface Map {
   levels: Level[]
 }
 
-export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door' | 'stairs' | 'decoration'
+export type Geometry = Polygon | Ellipse | Line | Brush | Door | Stairs | Decoration
+
+export interface Polygon {
+  type: 'polygon'
   coordinates: number[][]
+}
+
+export interface Ellipse {
+  type: 'ellipse'
+  coordinates: number[][]
+}
+
+export interface Line {
+  type: 'line'
+  coordinates: number[][]
+}
+
+export interface Brush {
+  type: 'brush'
+  coordinates: number[][]
+}
+
+export interface Door {
+  type: 'door'
+  coordinates: number[][]
+}
+
+export interface Stairs {
+  type: 'stairs'
+  coordinates: number[][]
+}
+
+export type DecorationType = 'statue' | 'column' | 'stalacmite';
+
+export interface Decoration {
+  type: 'decoration'
+  coordinates: number[][]
+  subtype: DecorationType
 }
 
 export type FeatureType = 'room' | 'text' | 'other'
