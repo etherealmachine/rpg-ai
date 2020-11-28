@@ -57,20 +57,15 @@ class CanvasRenderer {
   bufferCanvas: HTMLCanvasElement
   bufferCtx: CanvasRenderingContext2D
   dirty: Date = new Date()
+  mode: 'edit' | 'print'
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, mode: 'edit' | 'print') {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (ctx === null) {
       throw new Error('canvas has null rendering context');
     }
     this.canvas = canvas;
     this.ctx = ctx;
-    canvas.addEventListener('mousedown', this.onMouseDown);
-    canvas.addEventListener('mouseup', this.onMouseUp);
-    canvas.addEventListener('mousemove', this.onMouseMove);
-    window.addEventListener('keydown', this.onKeyDown);
-    window.addEventListener('keyup', this.onKeyUp);
-    window.addEventListener('wheel', this.onWheel);
     this.requestID = requestAnimationFrame(this.render);
 
     this.bufferCanvas = document.createElement('canvas');
@@ -81,6 +76,25 @@ class CanvasRenderer {
       throw new Error('canvas has null rendering context');
     }
     this.bufferCtx = bufferCtx;
+    this.mode = mode;
+  }
+
+  attachListeners() {
+    this.canvas.addEventListener('mousedown', this.onMouseDown);
+    this.canvas.addEventListener('mouseup', this.onMouseUp);
+    this.canvas.addEventListener('mousemove', this.onMouseMove);
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
+    window.addEventListener('wheel', this.onWheel);
+  }
+
+  detachListeners() {
+    this.canvas.removeEventListener('mousedown', this.onMouseDown);
+    this.canvas.removeEventListener('mouseup', this.onMouseUp);
+    this.canvas.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
+    window.removeEventListener('wheel', this.onWheel);
   }
 
   onMouseDown = (e: MouseEvent) => {
@@ -170,6 +184,7 @@ class CanvasRenderer {
   }
 
   onWheel = (event: WheelEvent) => {
+    if (this.mode === 'print') return;
     this.dirty = new Date();
     const { mouse } = this;
     const { scale, offset } = this.appState;
@@ -267,8 +282,12 @@ class CanvasRenderer {
 
   clearScreen() {
     const { canvas, ctx, bufferCanvas } = this;
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (this.mode === 'edit') {
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
     if (bufferCanvas.width !== canvas.width || bufferCanvas.height !== canvas.height) {
       bufferCanvas.width = canvas.width;
       bufferCanvas.height = canvas.height;
@@ -294,7 +313,7 @@ class CanvasRenderer {
       ctx.lineTo(max.x, y);
       ctx.stroke();
     }
-    if (this.appState.gridSteps !== 1) {
+    if (this.appState.gridSteps !== 1 && this.mode === 'edit') {
       ctx.lineWidth = 0.005;
       ctx.strokeStyle = '#666666';
       for (let x = Math.floor(min.x); x <= max.x; x += 1 / this.appState.gridSteps) {
@@ -685,26 +704,28 @@ class CanvasRenderer {
 
     this.ctx = this.bufferCtx;
 
-    // color-indexed mouse picking
-    this.ctx.resetTransform();
-    this.ctx.globalCompositeOperation = 'source-over';
-    this.ctx.fillStyle = "#fff";
-    this.ctx.fillRect(0, 0, width, height);
-    this.ctx.save();
-    this.ctx.scale(appState.scale, appState.scale);
-    this.ctx.translate(appState.offset[0], appState.offset[1]);
-    this.ctx.scale(this.size, this.size);
-    this.drawFeatures(level, true);
-    if (this.mouse) {
-      const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
-      const [featureIndex, geometryIndex] = colorToIndex(p[0], p[1], p[2]);
-      if (featureIndex === Infinity || featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
-        this.hover = undefined;
-      } else {
-        this.hover = { featureIndex, geometryIndex };
+    if (this.mode === 'edit') {
+      // color-indexed mouse picking
+      this.ctx.resetTransform();
+      this.ctx.globalCompositeOperation = 'source-over';
+      this.ctx.fillStyle = "#fff";
+      this.ctx.fillRect(0, 0, width, height);
+      this.ctx.save();
+      this.ctx.scale(appState.scale, appState.scale);
+      this.ctx.translate(appState.offset[0], appState.offset[1]);
+      this.ctx.scale(this.size, this.size);
+      this.drawFeatures(level, true);
+      if (this.mouse) {
+        const p = this.ctx.getImageData(this.mouse[0], this.mouse[1], 1, 1).data;
+        const [featureIndex, geometryIndex] = colorToIndex(p[0], p[1], p[2]);
+        if (featureIndex === Infinity || featureIndex >= level.features.length || geometryIndex >= level.features[featureIndex].geometries.length) {
+          this.hover = undefined;
+        } else {
+          this.hover = { featureIndex, geometryIndex };
+        }
       }
+      this.ctx.restore();
     }
-    this.ctx.restore();
 
     // setup transform and clear buffer
     this.ctx.resetTransform();
@@ -754,7 +775,11 @@ class CanvasRenderer {
       }
     }
 
-    this.ctx.globalCompositeOperation = 'source-over';
+    if (this.mode === 'edit') {
+      this.ctx.globalCompositeOperation = 'source-over';
+    } else {
+      this.ctx.globalCompositeOperation = 'source-atop';
+    }
     this.drawGrid();
 
     this.ctx.restore();
@@ -789,16 +814,18 @@ class CanvasRenderer {
       ctx.translate(appState.offset[0], appState.offset[1]);
       ctx.scale(this.size, this.size);
 
-      if (this.mouse) {
-        this.drawMousePos(this.mouse);
-      }
+      if (this.mode === 'edit') {
+        if (this.mouse) {
+          this.drawMousePos(this.mouse);
+        }
 
-      if (this.points.length > 0 && tools.polygon.selected) {
-        this.drawPolygon(this.points, dragFillColor, dragStrokeColor);
-      } else if (this.points.length > 0 && tools.brush.selected) {
-        this.drawBrush(this.points, dragFillColor, dragStrokeColor);
-      } else if (this.drag) {
-        this.drawDrag();
+        if (this.points.length > 0 && tools.polygon.selected) {
+          this.drawPolygon(this.points, dragFillColor, dragStrokeColor);
+        } else if (this.points.length > 0 && tools.brush.selected) {
+          this.drawBrush(this.points, dragFillColor, dragStrokeColor);
+        } else if (this.drag) {
+          this.drawDrag();
+        }
       }
 
       ctx.restore();
@@ -812,28 +839,30 @@ class CanvasRenderer {
   }
 }
 
-export default function Canvas() {
+export default function Canvas(props: { mode: 'edit' | 'print' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appState = useContext(Context);
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
-    const renderer: CanvasRenderer = (canvas as any).renderer || new CanvasRenderer(canvas);
-    (canvas as any).renderer = renderer;
+    const renderer: CanvasRenderer = new CanvasRenderer(canvas, props.mode);
     const syncSize = () => {
-      canvas.width = canvas.offsetWidth || canvas.width;
-      canvas.height = canvas.offsetHeight || canvas.height;
+      canvas.width = canvas.parentElement.offsetWidth || canvas.width;
+      canvas.height = canvas.parentElement.offsetHeight || canvas.height;
       renderer.dirty = new Date();
     };
     syncSize();
+    renderer.attachListeners();
     window.addEventListener('resize', syncSize);
     renderer.appState = appState;
+    renderer.mode = props.mode;
     appState.notifyChange = () => {
       renderer.dirty = new Date();
     };
     return () => {
       window.removeEventListener('resize', syncSize);
+      renderer.detachListeners();
     }
-  }, [canvasRef, appState]);
+  }, [canvasRef, appState, props.mode]);
   return <canvas ref={canvasRef} style={{ flex: '1 1 auto' }} />;
 }

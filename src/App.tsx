@@ -17,6 +17,7 @@ import Levels from './Levels';
 import Menubar from './Menubar';
 import Modal from './Modal';
 import Navigation from './Navigation';
+import PrintLayout from './PrintLayout';
 import TODO from './TODO';
 import Toolbar from './Toolbar';
 import { Context, State } from './State';
@@ -52,19 +53,17 @@ export default function App() {
       <Route path="/print">
         <div className={classes.app}>
           <Context.Provider value={state}>
-            <div className={classes.canvasWrapper}>
-              <Canvas />
-            </div>
+            <PrintLayout />
           </Context.Provider>
         </div>
       </Route>
       <Route path="/">
-        <div className={classes.app}>
+        <div className={classes.app} style={{ overflow: 'hidden' }}>
           <Context.Provider value={state}>
             <Menubar />
             <div className={classes.canvasWrapper}>
               <Modal open={state.showTodo} toggle={state.toggleTodo.bind(state)}><TODO /></Modal>
-              <Canvas />
+              <Canvas mode='edit' />
               <Drawer />
               <Toolbar />
               <Levels />
