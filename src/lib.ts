@@ -106,6 +106,9 @@ export function merge(geoms: Geometry[], geom: Geometry): Geometry[] {
   const poly = PolyBool.union(toPolyBoolPoly(geoms), toPolyBoolPoly([geom]));
   const merged = poly.regions.map(region => fromPolyBoolPoly(region));
   merged.sort((a, b) => {
+    if (a.type === 'polygon' && b.type !== 'polygon') return -1;
+    if (b.type === 'polygon' && a.type !== 'polygon') return 1;
+    if (a.type !== 'polygon' && b.type !== 'polygon') return 0;
     if (isCCW(a.coordinates) && isCCW(b.coordinates)) return 0;
     if (isCCW(a.coordinates) && !isCCW(b.coordinates)) return -1;
     return 1;
