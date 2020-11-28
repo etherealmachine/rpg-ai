@@ -56,7 +56,7 @@ class CanvasRenderer {
   ctx: CanvasRenderingContext2D
   bufferCanvas: HTMLCanvasElement
   bufferCtx: CanvasRenderingContext2D
-  dirty: boolean = true
+  dirty?: Date = undefined
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: true });
@@ -84,9 +84,10 @@ class CanvasRenderer {
   }
 
   onMouseDown = (e: MouseEvent) => {
-    this.dirty = true;
+    this.dirty = new Date();
     this.mouseDown = true;
     const { mouse } = this;
+    if (e.button === 2) return;
     if (mouse) {
       this.drag = {
         start: this.canvasToTile(mouse),
@@ -117,7 +118,7 @@ class CanvasRenderer {
   }
 
   onMouseUp = () => {
-    this.dirty = true;
+    this.dirty = new Date();
     this.mouseDown = false;
     if (this.mouse && this.appState.tools.polygon.selected) {
       const pos = this.canvasToTile(this.mouse);
@@ -147,7 +148,7 @@ class CanvasRenderer {
   }
 
   onMouseMove = (event: MouseEvent) => {
-    this.dirty = true;
+    this.dirty = new Date();
     this.mouse = [event.offsetX, event.offsetY];
     if (this.mouse && this.mouseDown && this.drag) {
       if (this.specialKeys.space) {
@@ -169,7 +170,7 @@ class CanvasRenderer {
   }
 
   onWheel = (event: WheelEvent) => {
-    this.dirty = true;
+    this.dirty = new Date();
     const { mouse } = this;
     const { scale, offset } = this.appState;
     if (!mouse) return;
@@ -186,7 +187,7 @@ class CanvasRenderer {
   }
 
   onKeyDown = (event: KeyboardEvent) => {
-    this.dirty = true;
+    this.dirty = new Date();
     if (event.key === 'Shift') this.specialKeys.shift = true;
     if (event.key === 'Control') this.specialKeys.ctrl = true;
     if (event.key === 'Alt') this.specialKeys.alt = true;
@@ -213,7 +214,7 @@ class CanvasRenderer {
   }
 
   onKeyUp = (event: KeyboardEvent) => {
-    this.dirty = true;
+    this.dirty = new Date();
     if (event.key === 'Shift') this.specialKeys.shift = false;
     if (event.key === 'Control') this.specialKeys.ctrl = false;
     if (event.key === 'Alt') this.specialKeys.alt = false;
@@ -764,7 +765,7 @@ class CanvasRenderer {
   }
 
   render = (time: number) => {
-    if (this.dirty) {
+    if (new Date().getTime() - this.dirty.getTime() < 5000) {
       const { ctx, appState } = this;
       const { tools } = appState;
       if (this.polygonToolSelected && !appState.tools.polygon.selected) {
@@ -808,7 +809,6 @@ class CanvasRenderer {
       this.lastTime = time;
     }
     this.requestID = requestAnimationFrame(this.render);
-    this.dirty = false;
   }
 }
 
@@ -823,13 +823,13 @@ export default function Canvas() {
     const syncSize = () => {
       canvas.width = canvas.offsetWidth || canvas.width;
       canvas.height = canvas.offsetHeight || canvas.height;
-      renderer.dirty = true;
+      renderer.dirty = new Date();
     };
     syncSize();
     window.addEventListener('resize', syncSize);
     renderer.appState = appState;
     appState.notifyChange = () => {
-      renderer.dirty = true;
+      renderer.dirty = new Date();
     };
     return () => {
       window.removeEventListener('resize', syncSize);

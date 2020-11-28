@@ -37,7 +37,7 @@ const classes = css`
   }
 `;
 
-export default function Levels() {
+export default function Navigation() {
   const state = useContext(Context);
   return <div className={classes.navigation}>
     <button onClick={() => state.setZoom(1, [0, 0])}><FontAwesomeIcon icon={faMapMarkerAlt} /></button>

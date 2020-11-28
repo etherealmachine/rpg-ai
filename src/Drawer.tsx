@@ -48,9 +48,12 @@ export default function Drawer() {
     setTmpDescription(undefined);
   }
   const onSave = () => {
-    appState.setDescription({ name: tmpName, description: tmpDescription });
-    setTmpName('');
-    setTmpDescription('');
+    appState.setDescription({
+      name: tmpName === undefined ? selection.feature.properties.name : tmpName,
+      description: tmpDescription === undefined ? selection.feature.properties.description : tmpDescription
+    });
+    setTmpName(undefined);
+    setTmpDescription(undefined);
   };
   const onUndo = () => {
     if (!selection) return;
