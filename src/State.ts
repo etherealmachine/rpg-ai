@@ -21,7 +21,7 @@ function modify(options?: { undoable: boolean }) {
         const curr = JSON.stringify(newState.maps[newState.selection.mapIndex]);
         if (options && options.undoable && (undoStack.length === 0 || undoStack[undoStack.length - 1] !== prev) && curr !== prev) {
           undoStack.push(prev);
-          if (undoStack.length > 10) undoStack.splice(0, undoStack.length - 10);
+          if (undoStack.length > 100) undoStack.splice(0, undoStack.length - 100);
         }
         if (newState.hasOwnProperty('notifyChange')) {
           newState.notifyChange();
