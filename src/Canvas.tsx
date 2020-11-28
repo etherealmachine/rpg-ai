@@ -339,6 +339,8 @@ class CanvasRenderer {
         dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.stairs.selected) {
       this.drawStairs([start, end], dragFillColor, dragStrokeColor);
+    } else if (dist(start, end) > 1 && appState.tools.decoration.selected) {
+      this.drawDecoration([start, end], dragFillColor, dragStrokeColor);
     } else if (dist(start, end) > 1 && appState.tools.ellipse.selected) {
       const box = bbox([start, end]);
       this.drawEllipse([box.sw, box.ne], dragFillColor, dragStrokeColor);
@@ -360,6 +362,8 @@ class CanvasRenderer {
       this.drawDoor(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'stairs') {
       this.drawStairs(geometry.coordinates, indexColor, strokeColor || indexColor);
+    } else if (geometry.type === 'decoration') {
+      this.drawDecoration(geometry.coordinates, indexColor, strokeColor || indexColor);
     }
   }
 
@@ -513,6 +517,43 @@ class CanvasRenderer {
     }
   }
 
+  drawDecoration(points: number[][], fillColor?: string, strokeColor?: string) {
+    if (!strokeColor) return;
+    const { ctx } = this;
+    const [from, to] = points;
+    const r = Math.max(Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])) / 2;
+    const [cx, cy] = [from[0] + r, from[1] + r];
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 0.05;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r, 0, 0, 2 * Math.PI);
+    ctx.stroke();
+    if (fillColor) {
+      ctx.closePath();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
+    const r2 = r * 0.4;
+    ctx.beginPath();
+    let theta = -0.1 * Math.PI;
+    for (let i = 0; i < 10; i++) {
+      if (i === 0) {
+        ctx.moveTo(cx + r * Math.cos(theta), cy + r * Math.sin(theta));
+      } else {
+        ctx.lineTo(cx + r * Math.cos(theta), cy + r * Math.sin(theta));
+      }
+      theta += 0.2 * Math.PI;
+      ctx.lineTo(cx + r2 * Math.cos(theta), cy + r2 * Math.sin(theta));
+      theta += 0.2 * Math.PI;
+    }
+    ctx.closePath();
+    ctx.fillStyle = strokeColor;
+    ctx.fill();
+    if (strokeColor && specialColors.includes(strokeColor)) {
+      this.drawPoints(points);
+    }
+  }
+
   drawPoints(points: number[][]) {
     const { ctx } = this;
     ctx.fillStyle = pointColor;
@@ -545,8 +586,8 @@ class CanvasRenderer {
   }
 
   drawFeatures(level: Level, colorIndex: boolean = false) {
-    const featureDrawOrder = ['room', 'wall', 'text'];
-    const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs'];
+    const featureDrawOrder = ['room', 'other', 'text'];
+    const geometryDrawOrder = ['polygon', 'ellipse', 'line', 'brush', 'door', 'stairs', 'decoration'];
     featureDrawOrder.forEach(featureType => {
       geometryDrawOrder.forEach(geometryType => {
         level.features.forEach((feature, i) => {

@@ -214,10 +214,20 @@ export class State {
     if (this.tools.stairs.selected) {
       features.push({
         properties: {
-          type: 'wall',
+          type: 'other',
         },
         geometries: [{
           type: 'stairs',
+          coordinates: [from, to],
+        }],
+      });
+    } else if (this.tools.decoration.selected) {
+      features.push({
+        properties: {
+          type: 'other',
+        },
+        geometries: [{
+          type: 'decoration',
           coordinates: [from, to],
         }],
       });
@@ -254,7 +264,7 @@ export class State {
           coordinates: [from, to],
         }],
         properties: {
-          type: 'wall',
+          type: 'other',
         },
       });
     } else if (this.selection.featureIndex !== undefined) {
@@ -282,7 +292,7 @@ export class State {
         coordinates: points,
       }],
       properties: {
-        type: this.tools.walls.selected ? 'room' : 'wall',
+        type: this.tools.walls.selected ? 'room' : 'other',
       },
     });
   }
@@ -343,7 +353,7 @@ export class State {
       selectedFeature.geometries.splice(geometryIndex, 1);
       features.push({
         properties: {
-          type: ['polygon', 'ellipse'].includes(geom.type) ? 'room' : 'wall',
+          type: ['polygon', 'ellipse'].includes(geom.type) ? 'room' : 'other',
         },
         geometries: [geom],
       });
@@ -446,11 +456,11 @@ export interface Map {
 }
 
 export interface Geometry {
-  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door' | 'stairs'
+  type: 'polygon' | 'ellipse' | 'line' | 'brush' | 'door' | 'stairs' | 'decoration'
   coordinates: number[][]
 }
 
-export type FeatureType = 'room' | 'wall' | 'text'
+export type FeatureType = 'room' | 'text' | 'other'
 
 export interface FeatureProperties extends Description {
   type: FeatureType
