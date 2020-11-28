@@ -55,6 +55,7 @@ const initialTools = () => ({
     group: 1,
     polygon: false,
     disabled: false,
+    subtype: 'normal' as DoorType,
   },
   'decoration': {
     selected: false,
@@ -344,6 +345,7 @@ export class State {
     feature.geometries.push({
       type: 'door',
       coordinates: [door.from, door.to],
+      subtype: this.tools.doors.subtype,
     });
   }
 
@@ -500,9 +502,12 @@ export interface Brush {
   coordinates: number[][]
 }
 
+export type DoorType = 'normal' | 'secret'
+
 export interface Door {
   type: 'door'
   coordinates: number[][]
+  subtype: DoorType
 }
 
 export interface Stairs {

@@ -8,6 +8,7 @@ import {
   faDoorClosed,
   faSquare,
   faBrush,
+  faStrikethrough,
 } from '@fortawesome/free-solid-svg-icons'
 
 import { DS } from './design_system';
@@ -27,7 +28,12 @@ const buttons: { [key in ToolName]: Button } = {
   'pointer': { icon: faMousePointer, tooltip: 'Select' },
   'walls': { icon: faSquare, tooltip: 'Walls' },
   'stairs': { icon: stairsIcon, tooltip: 'Stairs' },
-  'doors': { icon: faDoorClosed, tooltip: 'Doors' },
+  'doors': {
+    tooltip: 'Doors', options: {
+      'normal': { icon: faDoorClosed, tooltip: 'Normal Door' },
+      'secret': { icon: faStrikethrough, tooltip: 'Secret Door' },
+    }
+  },
   'decoration': {
     tooltip: 'Decorations', options: {
       'statue': { icon: statueIcon, tooltip: 'Statue' },

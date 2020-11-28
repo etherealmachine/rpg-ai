@@ -3,6 +3,7 @@ import seedrandom from 'seedrandom';
 
 import {
   bbox,
+  centroid,
   colorToIndex,
   detectDoorPlacement,
   dist,
@@ -11,7 +12,7 @@ import {
   lerp,
   lerp2,
 } from './lib';
-import { Context, DecorationType, Geometry, Level, State } from './State';
+import { Context, DecorationType, DoorType, Geometry, Level, State } from './State';
 
 const backgroundColor = '#D9D2BF';
 const floorColor = '#F1ECE0';
@@ -380,7 +381,7 @@ class CanvasRenderer {
     } else if (geometry.type === 'brush') {
       this.drawBrush(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'door') {
-      this.drawDoor(geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
+      this.drawDoor(geometry.subtype, geometry.coordinates, fillColor || indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'stairs') {
       this.drawStairs(geometry.coordinates, indexColor, strokeColor || indexColor);
     } else if (geometry.type === 'decoration') {
@@ -468,7 +469,20 @@ class CanvasRenderer {
     }
   }
 
-  drawDoor(points: number[][], fillColor?: string, strokeColor?: string) {
+  drawDoor(type: DoorType, points: number[][], fillColor?: string, strokeColor?: string) {
+    switch (type) {
+      case 'normal':
+        this.drawNormalDoor(points, fillColor, strokeColor);
+        break;
+      case 'secret':
+        this.drawSecretDoor(points, fillColor, strokeColor);
+        break;
+      default:
+        throw new Error(`unsupported door type ${type}`);
+    }
+  }
+
+  drawNormalDoor(points: number[][], fillColor?: string, strokeColor?: string) {
     const { ctx } = this;
     const [from, to] = points;
     const a = lerp2(0.1, from, to);
@@ -486,6 +500,29 @@ class CanvasRenderer {
       ctx.moveTo(a[0], a[1]);
       ctx.lineTo(b[0], b[1]);
       ctx.stroke();
+    }
+  }
+
+  drawSecretDoor(points: number[][], fillColor?: string, strokeColor?: string) {
+    const { ctx } = this;
+    const [from, to] = points;
+    if (strokeColor) {
+      const l = Math.max(Math.abs(from[0] - to[0]), Math.abs(from[1] - to[1]));
+      ctx.font = `${l}px Helvetica`;
+      const m = this.ctx.measureText('S');
+      let h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+      let w = m.actualBoundingBoxLeft - m.actualBoundingBoxRight;
+      const [cx, cy] = [w / 2, h / 2];
+      ctx.save();
+      ctx.fillText('S', from[0] + (to[0] - from[0]) / 2 + cx, from[1] + (to[1] - from[1]) / 2 + cy);
+      ctx.restore();
+      /*
+      ctx.lineWidth = 0.3;
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+      */
     }
   }
 
@@ -693,6 +730,29 @@ class CanvasRenderer {
         });
       });
     });
+    level.features.filter(feature => feature.properties.name).forEach((feature, i) => {
+      let center: number[];
+      const polygon = feature.geometries.find(geom => geom.type === 'polygon');
+      const ellipse = feature.geometries.find(geom => geom.type === 'ellipse');
+      const brush = feature.geometries.find(geom => geom.type === 'brush');
+      if (polygon) {
+        center = centroid(polygon.coordinates);
+      } else if (ellipse) {
+        center = [
+          ellipse.coordinates[0][0] + (ellipse.coordinates[1][0] - ellipse.coordinates[0][0]) / 2,
+          ellipse.coordinates[0][1] + (ellipse.coordinates[1][1] - ellipse.coordinates[0][1]) / 2,
+        ];
+      } else if (brush) {
+        center = brush.coordinates[Math.round(brush.coordinates.length / 2)];
+      } else {
+        return;
+      }
+      this.ctx.save();
+      this.ctx.translate(center[0], center[1] - 0.25);
+      this.ctx.fillStyle = '#000';
+      this.renderTextCenter(`${i + 1}`, '0.5px Helvetica');
+      this.ctx.restore();
+    });
   }
 
   drawLevels() {
@@ -771,7 +831,7 @@ class CanvasRenderer {
         level.features,
         this.specialKeys.shift);
       if (door) {
-        this.drawDoor([door.from, door.to], undefined, wallColor);
+        this.drawDoor(appState.tools.doors.subtype, [door.from, door.to], undefined, wallColor);
       }
     }
 

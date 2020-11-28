@@ -236,3 +236,19 @@ function computeDoorPlacement(f: ClosestFeature, features: Feature[], fullWidth:
   }
   return undefined;
 }
+
+export function centroid(ring: number[][]): number[] {
+  let twicearea = 0;
+  let x = 0;
+  let y = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const p1 = ring[i];
+    const p2 = ring[j];
+    const f = p1[0] * p2[1] - p2[0] * p1[1];
+    twicearea += f;
+    x += (p1[0] + p2[0]) * f;
+    y += (p1[1] + p2[1]) * f;
+  }
+  const f = twicearea * 3;
+  return [x / f, y / f];
+}
