@@ -77,7 +77,7 @@ export default function Menubar() {
       <input className={DS.input} value={name} onChange={updateTmpName} />
       <button
         className={DS.buttonSmall}
-        onClick={() => { appState.save(name); }}>
+        onClick={() => { appState.save(name || ''); }}>
         Save
       </button>
       {appState.maps.length > 1 && <button
@@ -107,7 +107,7 @@ export default function Menubar() {
       </button>
       <button
         className={DS.buttonSmall}
-        onClick={() => { appState.toggleTodo(); }}>
+        onClick={() => { appState.toggleWelcome(); }}>
         Help
       </button>
       {appState.debug &&

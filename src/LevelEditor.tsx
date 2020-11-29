@@ -69,10 +69,11 @@ export default function LevelEditor() {
     });
   }
   let name = tmpName || '';
-  if (tmpName === undefined) name = level.name;
+  if (tmpName === undefined) name = level.name || '';
   let description = tmpDescription || '';
-  if (tmpDescription === undefined) description = level.description;
-  return <React.Fragment>
+  if (tmpDescription === undefined) description = level.description || '';
+  return <div>
+    <h3 style={{ color: 'white' }}>Level</h3>
     <DescriptionEditor
       name={name}
       description={description}
@@ -101,7 +102,7 @@ export default function LevelEditor() {
                       style={getItemStyle(
                         snapshot.isDragging,
                         appState.getSelectedFeature()?.feature === f.feature,
-                        provided.draggableProps.style
+                        provided.draggableProps.style || {}
                       )}>
                       {`${i + 1}. ${f.feature.properties.name}`}
                     </div>
@@ -114,5 +115,5 @@ export default function LevelEditor() {
         </Droppable>
       </DragDropContext>
     </div>
-  </React.Fragment>;
+  </div>;
 }

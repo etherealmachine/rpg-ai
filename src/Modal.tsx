@@ -40,25 +40,6 @@ const classes = css`
     text-decoration: none;
     cursor: pointer;
   }
-
-  .modalContent h3 {
-    margin: 0 0 8px 0;
-  }
-
-  .modalContent ul {
-    padding: 0;
-    margin: 8px 0;
-    white-space: nowrap;
-  }
-
-  .modalContent li {
-    list-style: none;
-  }
-
-  .modalContent p {
-    padding: 0 40px;
-    margin: 8px 0;
-  }
 `;
 
 export default function Modal(props: React.PropsWithChildren<{ open: boolean, toggle: () => void }>) {

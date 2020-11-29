@@ -18,7 +18,7 @@ import Menubar from './Menubar';
 import Modal from './Modal';
 import Navigation from './Navigation';
 import PrintLayout from './PrintLayout';
-import TODO from './TODO';
+import Welcome from './Welcome';
 import Toolbar from './Toolbar';
 import { Context, State } from './State';
 import { useLocalStorageState } from './Persistence';
@@ -48,7 +48,7 @@ export default function App() {
     setCount(i + 1);
   };
   (window as any).app = state;
-  document.title = state.maps[state.selection.mapIndex].name;
+  document.title = state.maps[state.selection.mapIndex].name || 'RPG.ai';
   return <Router>
     <Switch>
       <Route path="/print">
@@ -63,7 +63,7 @@ export default function App() {
           <Context.Provider value={state}>
             <Menubar />
             <div className={classes.canvasWrapper}>
-              <Modal open={state.showTodo} toggle={state.toggleTodo.bind(state)}><TODO /></Modal>
+              <Modal open={state.showWelcome} toggle={state.toggleWelcome.bind(state)}><Welcome /></Modal>
               <Canvas mode='edit' />
               <Drawer />
               <Toolbar />

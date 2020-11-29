@@ -11,8 +11,8 @@ export default function FeatureEditor() {
   const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
   const onSave = () => {
     appState.setFeatureDescription({
-      name: tmpName === undefined ? selection.feature.properties.name : tmpName,
-      description: tmpDescription === undefined ? selection.feature.properties.description : tmpDescription
+      name: tmpName === undefined ? selection?.feature.properties.name : tmpName,
+      description: tmpDescription === undefined ? selection?.feature.properties.description : tmpDescription
     });
     setTmpName(undefined);
     setTmpDescription(undefined);
@@ -38,13 +38,16 @@ export default function FeatureEditor() {
   if (tmpDescription === undefined && selection?.feature.properties.description !== undefined) {
     description = selection?.feature.properties.description;
   }
-  return <DescriptionEditor
-    name={name}
-    description={description}
-    onNameChange={setTmpName}
-    onDescriptionChange={setTmpDescription}
-    onSave={onSave}
-    onUndo={onUndo}
-    onDelete={onDelete}
-  />;
+  return <div>
+    <h3 style={{ color: 'white' }}>Area</h3>
+    <DescriptionEditor
+      name={name}
+      description={description}
+      onNameChange={setTmpName}
+      onDescriptionChange={setTmpDescription}
+      onSave={onSave}
+      onUndo={onUndo}
+      onDelete={onDelete}
+    />
+  </div>;
 }

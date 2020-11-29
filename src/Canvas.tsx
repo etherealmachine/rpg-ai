@@ -190,7 +190,10 @@ class CanvasRenderer {
     }
   }
 
-  onWheel = (event: WheelEvent) => {
+  onWheel = (ev: WheelEvent | Event) => {
+    let event: WheelEvent | undefined;
+    if (ev.hasOwnProperty('x')) event = ev as WheelEvent;
+    else return;
     if (event.x === undefined || event.y === undefined || document.elementFromPoint(event.x, event.y) !== this.canvas) return;
     event.stopPropagation();
     event.preventDefault();
@@ -525,6 +528,7 @@ class CanvasRenderer {
       let w = m.actualBoundingBoxLeft - m.actualBoundingBoxRight;
       const [cx, cy] = [w / 2, h / 2];
       ctx.save();
+      ctx.fillStyle = strokeColor;
       ctx.fillText('S', from[0] + (to[0] - from[0]) / 2 + cx, from[1] + (to[1] - from[1]) / 2 + cy);
       ctx.restore();
     }
@@ -674,8 +678,10 @@ class CanvasRenderer {
     }
     ctx.closePath();
     ctx.stroke();
-    ctx.fillStyle = fillColor;
-    ctx.fill();
+    if (fillColor) {
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
     if (strokeColor && specialColors.includes(strokeColor)) {
       this.drawPoints(points);
     }
@@ -913,8 +919,8 @@ export default function Canvas(props: { mode: 'edit' | 'print' }) {
     const canvas = canvasRef.current;
     const renderer: CanvasRenderer = new CanvasRenderer(canvas, props.mode);
     const syncSize = () => {
-      canvas.width = canvas.parentElement.offsetWidth || canvas.width;
-      canvas.height = canvas.parentElement.offsetHeight || canvas.height;
+      canvas.width = canvas.parentElement?.offsetWidth || canvas.width;
+      canvas.height = canvas.parentElement?.offsetHeight || canvas.height;
       renderer.dirty = new Date();
     };
     syncSize();

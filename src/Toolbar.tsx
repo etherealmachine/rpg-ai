@@ -9,6 +9,7 @@ import {
   faSquare,
   faBrush,
   faStrikethrough,
+  faExclamationTriangle,
 } from '@fortawesome/free-solid-svg-icons'
 
 import { DS } from './design_system';
@@ -66,8 +67,8 @@ export default function Toolbar() {
   };
   const iconFor = (tool: ToolName) => {
     const button = buttons[tool];
-    if (button.icon) return button.icon;
-    return button.options[(state.tools[tool] as any).subtype].icon;
+    if (button.options) return button.options[(state.tools[tool] as any).subtype].icon || faExclamationTriangle;
+    return button.icon || faExclamationTriangle;
   }
   return <div className={DS.toolbar} style={{ position: 'absolute', top: '50px', left: '24px' }}>
     {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name as ToolName].tooltip}>
@@ -79,10 +80,10 @@ export default function Toolbar() {
           <FontAwesomeIcon icon={iconFor(name as ToolName)} />
         </button>
         {spec.selected && buttons[name as ToolName].options && <div className={DS.toolbar}>
-          {Object.entries(buttons[name as ToolName].options).map(([optionName, optionSpec]) => <Tooltip key={optionName} tooltip={optionSpec.tooltip}>
+          {Object.entries(buttons[name as ToolName].options || {}).map(([optionName, optionSpec]) => <Tooltip key={optionName} tooltip={optionSpec.tooltip}>
             <button className={isOptionSelected(name as ToolName, optionName) ? DS.selected : ''}
               onClick={handleOptionClick(name as ToolName, optionName)}>
-              <FontAwesomeIcon icon={optionSpec.icon} />
+              <FontAwesomeIcon icon={optionSpec.icon || faExclamationTriangle} />
             </button>
           </Tooltip>)}
         </div>}
