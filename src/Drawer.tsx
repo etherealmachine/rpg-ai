@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useRef } from 'react';
 import { css } from 'astroturf';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,7 +8,6 @@ import FeatureEditor from './FeatureEditor';
 import LevelEditor from './LevelEditor';
 import MapEditor from './MapEditor';
 import { Context } from './State';
-import { useState } from 'react';
 
 const classes = css`
   .drawer {
@@ -47,36 +46,41 @@ const classes = css`
 export default function Drawer() {
   const appState = useContext(Context);
   const selection = appState.getSelectedFeature();
-  const [drag, setDrag] = useState<{ x: number, y: number } | undefined>(undefined);
-  const [width, setWidth] = useState(600);
-  const onClick = () => {
-    appState.toggleDrawer(!appState.drawerOpen);
-  }
-  const onMouseDown = (e: React.MouseEvent) => {
-    setDrag({ x: e.screenX, y: e.screenY });
-  }
-  const onMouseUp = (e: React.MouseEvent) => {
-    setDrag(undefined);
-  }
+  const drawerRef = useRef<HTMLDivElement>();
   const onMouseMove = (e: MouseEvent) => {
-    if (drag !== undefined && e.buttons !== 1) {
-      setDrag(undefined);
+    if (e.buttons !== 1) {
+      document.removeEventListener('mousemove', onMouseMove);
       return;
     }
-    if (drag !== undefined) {
-      setWidth(width + drag.x - e.screenX);
-      setDrag({ x: e.screenX, y: e.screenY });
+    const drag = drawerRef.current.dataset.drag;
+    if (drag) {
+      const width = parseInt(drawerRef.current.style.width.replace('px', ''));
+      drawerRef.current.style.width = `${width + (parseInt(drag) - e.screenX)}px`;
+    }
+    drawerRef.current.dataset.drag = e.screenX.toString();
+  }
+  const onClick = () => {
+    if (drawerRef.current.dataset.drag) {
+      drawerRef.current.dataset.drag = '';
+      return;
+    }
+    appState.setDrawerOpen(!appState.drawerOpen);
+  }
+  const onMouseDown = (e: React.MouseEvent) => {
+    document.addEventListener('mousemove', onMouseMove);
+  }
+  const onMouseUp = (e: React.MouseEvent) => {
+    document.removeEventListener('mousemove', onMouseMove);
+    const width = parseInt(drawerRef.current.style.width.replace('px', ''));
+    if (width > 100) {
+      appState.setDrawerWidth(width);
+      appState.setDrawerOpen(true);
     }
   }
-  useEffect(() => {
-    document.addEventListener('mousemove', onMouseMove);
-    return () => {
-      document.removeEventListener('mousemove', onMouseMove);
-    };
-  });
   return <div
+    ref={drawerRef}
     className={classNames(classes.drawer, appState.drawerOpen && classes.open)}
-    style={{ width: appState.drawerOpen ? width : 0 }}>
+    style={{ width: appState.drawerOpen ? `${appState.drawerWidth}px` : 0 }}>
     <button
       className={classNames(classes.toggleButton, appState.drawerOpen && classes.open)}
       onClick={onClick}

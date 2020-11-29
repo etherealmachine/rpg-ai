@@ -104,6 +104,7 @@ export class State {
     }]
   }] as Map[]
   drawerOpen = false
+  drawerWidth = 400
   selection = {
     mapIndex: 0 as number,
     levelIndex: 0 as number,
@@ -446,8 +447,13 @@ export class State {
   }
 
   @modify()
-  toggleDrawer(open: boolean) {
+  setDrawerOpen(open: boolean) {
     this.drawerOpen = open;
+  }
+
+  @modify()
+  setDrawerWidth(width: number) {
+    this.drawerWidth = width;
   }
 
   @modify()
