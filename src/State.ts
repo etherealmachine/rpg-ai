@@ -452,16 +452,19 @@ export class State {
 
   @modify()
   setMapDescription(desc: Description) {
-    if (desc.name !== undefined) {
-      this.maps[this.selection.mapIndex].name = desc.name;
-    }
-    if (desc.description !== undefined) {
-      this.maps[this.selection.mapIndex].description = desc.description;
-    }
+    this.maps[this.selection.mapIndex].name = desc.name;
+    this.maps[this.selection.mapIndex].description = desc.description;
   }
 
   @modify()
-  setDescription(desc: Description | undefined) {
+  setLevelDescription(desc: Description) {
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    level.name = desc.name;
+    level.description = desc.description;
+  }
+
+  @modify()
+  setFeatureDescription(desc: Description | undefined) {
     if (this.selection.featureIndex === undefined) return;
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const feature = level.features[this.selection.featureIndex];
@@ -474,9 +477,7 @@ export class State {
   }
 }
 
-export interface Map {
-  name: string
-  description: string
+export interface Map extends Description {
   levels: Level[]
 }
 
@@ -534,7 +535,7 @@ export interface Feature {
   properties: FeatureProperties
 }
 
-export interface Level {
+export interface Level extends Description {
   features: Feature[]
 }
 

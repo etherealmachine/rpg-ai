@@ -50,7 +50,7 @@ class CanvasRenderer {
     geometryIndex: number | undefined
   }
   size: number = 30
-  lastTime: number = 0
+  fps: number = 0
   requestID?: number
   appState = new State()
   canvas: HTMLCanvasElement
@@ -176,9 +176,11 @@ class CanvasRenderer {
         let newOffset = this.appState.offset;
         newOffset[0] -= delta[0];
         newOffset[1] -= delta[1];
-        this.appState.setOffset(newOffset);
         this.drag.start = this.canvasToTile(this.mouse);
         this.drag.end = this.canvasToTile(this.mouse);
+        window.requestAnimationFrame(() => {
+          this.appState.setOffset(newOffset);
+        });
       } else {
         this.drag.end = this.canvasToTile(this.mouse);
         if (this.appState.tools.brush.selected) {
@@ -205,7 +207,9 @@ class CanvasRenderer {
       offset[0] - (mouseWorldPos[0] - newMouseWorldPos[0]),
       offset[1] - (mouseWorldPos[1] - newMouseWorldPos[1])
     ];
-    this.appState.setZoom(newScale, newOffset);
+    window.requestAnimationFrame(() => {
+      this.appState.setZoom(newScale, newOffset);
+    });
   }
 
   onKeyDown = (event: KeyboardEvent) => {
@@ -280,7 +284,7 @@ class CanvasRenderer {
   }
 
   renderFPS(time: number) {
-    const fps = (1000 / (time - this.lastTime)).toFixed(0);
+    const fps = this.fps.toFixed(0);
     this.ctx.save();
     this.ctx.translate(this.canvas.width - 48, 12);
     this.ctx.fillStyle = '#000';
@@ -523,13 +527,6 @@ class CanvasRenderer {
       ctx.save();
       ctx.fillText('S', from[0] + (to[0] - from[0]) / 2 + cx, from[1] + (to[1] - from[1]) / 2 + cy);
       ctx.restore();
-      /*
-      ctx.lineWidth = 0.3;
-      ctx.beginPath();
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-      ctx.stroke();
-      */
     }
   }
 
@@ -858,6 +855,7 @@ class CanvasRenderer {
 
   render = (time: number) => {
     if (new Date().getTime() - this.dirty.getTime() < 5000) {
+      const startTime = performance.now();
       const { ctx, appState } = this;
       const { tools } = appState;
       if (this.polygonToolSelected && !appState.tools.polygon.selected) {
@@ -897,10 +895,11 @@ class CanvasRenderer {
 
       ctx.restore();
 
+      const fps = performance.now() - startTime;
+      this.fps = (fps * 0.1) + this.fps * 0.9;
       if (appState.debug) {
         this.renderFPS(time);
       }
-      this.lastTime = time;
     }
     this.requestID = requestAnimationFrame(this.render);
   }

@@ -9,7 +9,6 @@ const classes = css`
   .editor {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
   .editor textarea {
     height: 400px;
@@ -26,7 +25,6 @@ const classes = css`
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    overflow: hidden;
     margin: 12px 24px;
   }
 `;
