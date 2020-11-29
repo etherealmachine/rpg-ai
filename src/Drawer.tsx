@@ -47,12 +47,13 @@ const classes = css`
 export default function Drawer() {
   const appState = useContext(Context);
   const selection = appState.getSelectedFeature();
-  const drawerRef = useRef<HTMLDivElement>();
+  const drawerRef = useRef<HTMLDivElement>(null);
   const onMouseMove = (e: MouseEvent) => {
     if (e.buttons !== 1) {
       document.removeEventListener('mousemove', onMouseMove);
       return;
     }
+    if (!drawerRef.current) return;
     const drag = drawerRef.current.dataset.drag;
     if (drag) {
       const width = parseInt(drawerRef.current.style.width.replace('px', ''));
@@ -61,6 +62,7 @@ export default function Drawer() {
     drawerRef.current.dataset.drag = e.screenX.toString();
   }
   const onClick = () => {
+    if (!drawerRef.current) return;
     if (drawerRef.current.dataset.drag) {
       drawerRef.current.dataset.drag = '';
       return;
@@ -72,6 +74,7 @@ export default function Drawer() {
   }
   const onMouseUp = (e: React.MouseEvent) => {
     document.removeEventListener('mousemove', onMouseMove);
+    if (!drawerRef.current) return;
     const width = parseInt(drawerRef.current.style.width.replace('px', ''));
     if (width > 100) {
       appState.setDrawerWidth(width);

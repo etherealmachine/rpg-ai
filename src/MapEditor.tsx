@@ -27,15 +27,17 @@ export default function MapEditor() {
     setTmpDescription(map.description);
   };
   let name = tmpName || '';
-  if (tmpName === undefined) name = map.name;
+  if (tmpName === undefined) name = map.name || '';
   let description = tmpDescription || '';
-  if (tmpDescription === undefined) description = map.description;
-  return <DescriptionEditor
-    name={name}
-    description={description}
-    onNameChange={setTmpName}
-    onDescriptionChange={setTmpDescription}
-    onSave={onSave}
-    onUndo={onUndo}
-  />;
+  if (tmpDescription === undefined) description = map.description || '';
+  return <div>
+    <h3 style={{ color: 'white' }}>Map</h3>
+    <DescriptionEditor
+      name={name}
+      description={description}
+      onNameChange={setTmpName}
+      onDescriptionChange={setTmpDescription}
+      onSave={onSave}
+      onUndo={onUndo}
+    /></div>;
 }

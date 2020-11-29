@@ -108,7 +108,7 @@ export class State {
   }
   gridSteps: number = 1
   debug = false
-  showTodo = true
+  showWelcome = true
   setState = (state: any) => { }
   notifyChange = () => { }
 
@@ -151,8 +151,8 @@ export class State {
   }
 
   @modify()
-  toggleTodo() {
-    this.showTodo = !this.showTodo;
+  toggleWelcome() {
+    this.showWelcome = !this.showWelcome;
   }
 
   @modify()

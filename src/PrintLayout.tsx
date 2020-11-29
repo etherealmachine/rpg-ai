@@ -53,7 +53,7 @@ export default function PrintLayout() {
   return <div className={classes.print}>
     <div className={classes.page}>
       <h2>{map.name}</h2>
-      <div dangerouslySetInnerHTML={{ __html: sanitize(marked(map.description)) }} />
+      <div dangerouslySetInnerHTML={{ __html: sanitize(marked(map.description || '')) }} />
       <div className={classes.canvasWrapper}>
         <Canvas mode="print" />
       </div>
