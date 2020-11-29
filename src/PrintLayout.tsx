@@ -4,7 +4,7 @@ import marked from 'marked';
 import { sanitize } from 'dompurify';
 
 import Canvas from './Canvas';
-import { Context } from './State';
+import { Context, Level } from './State';
 
 const classes = css`
   .print {
@@ -43,16 +43,12 @@ const classes = css`
 export default function PrintLayout() {
   const appState = useContext(Context);
   const map = appState.maps[appState.selection.mapIndex];
-  let features = [];
+  let levels: Level[] = [];
   map.levels.forEach((level, i) => {
-    level.features.forEach(feature => {
-      if (feature.properties.name) {
-        features.push({
-          title: `${i + 1}.${features.length + 1} ${feature.properties.name}`,
-          text: sanitize(marked(feature.properties.description || '')),
-        });
-      }
-    });
+    levels.push({
+      ...level,
+      features: level.features.filter(feature => feature.properties.name),
+    })
   });
   return <div className={classes.print}>
     <div className={classes.page}>
@@ -63,9 +59,13 @@ export default function PrintLayout() {
       </div>
     </div>
     <div className={classes.pages}>
-      {features.map(feature => <div key={feature.title}>
-        <h3>{feature.title}</h3>
-        <div dangerouslySetInnerHTML={{ __html: feature.text }} />
+      {levels.map((level, i) => <div key={i}>
+        <h2>{level.name}</h2>
+        <div dangerouslySetInnerHTML={{ __html: sanitize(marked(level.description || '')) }} />
+        {level.features.map((feature, j) => <div key={j}>
+          <h3>{`${i + 1}.${j + 1} ${feature.properties.name}`}</h3>
+          <div dangerouslySetInnerHTML={{ __html: sanitize(marked(feature.properties.description || '')) }} />
+        </div>)}
       </div>)}
     </div>
   </div>;

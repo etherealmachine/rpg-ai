@@ -10,7 +10,7 @@ export default function FeatureEditor() {
   const [tmpName, setTmpName] = useState<string | undefined>(undefined);
   const [tmpDescription, setTmpDescription] = useState<string | undefined>(undefined);
   const onSave = () => {
-    appState.setDescription({
+    appState.setFeatureDescription({
       name: tmpName === undefined ? selection.feature.properties.name : tmpName,
       description: tmpDescription === undefined ? selection.feature.properties.description : tmpDescription
     });

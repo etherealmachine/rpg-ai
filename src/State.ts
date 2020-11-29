@@ -2,6 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 
 import { DoorPlacement, isCCW, merge } from './lib';
+import TempleOfClangeddin from './examples/TempleOfClangeddin';
 
 let undoStack = [] as string[];
 let redoStack = [] as string[];
@@ -96,13 +97,7 @@ export class State {
   tools = initialTools()
   scale = 1
   offset = [0, 0]
-  maps = [{
-    name: '',
-    description: '',
-    levels: [{
-      features: [],
-    }]
-  }] as Map[]
+  maps = [TempleOfClangeddin] as Map[]
   drawerOpen = false
   drawerWidth = 400
   selection = {
@@ -475,6 +470,13 @@ export class State {
     const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
     const feature = level.features[this.selection.featureIndex];
     Object.assign(feature.properties, desc);
+  }
+
+  @modify()
+  setFeatureOrder(sourceIndex: number, destIndex: number) {
+    const level = this.maps[this.selection.mapIndex].levels[this.selection.levelIndex];
+    const [removed] = level.features.splice(sourceIndex, 1);
+    level.features.splice(destIndex, 0, removed);
   }
 
   @modify()

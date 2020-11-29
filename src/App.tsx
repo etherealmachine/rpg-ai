@@ -48,6 +48,7 @@ export default function App() {
     setCount(i + 1);
   };
   (window as any).app = state;
+  document.title = state.maps[state.selection.mapIndex].name;
   return <Router>
     <Switch>
       <Route path="/print">

@@ -48,10 +48,10 @@ export default function DescriptionEditor(props: Props) {
   };
   return <div className={classes.editor}>
     <div style={{ display: 'flex', alignContent: 'center' }}>
-      <input className={DS.input} style={{ flexGrow: 1 }} value={props.name} onChange={onNameChange} />
+      <input className={DS.input} style={{ flexGrow: 1 }} value={props.name || ''} onChange={onNameChange} />
     </div>
     <textarea
-      value={props.description}
+      value={props.description || ''}
       onChange={onTextChange} />
     <div className={classes.actions}>
       {<button className={DS.button} onClick={props.onSave}>Save</button>}

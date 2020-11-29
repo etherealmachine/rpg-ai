@@ -30,6 +30,7 @@ const classes = css`
     top: 0;
     left: -27px;
     background: #373737;
+    color: white;
     outline: none;
     border: none;
     font-size: 30px;
