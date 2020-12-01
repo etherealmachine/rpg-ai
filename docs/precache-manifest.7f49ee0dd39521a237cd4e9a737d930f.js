@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "f3dad17e6ee7869c0621c70d27690fb8",
+    "revision": "ab891f0ee35fd2540b0330db13df8cec",
     "url": "/rpg-ai/index.html"
   },
   {
-    "revision": "aace544d4361f5af6dc0",
+    "revision": "2da13f3b59008c1ca802",
     "url": "/rpg-ai/static/css/main.4ea84514.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/rpg-ai/static/js/3.5d3bc67e.chunk.js"
   },
   {
-    "revision": "aace544d4361f5af6dc0",
-    "url": "/rpg-ai/static/js/main.b1a4da7b.chunk.js"
+    "revision": "2da13f3b59008c1ca802",
+    "url": "/rpg-ai/static/js/main.46e1b548.chunk.js"
   },
   {
     "revision": "d506ed9cfd812ba11dbb",
