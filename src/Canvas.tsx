@@ -167,10 +167,10 @@ class CanvasRenderer {
 
   onMouseMove = (event: MouseEvent | TouchEvent) => {
     this.dirty = new Date();
-    if (event instanceof TouchEvent) {
+    if ('touches' in event) {
       this.mouse = [event.touches[0].clientX, event.touches[0].clientY];
-    } else {
-      this.mouse = [event.offsetX, event.offsetY];
+    } else if ('clientX' in event) {
+      this.mouse = [event.clientX, event.clientY];
     }
     if (this.mouse && this.mouseDown && this.drag) {
       if (this.specialKeys.space || (event instanceof MouseEvent && event.buttons === 1)) {
