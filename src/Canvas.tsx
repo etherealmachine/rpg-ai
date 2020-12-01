@@ -173,7 +173,7 @@ class CanvasRenderer {
       this.mouse = [event.offsetX, event.offsetY];
     }
     if (this.mouse && this.mouseDown && this.drag) {
-      if (this.specialKeys.space) {
+      if (this.specialKeys.space || (event instanceof MouseEvent && event.buttons === 1)) {
         const end = this.canvasToWorld(this.mouse);
         const delta = [(this.drag.start[0] * this.size) - end[0], (this.drag.start[1] * this.size) - end[1]];
         let newOffset = this.appState.offset;
