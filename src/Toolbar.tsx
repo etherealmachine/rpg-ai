@@ -67,11 +67,11 @@ export default function Toolbar() {
   };
   const iconFor = (tool: ToolName) => {
     const button = buttons[tool];
-    if (button.options) return button.options[(state.tools[tool] as any).subtype].icon || faExclamationTriangle;
-    return button.icon || faExclamationTriangle;
+    if (button?.options) return button.options[(state.tools[tool] as any).subtype].icon || faExclamationTriangle;
+    return button?.icon || faExclamationTriangle;
   }
   return <div className={DS.toolbar} style={{ position: 'absolute', top: '50px', left: '24px' }}>
-    {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name as ToolName].tooltip}>
+    {Object.entries(state.tools).map(([name, spec]) => <Tooltip key={name} tooltip={buttons[name as ToolName]?.tooltip}>
       <React.Fragment>
         <button
           className={spec.selected ? DS.selected : ''}

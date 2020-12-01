@@ -81,14 +81,15 @@ class CanvasRenderer {
   }
 
   attachListeners() {
+    this.canvas.addEventListener('touchstart', this.onMouseDown);
     this.canvas.addEventListener('mousedown', this.onMouseDown);
     this.canvas.addEventListener('mouseup', this.onMouseUp);
+    this.canvas.addEventListener('touchend', this.onMouseUp);
     this.canvas.addEventListener('mousemove', this.onMouseMove);
+    this.canvas.addEventListener('touchmove', this.onMouseMove);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
-    window.addEventListener('scroll', this.onWheel, { passive: false });
-    window.addEventListener('touchmove', this.onWheel, { passive: false });
-    window.addEventListener('mousewheel', this.onWheel, { passive: false });
+    window.addEventListener('wheel', this.onWheel, { passive: false });
   }
 
   detachListeners() {
@@ -97,16 +98,14 @@ class CanvasRenderer {
     this.canvas.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
-    window.removeEventListener('scroll', this.onWheel);
-    window.removeEventListener('touchmove', this.onWheel);
-    window.removeEventListener('mousewheel', this.onWheel);
+    window.removeEventListener('wheel', this.onWheel);
   }
 
-  onMouseDown = (e: MouseEvent) => {
+  onMouseDown = (e: MouseEvent | TouchEvent) => {
     this.dirty = new Date();
     this.mouseDown = true;
     const { mouse } = this;
-    if (e.button === 2) return;
+    if (e instanceof MouseEvent && e.button === 2) return;
     if (mouse) {
       this.drag = {
         start: this.canvasToTile(mouse),
@@ -166,11 +165,15 @@ class CanvasRenderer {
     }
   }
 
-  onMouseMove = (event: MouseEvent) => {
+  onMouseMove = (event: MouseEvent | TouchEvent) => {
     this.dirty = new Date();
-    this.mouse = [event.offsetX, event.offsetY];
+    if (event instanceof TouchEvent) {
+      this.mouse = [event.touches[0].clientX, event.touches[0].clientY];
+    } else {
+      this.mouse = [event.offsetX, event.offsetY];
+    }
     if (this.mouse && this.mouseDown && this.drag) {
-      if (this.specialKeys.space) {
+      if (this.specialKeys.space || (event instanceof MouseEvent && event.buttons === 1)) {
         const end = this.canvasToWorld(this.mouse);
         const delta = [(this.drag.start[0] * this.size) - end[0], (this.drag.start[1] * this.size) - end[1]];
         let newOffset = this.appState.offset;
@@ -190,10 +193,7 @@ class CanvasRenderer {
     }
   }
 
-  onWheel = (ev: WheelEvent | Event) => {
-    let event: WheelEvent | undefined;
-    if (ev.hasOwnProperty('x')) event = ev as WheelEvent;
-    else return;
+  onWheel = (event: WheelEvent) => {
     if (event.x === undefined || event.y === undefined || document.elementFromPoint(event.x, event.y) !== this.canvas) return;
     event.stopPropagation();
     event.preventDefault();

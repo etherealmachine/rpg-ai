@@ -27,6 +27,7 @@ export default function Welcome() {
     <h2>Welcome to the RPG.ai Mapmaker</h2>
     <h3>Quick Start</h3>
     <ul>
+      <li>Hold space or the middle mouse button to scroll around</li>
       <li>Select the Wall tool (<FontAwesomeIcon icon={faSquare} />) to build walls</li>
       <li>Select the Rect tool (<FontAwesomeIcon icon={faVectorSquare} />) for rectangular areas</li>
       <li>Place Decorations (<FontAwesomeIcon icon={statueIcon} />) and Doors (<FontAwesomeIcon icon={faDoorClosed} />) </li>
