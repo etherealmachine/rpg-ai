@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import seedrandom from 'seedrandom';
 
 import {
@@ -13,6 +13,7 @@ import {
   lerp2,
 } from './lib';
 import { Context, DecorationType, DoorType, Geometry, Level, State } from './State';
+import Zoom from './Zoom';
 
 const backgroundColor = '#D9D2BF';
 const floorColor = '#F1ECE0';
@@ -30,7 +31,7 @@ const specialColors = [
   hoverFillColor, hoverStrokeColor,
 ];
 
-class CanvasRenderer {
+export class CanvasRenderer {
   mouse?: number[] = undefined
   mouseDown: boolean = false
   drag?: {
@@ -167,10 +168,11 @@ class CanvasRenderer {
 
   onMouseMove = (event: MouseEvent | TouchEvent) => {
     this.dirty = new Date();
-    if ('touches' in event) {
-      this.mouse = [event.touches[0].clientX, event.touches[0].clientY];
-    } else if ('clientX' in event) {
-      this.mouse = [event.clientX, event.clientY];
+    if ('touches' in event && event.target) {
+      const rect = (event.target as HTMLElement).getBoundingClientRect();
+      this.mouse = [event.touches[0].clientX - rect.left, event.touches[0].clientY - rect.top];
+    } else if ('offsetX' in event) {
+      this.mouse = [event.offsetX, event.offsetY];
     }
     if (this.mouse && this.mouseDown && this.drag) {
       if (this.specialKeys.space || (event instanceof MouseEvent && event.buttons === 1)) {
@@ -201,17 +203,10 @@ class CanvasRenderer {
     const { mouse } = this;
     const { scale, offset } = this.appState;
     if (!mouse) return;
-    const max = 4;
-    const min = 0.2;
-    const newScale = Math.max(Math.min(scale - event.deltaY / 100, max), min);
-    const mouseWorldPos = this.canvasToWorld(mouse);
-    const newMouseWorldPos = [mouse[0] / newScale - offset[0], mouse[1] / newScale - offset[1]];
-    const newOffset = [
-      offset[0] - (mouseWorldPos[0] - newMouseWorldPos[0]),
-      offset[1] - (mouseWorldPos[1] - newMouseWorldPos[1])
-    ];
+    offset[0] -= event.deltaX * scale;
+    offset[1] -= event.deltaY * scale;
     window.requestAnimationFrame(() => {
-      this.appState.setZoom(newScale, newOffset);
+      this.appState.setOffset(offset);
     });
   }
 
@@ -222,15 +217,6 @@ class CanvasRenderer {
     if (event.key === 'Alt') this.specialKeys.alt = true;
     if (document.activeElement !== document.body) return;
     const { appState } = this;
-    const S = this.size * this.appState.scale;
-    let newOffset = appState.offset;
-    if (event.key === 'w') newOffset = [appState.offset[0], appState.offset[1] + S];
-    if (event.key === 'a') newOffset = [appState.offset[0] + S, appState.offset[1]];
-    if (event.key === 's') newOffset = [appState.offset[0], appState.offset[1] - S];
-    if (event.key === 'd') newOffset = [appState.offset[0] - S, appState.offset[1]];
-    if (newOffset !== appState.offset) {
-      appState.setOffset(newOffset);
-    }
     if (event.key === 'Backspace' || event.key === 'Delete') {
       appState.handleDelete();
     }
@@ -914,6 +900,7 @@ class CanvasRenderer {
 export default function Canvas(props: { mode: 'edit' | 'print' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appState = useContext(Context);
+  const [renderer, setRenderer] = useState<CanvasRenderer | undefined>();
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
@@ -931,10 +918,14 @@ export default function Canvas(props: { mode: 'edit' | 'print' }) {
     appState.notifyChange = () => {
       renderer.dirty = new Date();
     };
+    setRenderer(renderer);
     return () => {
       window.removeEventListener('resize', syncSize);
       renderer.detachListeners();
     }
   }, [canvasRef, appState, props.mode]);
-  return <canvas ref={canvasRef} style={{ flex: '1 1 auto' }} />;
+  return <div style={{ flex: '1 1 auto' }}>
+    <canvas ref={canvasRef} style={{ flex: '1 1 auto' }} />
+    <Zoom renderer={renderer} />
+  </div>;
 }
