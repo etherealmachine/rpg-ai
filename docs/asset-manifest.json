@@ -1,24 +1,22 @@
 {
   "files": {
     "main.css": "/rpg-ai/static/css/main.4ea84514.chunk.css",
-    "main.js": "/rpg-ai/static/js/main.94ed6461.chunk.js",
-    "main.js.map": "/rpg-ai/static/js/main.94ed6461.chunk.js.map",
-    "runtime-main.js": "/rpg-ai/static/js/runtime-main.40dc346b.js",
-    "runtime-main.js.map": "/rpg-ai/static/js/runtime-main.40dc346b.js.map",
-    "static/js/2.6a68d9da.chunk.js": "/rpg-ai/static/js/2.6a68d9da.chunk.js",
-    "static/js/2.6a68d9da.chunk.js.map": "/rpg-ai/static/js/2.6a68d9da.chunk.js.map",
-    "static/js/3.a6c727b8.chunk.js": "/rpg-ai/static/js/3.a6c727b8.chunk.js",
-    "static/js/3.a6c727b8.chunk.js.map": "/rpg-ai/static/js/3.a6c727b8.chunk.js.map",
+    "main.js": "/rpg-ai/static/js/main.d20a030d.chunk.js",
+    "main.js.map": "/rpg-ai/static/js/main.d20a030d.chunk.js.map",
+    "runtime-main.js": "/rpg-ai/static/js/runtime-main.0794152b.js",
+    "runtime-main.js.map": "/rpg-ai/static/js/runtime-main.0794152b.js.map",
+    "static/js/2.fa8c4316.chunk.js": "/rpg-ai/static/js/2.fa8c4316.chunk.js",
+    "static/js/2.fa8c4316.chunk.js.map": "/rpg-ai/static/js/2.fa8c4316.chunk.js.map",
     "index.html": "/rpg-ai/index.html",
-    "precache-manifest.8294bdbbd8e58b2dc67b84ff198612cb.js": "/rpg-ai/precache-manifest.8294bdbbd8e58b2dc67b84ff198612cb.js",
+    "precache-manifest.357d171a2b688dab75057b5ed4c5c27a.js": "/rpg-ai/precache-manifest.357d171a2b688dab75057b5ed4c5c27a.js",
     "service-worker.js": "/rpg-ai/service-worker.js",
     "static/css/main.4ea84514.chunk.css.map": "/rpg-ai/static/css/main.4ea84514.chunk.css.map",
-    "static/js/2.6a68d9da.chunk.js.LICENSE.txt": "/rpg-ai/static/js/2.6a68d9da.chunk.js.LICENSE.txt"
+    "static/js/2.fa8c4316.chunk.js.LICENSE.txt": "/rpg-ai/static/js/2.fa8c4316.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
-    "static/js/runtime-main.40dc346b.js",
-    "static/js/2.6a68d9da.chunk.js",
+    "static/js/runtime-main.0794152b.js",
+    "static/js/2.fa8c4316.chunk.js",
     "static/css/main.4ea84514.chunk.css",
-    "static/js/main.94ed6461.chunk.js"
+    "static/js/main.d20a030d.chunk.js"
   ]
 }
