@@ -713,6 +713,7 @@ export class CanvasRenderer {
           if (feature.properties.type !== featureType) return;
           feature.geometries.forEach((geometry, j) => {
             if (geometry.type !== geometryType) return;
+            if (!geometry.coordinates || geometry.coordinates.length === 0) return;
             if (colorIndex) {
               this.drawGeometry(geometry, undefined, undefined, indexToColor(i, j));
             } else {
