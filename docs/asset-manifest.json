@@ -1,22 +1,22 @@
 {
   "files": {
     "main.css": "/rpg-ai/static/css/main.4ea84514.chunk.css",
-    "main.js": "/rpg-ai/static/js/main.e00cf73b.chunk.js",
-    "main.js.map": "/rpg-ai/static/js/main.e00cf73b.chunk.js.map",
+    "main.js": "/rpg-ai/static/js/main.550606a6.chunk.js",
+    "main.js.map": "/rpg-ai/static/js/main.550606a6.chunk.js.map",
     "runtime-main.js": "/rpg-ai/static/js/runtime-main.0794152b.js",
     "runtime-main.js.map": "/rpg-ai/static/js/runtime-main.0794152b.js.map",
-    "static/js/2.fa8c4316.chunk.js": "/rpg-ai/static/js/2.fa8c4316.chunk.js",
-    "static/js/2.fa8c4316.chunk.js.map": "/rpg-ai/static/js/2.fa8c4316.chunk.js.map",
+    "static/js/2.e90fe3a3.chunk.js": "/rpg-ai/static/js/2.e90fe3a3.chunk.js",
+    "static/js/2.e90fe3a3.chunk.js.map": "/rpg-ai/static/js/2.e90fe3a3.chunk.js.map",
     "index.html": "/rpg-ai/index.html",
-    "precache-manifest.8b1fdf3b773b48ff92a19611968523c4.js": "/rpg-ai/precache-manifest.8b1fdf3b773b48ff92a19611968523c4.js",
+    "precache-manifest.4f4611fac72ea71f97e0c48fd5d4879d.js": "/rpg-ai/precache-manifest.4f4611fac72ea71f97e0c48fd5d4879d.js",
     "service-worker.js": "/rpg-ai/service-worker.js",
     "static/css/main.4ea84514.chunk.css.map": "/rpg-ai/static/css/main.4ea84514.chunk.css.map",
-    "static/js/2.fa8c4316.chunk.js.LICENSE.txt": "/rpg-ai/static/js/2.fa8c4316.chunk.js.LICENSE.txt"
+    "static/js/2.e90fe3a3.chunk.js.LICENSE.txt": "/rpg-ai/static/js/2.e90fe3a3.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.0794152b.js",
-    "static/js/2.fa8c4316.chunk.js",
+    "static/js/2.e90fe3a3.chunk.js",
     "static/css/main.4ea84514.chunk.css",
-    "static/js/main.e00cf73b.chunk.js"
+    "static/js/main.550606a6.chunk.js"
   ]
 }
