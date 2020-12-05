@@ -93,6 +93,14 @@ const initialTools = () => ({
 
 export type ToolName = keyof ReturnType<typeof initialTools>;
 
+export interface Selection {
+  mapIndex: number
+  levelIndex: number
+  featureIndex: number | undefined
+  geometryIndex: number | undefined
+  ghostLevels: { [key: string]: boolean }
+}
+
 export class State {
   tools = initialTools()
   scale = 1
@@ -100,11 +108,12 @@ export class State {
   maps = [TempleOfClangeddin] as Map[]
   drawerOpen = false
   drawerWidth = 400
-  selection = {
-    mapIndex: 0 as number,
-    levelIndex: 0 as number,
-    featureIndex: undefined as number | undefined,
-    geometryIndex: undefined as number | undefined
+  selection: Selection = {
+    mapIndex: 0,
+    levelIndex: 0,
+    featureIndex: undefined,
+    geometryIndex: undefined,
+    ghostLevels: {},
   }
   gridSteps: number = 1
   debug = false
@@ -162,7 +171,13 @@ export class State {
     if (this.maps[this.maps.length - 1].name !== '' || this.maps[this.maps.length - 1].levels[0].features.length > 0) {
       this.maps.push({ name: '', description: '', levels: [{ features: [] }] });
     }
-    this.selection = { mapIndex: this.maps.length - 1, levelIndex: 0, featureIndex: undefined, geometryIndex: undefined };
+    this.selection = {
+      mapIndex: this.maps.length - 1,
+      levelIndex: 0,
+      featureIndex: undefined,
+      geometryIndex: undefined,
+      ghostLevels: {},
+    };
     this.scale = 1;
     this.offset = [0, 0];
   }
@@ -422,7 +437,7 @@ export class State {
   }
 
   @modify()
-  setSelection(selection: { mapIndex: number, levelIndex: number, featureIndex: undefined | number, geometryIndex: undefined | number }) {
+  setSelection(selection: Selection) {
     if (selection.mapIndex !== this.selection.mapIndex) {
       undoStack = [];
       redoStack = [];

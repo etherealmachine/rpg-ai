@@ -13,10 +13,10 @@ import {
 
 import Canvas from './Canvas';
 import Drawer from './Drawer';
-import Levels from './Levels';
+import LevelSelector from './LevelSelector';
 import Menubar from './Menubar';
 import Modal from './Modal';
-import Navigation from './Navigation';
+import HomeButton from './HomeButton';
 import PrintLayout from './PrintLayout';
 import Welcome from './Welcome';
 import Toolbar from './Toolbar';
@@ -67,8 +67,8 @@ export default function App() {
               <Canvas mode='edit' />
               <Drawer />
               <Toolbar />
-              <Levels />
-              <Navigation />
+              <LevelSelector />
+              <HomeButton />
             </div>
           </Context.Provider>
         </div>

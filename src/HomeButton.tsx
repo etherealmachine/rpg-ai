@@ -8,7 +8,7 @@ import {
 import { Context } from './State';
 
 const classes = css`
-  .navigation {
+  .home {
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -17,11 +17,11 @@ const classes = css`
     padding: 8px;
     z-index: 1;
   }
-  .navigation svg {
+  .home svg {
     color: #505050;
     font-size: 24px;
   }
-  .navigation button {
+  .home button {
     background: transparent;
     outline: none;
     border: none; 
@@ -32,14 +32,14 @@ const classes = css`
     width: 24px;
     height: 24px;
   }
-  .navigation button:hover svg {
+  .home button:hover svg {
     color: #000;
   }
 `;
 
-export default function Navigation() {
+export default function HomeButton() {
   const state = useContext(Context);
-  return <div className={classes.navigation}>
+  return <div className={classes.home}>
     <button onClick={() => state.setZoom(1, [0, 0])}><FontAwesomeIcon icon={faMapMarkerAlt} /></button>
   </div>;
 }

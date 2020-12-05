@@ -52,7 +52,7 @@ export default function PrintLayout() {
       <h2>{map.name}</h2>
       <div dangerouslySetInnerHTML={{ __html: sanitize(marked(map.description || '')) }} />
       <div style={{ flexGrow: 1 }}>
-        <Canvas mode="print" />
+        <Canvas mode="print" level={0} />
       </div>
     </div>
     <div className={classes.pages}>

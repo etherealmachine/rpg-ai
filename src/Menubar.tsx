@@ -63,6 +63,7 @@ export default function Menubar() {
       levelIndex: 0,
       featureIndex: undefined,
       geometryIndex: undefined,
+      ghostLevels: {},
     });
     setShowLoadModal(false);
   }
