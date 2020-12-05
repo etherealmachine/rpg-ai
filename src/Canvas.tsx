@@ -60,8 +60,9 @@ export class CanvasRenderer {
   bufferCtx: CanvasRenderingContext2D
   dirty: Date = new Date()
   mode: 'edit' | 'print'
+  level?: number
 
-  constructor(canvas: HTMLCanvasElement, mode: 'edit' | 'print') {
+  constructor(canvas: HTMLCanvasElement, mode: 'edit' | 'print', level?: number) {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (ctx === null) {
       throw new Error('canvas has null rendering context');
@@ -79,6 +80,7 @@ export class CanvasRenderer {
     }
     this.bufferCtx = bufferCtx;
     this.mode = mode;
+    this.level = level;
   }
 
   attachListeners() {
@@ -175,7 +177,7 @@ export class CanvasRenderer {
       this.mouse = [event.offsetX, event.offsetY];
     }
     if (this.mouse && this.mouseDown && this.drag) {
-      if (this.specialKeys.space || (event instanceof MouseEvent && event.buttons === 1)) {
+      if (this.specialKeys.space) {
         const end = this.canvasToWorld(this.mouse);
         const delta = [(this.drag.start[0] * this.size) - end[0], (this.drag.start[1] * this.size) - end[1]];
         let newOffset = this.appState.offset;
@@ -757,7 +759,7 @@ export class CanvasRenderer {
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
-    const level = this.appState.maps[this.appState.selection.mapIndex].levels[this.appState.selection.levelIndex];
+    const level = this.appState.maps[this.appState.selection.mapIndex].levels[this.level || this.appState.selection.levelIndex];
 
     this.ctx = this.bufferCtx;
 
@@ -788,9 +790,33 @@ export class CanvasRenderer {
     this.ctx.resetTransform();
     this.ctx.clearRect(0, 0, width, height);
     this.ctx.save();
-    this.ctx.scale(appState.scale, appState.scale);
-    this.ctx.translate(appState.offset[0], appState.offset[1]);
-    this.ctx.scale(this.size, this.size);
+    if (this.mode === 'edit') {
+      this.ctx.scale(appState.scale, appState.scale);
+      this.ctx.translate(appState.offset[0], appState.offset[1]);
+      this.ctx.scale(this.size, this.size);
+    } else {
+      const range = level.features.reduce(([sw, ne], feature) => {
+        return feature.geometries.reduce(([sw, ne], geometry) => {
+          const minX = Math.min(...geometry.coordinates.map(p => p[0]));
+          const maxX = Math.max(...geometry.coordinates.map(p => p[0]));
+          const minY = Math.min(...geometry.coordinates.map(p => p[1]));
+          const maxY = Math.max(...geometry.coordinates.map(p => p[1]));
+          return [
+            [Math.min(sw[0], minX), Math.max(sw[1], maxY)],
+            [Math.max(ne[0], maxX), Math.min(ne[1], minY)],
+          ];
+        }, [sw, ne]);
+      }, [[Infinity, -Infinity], [-Infinity, Infinity]]);
+      const w = range[1][0] - range[0][0];
+      const h = range[0][1] - range[1][1];
+      const extent = Math.max(w, h);
+      const scale = Math.max(this.canvas.width - 20, this.canvas.height - 20) / extent;
+      const levelMid = [range[0][0] + w / 2, range[1][1] + h / 2];
+      this.ctx.scale(scale, scale);
+      this.ctx.translate(
+        ((this.canvas.width / 2) - (levelMid[0] * scale)) / scale,
+        ((this.canvas.height / 2) - (levelMid[1] * scale)) / scale);
+    }
 
     this.drawFeatures(level);
 
@@ -866,13 +892,13 @@ export class CanvasRenderer {
 
       this.drawLevels();
 
-      ctx.save();
-
-      ctx.scale(appState.scale, appState.scale);
-      ctx.translate(appState.offset[0], appState.offset[1]);
-      ctx.scale(this.size, this.size);
-
       if (this.mode === 'edit') {
+        ctx.save();
+
+        ctx.scale(appState.scale, appState.scale);
+        ctx.translate(appState.offset[0], appState.offset[1]);
+        ctx.scale(this.size, this.size);
+
         if (this.mouse) {
           this.drawMousePos(this.mouse);
         }
@@ -898,14 +924,14 @@ export class CanvasRenderer {
   }
 }
 
-export default function Canvas(props: { mode: 'edit' | 'print' }) {
+export default function Canvas(props: { mode: 'edit' | 'print', level?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appState = useContext(Context);
   const [renderer, setRenderer] = useState<CanvasRenderer | undefined>();
   useEffect(() => {
     if (canvasRef.current === null) return;
     const canvas = canvasRef.current;
-    const renderer: CanvasRenderer = new CanvasRenderer(canvas, props.mode);
+    const renderer: CanvasRenderer = new CanvasRenderer(canvas, props.mode, props.level);
     const syncSize = () => {
       canvas.width = canvas.parentElement?.offsetWidth || canvas.width;
       canvas.height = canvas.parentElement?.offsetHeight || canvas.height;
@@ -924,9 +950,9 @@ export default function Canvas(props: { mode: 'edit' | 'print' }) {
       window.removeEventListener('resize', syncSize);
       renderer.detachListeners();
     }
-  }, [canvasRef, appState, props.mode]);
-  return <div style={{ flex: '1 1 auto' }}>
-    <canvas ref={canvasRef} style={{ flex: '1 1 auto' }} />
-    <Zoom renderer={renderer} />
+  }, [canvasRef, appState, props.mode, props.level]);
+  return <div style={{ height: "100%", width: "100%" }}>
+    <canvas ref={canvasRef} style={{ height: "100%", width: "100%" }} />
+    {props.mode === 'edit' && <Zoom renderer={renderer} />}
   </div>;
 }

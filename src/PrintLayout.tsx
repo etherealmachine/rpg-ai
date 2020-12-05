@@ -35,9 +35,6 @@ const classes = css`
     margin-right: auto;
     padding: 0.25in;
   }
-  .canvasWrapper {
-    flex-grow: 1;
-  }
 `;
 
 export default function PrintLayout() {
@@ -54,12 +51,15 @@ export default function PrintLayout() {
     <div className={classes.page}>
       <h2>{map.name}</h2>
       <div dangerouslySetInnerHTML={{ __html: sanitize(marked(map.description || '')) }} />
-      <div className={classes.canvasWrapper}>
+      <div style={{ flexGrow: 1 }}>
         <Canvas mode="print" />
       </div>
     </div>
     <div className={classes.pages}>
       {levels.map((level, i) => <div key={i}>
+        <div style={{ height: '5in' }}>
+          <Canvas mode="print" level={i} />
+        </div>
         <h2>{level.name}</h2>
         <div dangerouslySetInnerHTML={{ __html: sanitize(marked(level.description || '')) }} />
         {level.features.map((feature, j) => <div key={j}>

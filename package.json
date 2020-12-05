@@ -40,7 +40,6 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "3.4.0",
     "seedrandom": "^3.0.5",
-    "tailwindcss": "^2.0.1",
     "typescript": "~3.7.2",
     "web-vitals": "^0.2.4"
   },
