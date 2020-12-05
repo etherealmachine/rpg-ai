@@ -63,6 +63,7 @@ export default function Menubar() {
       levelIndex: 0,
       featureIndex: undefined,
       geometryIndex: undefined,
+      ghostLevels: {},
     });
     setShowLoadModal(false);
   }
@@ -110,12 +111,18 @@ export default function Menubar() {
         onClick={() => { appState.toggleWelcome(); }}>
         Help
       </button>
-      {appState.debug &&
+      {appState.debug && <div>
+        <button
+          className={DS.buttonSmall}
+          onClick={() => { appState.export(); }}>
+          Export
+      </button>
         <button
           className={DS.buttonSmall}
           onClick={() => { appState.reset(); }}>
           Clear
-      </button>}
+      </button>
+      </div>}
       <div className={classes.debugMenu}>
         <label>Debug</label>
         <input

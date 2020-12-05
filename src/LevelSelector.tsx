@@ -60,6 +60,7 @@ const classes = css`
   }
   .level {
     display: flex;
+    align-items: center;
   }
   button.link {
     outline: none;
@@ -73,6 +74,18 @@ const classes = css`
 
 export default function Levels() {
   const state = useContext(Context);
+  const isGhostLevel = (i: number) => {
+    return state.selection.ghostLevels[i];
+  };
+  const setGhostLevel = (i: number, newValue: boolean) => {
+    state.setSelection({
+      ...state.selection,
+      ghostLevels: {
+        ...state.selection.ghostLevels,
+        [i]: newValue,
+      }
+    });
+  };
   return <div className={classes.levels}>
     <h4>Levels</h4>
     {state.maps[state.selection.mapIndex].levels.map((level, i) => <div key={i} className={classes.level}>
@@ -82,6 +95,11 @@ export default function Levels() {
         {i}
       </button>
       <button onClick={() => state.removeLevel(i)}><FontAwesomeIcon icon={faMinus} /></button>
+      <input
+        type="checkbox"
+        checked={isGhostLevel(i)}
+        onChange={e => setGhostLevel(i, e.target.checked)}
+      />
     </div>)}
     <button onClick={() => state.addLevel()}><FontAwesomeIcon icon={faPlus} /></button>
   </div>;

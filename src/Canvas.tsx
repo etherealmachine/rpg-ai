@@ -84,6 +84,7 @@ export class CanvasRenderer {
   }
 
   attachListeners() {
+    if (this.mode === 'print') return;
     this.canvas.addEventListener('touchstart', this.onMouseDown);
     this.canvas.addEventListener('mousedown', this.onMouseDown);
     this.canvas.addEventListener('mouseup', this.onMouseUp);
@@ -96,6 +97,7 @@ export class CanvasRenderer {
   }
 
   detachListeners() {
+    if (this.mode === 'print') return;
     this.canvas.removeEventListener('mousedown', this.onMouseDown);
     this.canvas.removeEventListener('mouseup', this.onMouseUp);
     this.canvas.removeEventListener('mousemove', this.onMouseMove);
@@ -123,8 +125,7 @@ export class CanvasRenderer {
         this.appState.handleGroup(hoverFeatureIndex, hoverGeometryIndex);
       } else {
         this.appState.setSelection({
-          mapIndex: this.appState.selection.mapIndex,
-          levelIndex: this.appState.selection.levelIndex,
+          ...this.appState.selection,
           featureIndex: this.hover?.featureIndex,
           geometryIndex: this.hover?.geometryIndex,
         });
@@ -754,16 +755,15 @@ export class CanvasRenderer {
     });
   }
 
-  drawLevels() {
+  drawLevel(level: Level, selectable: boolean) {
     const { appState } = this;
     const { width, height } = this.canvas;
 
     const tmp = this.ctx;
-    const level = this.appState.maps[this.appState.selection.mapIndex].levels[this.level || this.appState.selection.levelIndex];
 
     this.ctx = this.bufferCtx;
 
-    if (this.mode === 'edit') {
+    if (selectable) {
       // color-indexed mouse picking
       this.ctx.resetTransform();
       this.ctx.globalCompositeOperation = 'source-over';
@@ -820,7 +820,7 @@ export class CanvasRenderer {
 
     this.drawFeatures(level);
 
-    if (appState.tools.pointer.selected) {
+    if (selectable && appState.tools.pointer.selected) {
       if (this.hover !== undefined && this.hover.featureIndex !== undefined) {
         const hover = level.features[this.hover.featureIndex];
         if (this.hover.geometryIndex !== undefined && hover !== undefined) {
@@ -890,7 +890,16 @@ export class CanvasRenderer {
       // http://jeroenhoek.nl/articles/svg-and-isometric-projection.html
       // ctx.transform(0.866, 0.5, -0.866, 0.5, 0, 0);
 
-      this.drawLevels();
+      const map = this.appState.maps[this.appState.selection.mapIndex];
+      const currLevel = this.level !== undefined ? map.levels[this.level] : map.levels[this.appState.selection.levelIndex];
+      this.drawLevel(currLevel, this.mode === 'edit');
+      if (this.mode === 'edit') {
+        ctx.globalAlpha = 0.2;
+        Object.entries(this.appState.selection.ghostLevels).forEach(([levelIndex, ghost]) => {
+          if (ghost) this.drawLevel(map.levels[parseInt(levelIndex)], false);
+        });
+        ctx.globalAlpha = 1;
+      }
 
       if (this.mode === 'edit') {
         ctx.save();
