@@ -2,7 +2,7 @@ import React from 'react';
 import { produce } from 'immer';
 
 import { DoorPlacement, isCCW, merge } from './lib';
-import TempleOfClangeddin from './examples/TempleOfClangeddin';
+import TempleOfClangeddin from './examples/Temple of Clanggedin.json';
 
 let undoStack = [] as string[];
 let redoStack = [] as string[];
@@ -130,6 +130,18 @@ export class State {
       feature: feature,
       geometry: feature.geometries[this.selection.geometryIndex],
     };
+  }
+
+  export() {
+    let url = 'data:text/json;charset=utf-8,';
+    const map = this.maps[this.selection.mapIndex];
+    url += encodeURIComponent(JSON.stringify(map));
+    const a = document.createElement('a');
+    a.setAttribute("href", url);
+    a.setAttribute("download", `${map.name || 'Untitled Map'}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   @modify()

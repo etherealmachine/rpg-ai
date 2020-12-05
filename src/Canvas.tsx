@@ -820,7 +820,7 @@ export class CanvasRenderer {
 
     this.drawFeatures(level);
 
-    if (appState.tools.pointer.selected) {
+    if (selectable && appState.tools.pointer.selected) {
       if (this.hover !== undefined && this.hover.featureIndex !== undefined) {
         const hover = level.features[this.hover.featureIndex];
         if (this.hover.geometryIndex !== undefined && hover !== undefined) {
