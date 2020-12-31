@@ -1,0 +1,5 @@
+<%= form_with(model: Tileset.new) do |form| %>
+  <%= form.file_field :definition %>
+  <%= form.file_field :image %>
+  <%= form.submit %>
+<% end %>

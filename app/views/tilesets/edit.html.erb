@@ -1,0 +1,13 @@
+<%= form_with(model: @tileset, class: "form") do |form| %>
+  <%= form.text_field :name, placeholder: "Name", value: @tileset.name, class: "form-control" %>
+  <%= form.text_field :description, placeholder: "Description", class: "form-control" %>
+  <div>
+    <%= form.text_field :tag_list, hidden: true %>
+    <%= react_component("TagSelector", { tags: @tileset.tags })%>
+  </div>
+  <%= form.submit "Save", class: "btn btn-success" %>
+<% end %>
+
+<%= form_with(model: @tileset, method: "DELETE") do |form| %>
+  <%= form.submit "Delete" %>
+<% end %>

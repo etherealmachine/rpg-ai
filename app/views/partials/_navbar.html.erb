@@ -1,0 +1,8 @@
+<nav class="d-flex justify-content-between navbar navbar-expand-lg navbar-light bg-light px-4">
+  <a class="navbar-brand" href="/">Worlds</a>
+  <% if current_user %>
+    <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "btn btn-primary" %>
+  <% else %>
+    <%= link_to "Sign in with Google", user_google_oauth2_omniauth_authorize_path %>
+  <% end %>
+</nav>

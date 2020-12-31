@@ -1,0 +1,25 @@
+<div class="m-2 p-4 bg-light">
+  <h1 class="display-4">Explore</h1>
+
+  <% @tilesets.each do |tileset| %>
+    <h1><%= tileset.name %></h1>
+    <div><% tileset.tags.each do |tag| %>
+      <span class="badge bg-info"><%= tag %></span>
+    <% end %></div>
+    <p><%= tileset.description %></p>
+    <%= image_tag tileset.image, width: 300 %>
+  <% end %>
+
+  <% @tilemaps.each do |tilemap| %>
+    <h1><%= tilemap.name %></h1>
+    <div><% tilemap.tags.each do |tag| %>
+      <span class="badge bg-info"><%= tag %></span>
+    <% end %></div>
+    <p><%= tilemap.description %></p>
+    <p><%= tilemap.width %>x<%= tilemap.height %></p>
+    <%= link_to "Visit", tilemap_path(tilemap.id) %>
+  <% end %>
+
+  <h1 class="display-4">Build</h1>
+
+</div>

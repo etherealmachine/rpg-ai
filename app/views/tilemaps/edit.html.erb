@@ -1,0 +1,32 @@
+<h1><%= @tilemap.name %></h1>
+
+<%= form_with(model: @tilemap, class: "form") do |form| %>
+  <%= form.text_field :description, placeholder: "Description", class: "form-control" %>
+  <div>
+    <%= form.text_field :tag_list, hidden: true %>
+    <%= react_component("TagSelector", { tags: @tilemap.tags })%>
+  </div>
+  <%= form.submit "Save", class: "btn btn-success" %>
+<% end %>
+
+<% @tilemap.tilesets.each do |tileset| %>
+  <%= form_with(model: tileset, class: "row row-cols-lg-auto g-3 align-items-center") do |form| %>
+    <div class="col-12">
+      <%= form.label :tileset, tileset.source %>
+    </div>
+    <div class="col-12">
+      <%= form.file_field :files, accept: ".tsx,.png", multiple: true, class: "form-control" %>
+    </div>
+    <span>or</span>
+    <div class="col-12">
+      <%= form.collection_select(:tileset_id, @tilesets, :id, :name, { prompt: "Select a Tileset", selected: tileset.tileset&.id }, class: "form-control") %>
+    </div>
+    <div class="col-12">
+      <%= form.submit "Set Tileset", class: "btn btn-primary" %>
+    </div>
+  <% end %>
+<% end %>
+
+<%= form_with(model: @tilemap, method: "DELETE") do |form| %>
+  <%= form.submit "Delete", class: "btn btn-danger" %>
+<% end %>
