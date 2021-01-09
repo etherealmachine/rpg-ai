@@ -16,6 +16,7 @@
       <span class="badge bg-info"><%= tag %></span>
     <% end %></div>
     <p><%= tilemap.description %></p>
+    <%= image_tag tilemap.thumbnail, width: 300 %>
     <p><%= tilemap.width %>x<%= tilemap.height %></p>
     <%= link_to "Visit", tilemap_path(tilemap.id) %>
   <% end %>

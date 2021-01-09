@@ -11,12 +11,15 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
   </head>
 
-  <body style="height: 100vh">
-    <div class="container-fullwidth d-flex flex-column" style="height: 100%">
+  <body style="min-height: 100vh" %>
+    <div class="container-fullwidth d-flex flex-column" style="min-height: 100vh">
       <%= render "partials/navbar" %>
       <% if flash.notice %><p class="alert alert-success"><%= flash.notice %></p><% end %>
       <% if flash.alert %><p class="alert alert-danger"><%= flash.alert %></p><% end %>
-      <%= yield %>
+      <div class="d-flex flex-grow-1">
+        <%= yield %>
+      </div>
+      <%= render "partials/footer" unless @no_footer %>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
   </body>

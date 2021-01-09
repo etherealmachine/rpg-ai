@@ -67,6 +67,7 @@ class TilemapsController < ApplicationController
   end
 
   def show
+    @no_footer = true
     @tilemap = Tilemap.find(params[:id])
     respond_to do |format| 
       format.xml { render xml: @tilemap.as_xml }
