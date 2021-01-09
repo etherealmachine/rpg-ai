@@ -26,6 +26,7 @@ class Tilemap < ApplicationRecord
 
   def as_json(options={})
     {
+      id: id,
       type: "map",
       version: "1.2",
       tiledversion: "1.4.3",

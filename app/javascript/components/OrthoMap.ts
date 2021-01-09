@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import consumer from '../channels/consumer';
 
 export default class OrthoMap extends Phaser.Scene {
   tiledMap: any;
@@ -79,15 +80,15 @@ export default class OrthoMap extends Phaser.Scene {
     this.movementKeys.right.on('down', this.moveRight);
     this.cameras.main.startFollow(this.player);
     (window as any).map = this.map;
-    /*
-    this.map.layers.forEach(layer => {
-      layer.data.forEach(row => {
-        row.forEach(tile => {
-          if (tile.properties['collides']) tile.visible = false;
-        })
-      });
+    const subscription = consumer.subscriptions.create({
+      channel: "TilemapChannel",
+      tilemap_id: this.tiledMap.id,
+    }, {
+      received: (data: any) => {
+        console.log(data);
+      },
     });
-    */
+    (window as any).subscription = subscription;
   }
 
   avoidCollision(oldX: number, oldY: number) {
