@@ -80,6 +80,7 @@ export default class OrthoMap extends Phaser.Scene {
     this.movementKeys.right.on('down', this.moveRight);
     this.cameras.main.startFollow(this.player);
     (window as any).map = this.map;
+    /*
     const subscription = consumer.subscriptions.create({
       channel: "TilemapChannel",
       tilemap_id: this.tiledMap.id,
@@ -89,6 +90,30 @@ export default class OrthoMap extends Phaser.Scene {
       },
     });
     (window as any).subscription = subscription;
+    */
+    this.updateVisibility();
+  }
+
+  updateVisibility() {
+    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.tint = 0xffffff)));
+    const px = Math.floor(this.player.x / this.map.tileWidth);
+    const py = Math.floor(this.player.y / this.map.tileHeight);
+    for (let x = px - 5; x < px + 5; x++) {
+      for (let y = py - 5; y < py + 5; y++) {
+        if (Math.sqrt((px - x) * (px - x) + (py - y) * (py - y)) < 5) {
+          const line = new Phaser.Geom.Line(px, py, x, y);
+          const collision = Phaser.Geom.Line.BresenhamPoints(line).some(point => {
+            return this.map.layers.some(layer => {
+              const tile = layer.data[point.y][point.x];
+              return tile.properties['collides'];
+            });
+          });
+          if (!collision) {
+            this.map.layers.forEach(layer => layer.data[y][x].tint = 0xff0000);
+          }
+        }
+      }
+    }
   }
 
   avoidCollision(oldX: number, oldY: number) {
@@ -98,6 +123,8 @@ export default class OrthoMap extends Phaser.Scene {
     if (collision) {
       this.player.x = oldX;
       this.player.y = oldY;
+    } else {
+      this.updateVisibility();
     }
   }
 
