@@ -95,21 +95,24 @@ export default class OrthoMap extends Phaser.Scene {
   }
 
   updateVisibility() {
-    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.tint = 0xffffff)));
+    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.visible = false)));
     const px = Math.floor(this.player.x / this.map.tileWidth);
     const py = Math.floor(this.player.y / this.map.tileHeight);
-    for (let x = px - 5; x < px + 5; x++) {
-      for (let y = py - 5; y < py + 5; y++) {
-        if (Math.sqrt((px - x) * (px - x) + (py - y) * (py - y)) < 5) {
+    const radius = 10;
+    const wallLayer = this.map.layers.find(layer => layer.name === "Walls");
+    for (let x = px - radius; x < px + radius; x++) {
+      for (let y = py - radius; y < py + radius; y++) {
+        if (Math.sqrt((px - x) * (px - x) + (py - y) * (py - y)) < radius) {
           const line = new Phaser.Geom.Line(px, py, x, y);
-          const collision = Phaser.Geom.Line.BresenhamPoints(line).some(point => {
-            return this.map.layers.some(layer => {
-              const tile = layer.data[point.y][point.x];
-              return tile.properties['collides'];
+          const points = Phaser.Geom.Line.BresenhamPoints(line);
+          for (let i = 0; i < points.length; i++) {
+            const point = points[i];
+            this.map.layers.forEach(layer => {
+              layer.data[point.y][point.x].visible = true;
             });
-          });
-          if (!collision) {
-            this.map.layers.forEach(layer => layer.data[y][x].tint = 0xff0000);
+            if (wallLayer.data[point.y][point.x].index >= 0) {
+              break;
+            }
           }
         }
       }

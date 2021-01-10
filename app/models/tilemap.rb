@@ -22,6 +22,56 @@ class Tilemap < ApplicationRecord
   has_many :tiles, class_name: TilemapTile.name
   acts_as_taggable_on :tags
 
+  def from_file!(file)
+    tilesets.destroy_all
+    tilemap_layers.destroy_all
+    tiles.destroy_all
+    Tilemap.transaction do
+      if file.content_type != "application/octet-stream"
+        raise "Can't handle #{file.original_filename} with content type #{file.content_type}"
+      end
+      definition = Nokogiri::XML(file)
+      map = definition.xpath("map").first
+      self.name = map["name"] || file.original_filename
+      self.orientation = map["orientation"]
+      self.width = map["width"]
+      self.height = map["height"]
+      self.tilewidth = map["tilewidth"]
+      self.tileheight = map["tileheight"]
+      self.save!
+      tilesets = map.xpath("tileset").map do |tileset|
+        tilemap_tileset = TilemapTileset.new(
+          tilemap: self,
+          source: File.basename(tileset["source"]))
+        tilemap_tileset.save!
+        { firstgid: tileset["firstgid"].to_i, tilemap_tileset: tilemap_tileset }
+      end
+      tiles = map.xpath("layer").each.map do |layer|
+        tile_ids = layer.text.split(',').map { |tile_id| tile_id.strip.to_i }
+        name, width, height = layer["name"], layer["width"].to_i, layer["height"].to_i
+        layer = TilemapLayer.new(tilemap: self, name: name, width: width, height: height)
+        layer.save!
+        tile_ids.each_with_index.map do |tileset_index, tilemap_index|
+          next if tileset_index == 0
+          gidindex = tilesets.find_index { |tileset| tileset_index < tileset[:firstgid] }
+          gidindex = gidindex.nil? ? tilesets.count - 1 : gidindex - 1
+          tileset = tilesets[gidindex]
+          {
+            tilemap_id: id,
+            tilemap_layer_id: layer.id,
+            x: tilemap_index % width,
+            y: tilemap_index / width,
+            tilemap_tileset_id: tileset[:tilemap_tileset].id,
+            index: tileset_index - tileset[:firstgid],
+            created_at: Time.now,
+            updated_at: Time.now,
+          }
+        end.flatten
+      end.flatten.filter { |t| t.present? }
+      TilemapTile.insert_all!(tiles)
+    end
+  end
+
   include Rails.application.routes.url_helpers
 
   def as_json(options={})
