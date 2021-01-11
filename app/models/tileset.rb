@@ -19,35 +19,34 @@ class Tileset < ApplicationRecord
   has_many :tiles, class_name: TilesetTile.name
   acts_as_taggable_on :tags
 
-  def self.create_from_files!(user, files)
-    tileset = Tileset.new(user: user)
+  def from_files!(files)
     tiles = []
     files.each do |file|
       case file.content_type
       when "application/octet-stream"
         definition = Nokogiri::XML(file)
         ts = definition.xpath('tileset').first
-        tileset.name = ts["name"] || File.basename(file.original_filename)
-        tileset.tilewidth = ts["tilewidth"].to_i
-        tileset.tileheight = ts["tileheight"].to_i
-        tileset.margin = ts["margin"].to_i || 0
-        tileset.spacing = ts["spacing"].to_i || 0
+        self.name = ts["name"] || File.basename(file.original_filename)
+        self.tilewidth = ts["tilewidth"].to_i
+        self.tileheight = ts["tileheight"].to_i
+        self.margin = ts["margin"].to_i || 0
+        self.spacing = ts["spacing"].to_i || 0
         ts.xpath('tile').each do |tile_def|
           tiles << tile_def
         end
       when "image/png"
-        tileset.image = file
+        self.image = file
       else
         raise "Can't handle #{file.original_filename} with content type #{file.content_type}"
       end
     end
-    raise "No image attached" unless tileset.image.present?
+    raise "No image attached" unless self.image.present?
     Tileset.transaction do
-      tileset.save!
+      self.save!
       TilesetTile.insert_all!(tiles.map do |tile|
         props = Hash[tile.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]
         {
-          tileset_id: tileset.id,
+          tileset_id: self.id,
           index: tile['id'],
           properties: JSON.generate(props),
           created_at: Time.now,
@@ -55,7 +54,6 @@ class Tileset < ApplicationRecord
         }
       end) if tiles.any?
     end
-    tileset
   end
 
   def columns
@@ -68,7 +66,7 @@ class Tileset < ApplicationRecord
 
   include Rails.application.routes.url_helpers
 
-  def as_json
+  def as_json(options={})
     {
       "columns": columns,
       "image": rails_blob_url(image),

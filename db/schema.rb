@@ -75,6 +75,22 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.index ["tilemap_id"], name: "index_tilemap_layers_on_tilemap_id"
   end
 
+  create_table "tilemap_objects", force: :cascade do |t|
+    t.integer "tilemap_id"
+    t.integer "tilemap_layer_id"
+    t.string "name"
+    t.integer "x"
+    t.integer "y"
+    t.integer "width"
+    t.integer "height"
+    t.string "properties"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index "\"tilemap\"", name: "index_tilemap_objects_on_tilemap"
+    t.index ["tilemap_id"], name: "index_tilemap_objects_on_tilemap_id"
+    t.index ["tilemap_layer_id"], name: "index_tilemap_objects_on_tilemap_layer_id"
+  end
+
   create_table "tilemap_tiles", force: :cascade do |t|
     t.integer "tilemap_id"
     t.integer "tilemap_layer_id"
@@ -159,6 +175,8 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tilemap_layers", "tilemaps", on_delete: :cascade
+  add_foreign_key "tilemap_objects", "tilemap_layers", on_delete: :cascade
+  add_foreign_key "tilemap_objects", "tilemaps", on_delete: :cascade
   add_foreign_key "tilemap_tiles", "tilemap_layers", on_delete: :cascade
   add_foreign_key "tilemap_tiles", "tilemap_tilesets", on_delete: :cascade
   add_foreign_key "tilemap_tiles", "tilemaps", on_delete: :cascade

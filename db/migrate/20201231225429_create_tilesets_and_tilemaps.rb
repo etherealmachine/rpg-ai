@@ -61,5 +61,21 @@ class CreateTilesetsAndTilemaps < ActiveRecord::Migration[6.1]
     add_foreign_key :tilemap_tiles, :tilemap_layers, on_delete: :cascade
     add_foreign_key :tilemap_tiles, :tilemap_tilesets, on_delete: :cascade
     add_index :tilemap_tiles, :tilemap
+    create_table :tilemap_objects do |t|
+      t.belongs_to :tilemap
+      t.references :tilemap_layer
+      t.string :name
+      t.integer :x
+      t.integer :y
+      t.integer :width
+      t.integer :height
+      adapter_type = connection.adapter_name.downcase.to_sym
+      t.jsonb :properties if adapter_type == :postgres
+      t.string :properties if adapter_type == :sqlite 
+      t.timestamps
+    end
+    add_foreign_key :tilemap_objects, :tilemaps, on_delete: :cascade
+    add_foreign_key :tilemap_objects, :tilemap_layers, on_delete: :cascade
+    add_index :tilemap_objects, :tilemap
   end
 end

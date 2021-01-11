@@ -5,6 +5,7 @@
     <%= form.text_field :tag_list, hidden: true %>
     <%= react_component("TagSelector", { tags: @tileset.tags })%>
   </div>
+  <%= form.file_field :files, accept: ".tsx,.png", class: "form-control", multiple: true %>
   <%= form.submit "Save", class: "btn btn-success" %>
 <% end %>
 

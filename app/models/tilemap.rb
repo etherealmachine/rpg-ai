@@ -20,6 +20,7 @@ class Tilemap < ApplicationRecord
   has_many :tilemap_layers
   has_one_attached :thumbnail
   has_many :tiles, class_name: TilemapTile.name
+  has_many :objects, class_name: TilemapObject.name
   acts_as_taggable_on :tags
 
   def from_file!(file)
@@ -69,6 +70,25 @@ class Tilemap < ApplicationRecord
         end.flatten
       end.flatten.filter { |t| t.present? }
       TilemapTile.insert_all!(tiles)
+      objects = map.xpath("objectgroup").each.map do |objectgroup|
+        layer = TilemapLayer.new(tilemap: self, name: objectgroup["name"])
+        layer.save!
+        objectgroup.xpath("object").each.map do |obj|
+          props = Hash[obj.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]
+          {
+            tilemap_id: id,
+            tilemap_layer_id: layer.id,
+            x: obj["x"],
+            y: obj["y"],
+            width: obj["width"],
+            height: obj["height"],
+            properties: JSON.generate(props),
+            created_at: Time.now,
+            updated_at: Time.now,
+          }
+        end.flatten
+      end.flatten
+      TilemapObject.insert_all!(objects)
     end
   end
 
@@ -86,41 +106,8 @@ class Tilemap < ApplicationRecord
       tileheight: tileheight,
       compressionlevel: -1,
       infinite: false,
-      tilesets: tilesets.filter { |tileset| tileset.tileset.present? }.map do |tileset|
-        {
-          type: "tileset",
-          version: "1.2",
-          tiledversion: "1.4.3",
-          name: tileset.tileset.name,
-          firstgid: firstgid_map[tileset.id],
-          image: rails_blob_url(tileset.tileset.image),
-          imagewidth: tileset.tileset.image.metadata[:width],
-          imageheight: tileset.tileset.image.metadata[:height],
-          margin: tileset.tileset.margin,
-          spacing: tileset.tileset.spacing,
-          tilewidth: tileset.tileset.tilewidth,
-          tileheight: tileset.tileset.tileheight,
-          tiles: tileset.tileset.tiles.map do |tile|
-            {
-              id: tile.index,
-              properties: JSON.parse(tile.properties).map { |k, v| { name: k, value: v } },
-            }
-          end,
-        }
-      end,
-      layers: tilemap_layers.each_with_index.map do |tilemap_layer, i|
-        {
-          type: 'tilelayer',
-          id: i,
-          name: tilemap_layer.name,
-          width: tilemap_layer.width,
-          height: tilemap_layer.height,
-          x: 0,
-          y: 0,
-          opacity: 1,
-          data: tiles_for_layer(tilemap_layer).flatten,
-        }
-      end,
+      tilesets: tilesets,
+      layers: tilemap_layers,
       nextlayerid: tilemap_layers.count,
       nextobjectid: 0,
       orientation: "orthogonal",
@@ -147,30 +134,14 @@ class Tilemap < ApplicationRecord
         firstgid_map.each do |tileset_id, firstgid|
           ts = tilesets.find(tileset_id)
           map.tileset(firstgid: firstgid, source: ts.source) do |tileset|
-            map.tiles do |tiles|
-              ts.tileset.tiles.each do |t|
-                tiles.tile(id: t.index) do |tile|
-                  tile.properties do |props|
-                    JSON.parse(t.properties).each do |k, v|
-                      props.property(name: k, value: v)
-                    end
-                  end
-                end
-              end
-            end
+            ts.as_xml(tileset)
           end
         end
-        tilemap_layers.each do |tilemap_layer|
-          map.layer(
-              id: tilemap_layer.id-1,
-              name: tilemap_layer.name,
-              width: tilemap_layer.width,
-              height: tilemap_layer.height,
-              x: 0, y: 0, opacity: 1) do |layer|
-            layer.data(encoding: "csv") do |data|
-              data.text(tiles_for_layer(tilemap_layer).map { |row| row.join(',') }.join('\n'))
-            end
-          end
+        tilemap_layers.filter { |layer| layer.is_tilelayer? }.each do |tilemap_layer|
+          tilemap_layer.as_xml(map)
+        end
+        tilemap_layers.filter { |layer| layer.is_objectlayer? }.each do |tilemap_layer|
+          tilemap_layer.as_xml(map)
         end
       end
     end.to_xml)
@@ -179,26 +150,12 @@ class Tilemap < ApplicationRecord
   def firstgid_map
     @firstgid_map ||= begin
       firstgid = 1
-      firstgid_map = {}
-      tilesets.filter { |tileset| tileset.tileset.present? }.each do |tileset|
-        firstgid_map[tileset.id] = firstgid
+      map = {}
+      tilesets.each do |tileset|
+        map[tileset.tileset.id] = firstgid
         firstgid += tileset.tileset.columns * tileset.tileset.rows
       end
-      firstgid_map
-    end
-  end
-
-  def tiles_for_layer(tilemap_layer)
-    layer_tiles = tiles.includes(:tilemap_tileset).where(tilemap_layer: tilemap_layer).to_a.group_by { |tile| [tile.x, tile.y] }
-    (0..tilemap_layer.height-1).map do |y|
-      (0..tilemap_layer.width-1).map do |x|
-        tile = layer_tiles[[x, y]]&.first
-        if tile.nil?
-          0
-        else
-          tile.index + firstgid_map[tile.tilemap_tileset.id]
-        end
-      end
+      map
     end
   end
 

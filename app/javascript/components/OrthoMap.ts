@@ -15,6 +15,7 @@ export default class OrthoMap extends Phaser.Scene {
     down: Phaser.Input.Keyboard.Key
     left: Phaser.Input.Keyboard.Key
     right: Phaser.Input.Keyboard.Key
+    shift: Phaser.Input.Keyboard.Key
   }
 
   init(args: { tilemap: any }) {
@@ -52,7 +53,12 @@ export default class OrthoMap extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#ddd');
     this.map = this.make.tilemap(this.mapData);
     const tilesets = this.mapData.tilesets.map(tileset => {
-      return this.map.addTilesetImage(tileset.name, tileset.name, tileset.tileWidth, tileset.tileHeight, tileset.tileMargin, tileset.tileSpacing, tileset.firstgid);
+      return this.map.addTilesetImage(
+        tileset.name,
+        tileset.name,
+        tileset.tileWidth, tileset.tileHeight,
+        tileset.tileMargin, tileset.tileSpacing,
+        tileset.firstgid);
     });
     const layers = this.mapData.layers;
     if (layers instanceof Array) {
@@ -72,6 +78,7 @@ export default class OrthoMap extends Phaser.Scene {
       down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
       left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
       right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
+      shift: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
     };
     Object.values(this.movementKeys).forEach(key => key.setEmitOnRepeat(true));
     this.movementKeys.up.on('down', this.moveUp);
@@ -80,6 +87,7 @@ export default class OrthoMap extends Phaser.Scene {
     this.movementKeys.right.on('down', this.moveRight);
     this.cameras.main.startFollow(this.player);
     (window as any).map = this.map;
+    (window as any).tiledMap = this.tiledMap;
     /*
     const subscription = consumer.subscriptions.create({
       channel: "TilemapChannel",
@@ -108,9 +116,11 @@ export default class OrthoMap extends Phaser.Scene {
           for (let i = 0; i < points.length; i++) {
             const point = points[i];
             this.map.layers.forEach(layer => {
-              layer.data[point.y][point.x].visible = true;
+              if (point.y in layer.data && point.x in layer.data[point.y]) {
+                layer.data[point.y][point.x].visible = true;
+              }
             });
-            if (wallLayer.data[point.y][point.x].index >= 0) {
+            if (point.y in wallLayer.data && point.x in wallLayer.data[point.y] && wallLayer.data[point.y][point.x].index >= 0) {
               break;
             }
           }
@@ -123,7 +133,7 @@ export default class OrthoMap extends Phaser.Scene {
     const collision = this.map.layers.map(layer => {
       return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
     }).flat().some(tile => tile.properties['collides']);
-    if (collision) {
+    if (collision && !this.movementKeys.shift.isDown) {
       this.player.x = oldX;
       this.player.y = oldY;
     } else {

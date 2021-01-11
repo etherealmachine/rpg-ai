@@ -3,7 +3,8 @@ class TilesetsController < ApplicationController
 
   def create
     files = params.require(:tileset).require(:files)
-    @tileset = Tileset.create_from_files!(current_user, files)
+    @tileset = Tileset.new(user: current_user)
+    @tileset.from_files!(files)
     redirect_back fallback_location: "/", allow_other_host: false
   end
 
@@ -13,6 +14,7 @@ class TilesetsController < ApplicationController
 
   def update
     @tileset = Tileset.find(params[:id])
+    @tileset.from_files!(params[:tileset][:files]) if params[:tileset][:files]
     @tileset.update(
       name: params[:tileset][:name],
       description: params[:tileset][:description],
