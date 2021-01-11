@@ -14,12 +14,12 @@ class TilesetsController < ApplicationController
 
   def update
     @tileset = Tileset.find(params[:id])
-    @tileset.from_files!(params[:tileset][:files]) if params[:tileset][:files]
     @tileset.update(
       name: params[:tileset][:name],
       description: params[:tileset][:description],
       tag_list: params[:tileset][:tag_list],
     )
+    @tileset.from_files!(params[:tileset][:files]) if params[:tileset][:files]
     redirect_back fallback_location: "/", allow_other_host: false
   end
 
