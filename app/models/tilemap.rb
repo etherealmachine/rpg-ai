@@ -38,7 +38,7 @@ class Tilemap < ApplicationRecord
       end
       definition = Nokogiri::XML(file)
       map = definition.xpath("map").first
-      self.name = map["name"] || file.original_filename
+      self.name = map["name"] || File.basename(file.original_filename)
       self.width = map["width"]
       self.height = map["height"]
       self.tilewidth = map["tilewidth"]
@@ -100,21 +100,6 @@ class Tilemap < ApplicationRecord
       TilemapObject.insert_all!(objects)
     end
     self.reload
-  end
-
-  def from_files!(files)
-    tilemap_file = files.find { |file| ['application/octet-stream', 'application/xml'].include?(file.content_type) && file.original_filename.ends_with?('.tmx') }
-    self.from_file!(tilemap_file)
-    self.tilesets.each do |tilemap_tileset|
-      tileset_file = files.find { |file| file.original_filename == tilemap_tileset.source }
-      source = Nokogiri::XML(tileset_file).xpath('tileset/image').first['source']
-      tileset_file.rewind
-      tileset_image_file = files.find { |file| file.original_filename == source }
-      tileset = Tileset.new(user: user)
-      tileset.from_files!([tileset_file, tileset_image_file])
-      tilemap_tileset.tileset = tileset
-      tilemap_tileset.save!
-    end
   end
 
   include Rails.application.routes.url_helpers

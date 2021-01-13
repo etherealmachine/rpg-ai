@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   resources :tilemaps
   resources :tilemap_tilesets, only: [:update]
   resources :tags
+  post 'upload', to: 'upload#upload'
   get 'about', to: 'home#about'
   get 'copyright', to: 'home#copyright'
   root to: "home#index"

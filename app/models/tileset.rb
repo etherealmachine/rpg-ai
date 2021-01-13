@@ -67,10 +67,18 @@ class Tileset < ApplicationRecord
   end
 
   def columns
+    unless image.analyzed?
+      AnalyzeImageJob.perform_later(self, :image)
+      raise 'image not yet analyzed'
+    end
     ((image.metadata[:width] - margin) + spacing) / (tilewidth + spacing)
   end
 
   def rows
+    unless image.analyzed?
+      AnalyzeImageJob.perform_later(self, :image)
+      raise 'image not yet analyzed'
+    end
     ((image.metadata[:height] - margin) + spacing) / (tileheight + spacing)
   end
 
