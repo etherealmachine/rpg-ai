@@ -122,8 +122,12 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.string "orientation"
     t.integer "width"
     t.integer "height"
+    t.integer "hexsidelength"
+    t.string "staggeraxis"
+    t.string "staggerindex"
     t.integer "tilewidth"
     t.integer "tileheight"
+    t.string "properties"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index "\"user\"", name: "index_tilemaps_on_user"
@@ -147,6 +151,7 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.integer "spacing"
     t.integer "tilewidth"
     t.integer "tileheight"
+    t.string "properties"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index "\"user\"", name: "index_tilesets_on_user"
@@ -159,6 +164,7 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
+    t.string "api_token", default: "token"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "provider"
@@ -167,6 +173,7 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.integer "expires_at"
     t.boolean "expires"
     t.string "refresh_token"
+    t.index ["api_token"], name: "index_users_on_api_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end

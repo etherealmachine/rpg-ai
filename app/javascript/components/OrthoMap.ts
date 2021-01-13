@@ -87,6 +87,7 @@ export default class OrthoMap extends Phaser.Scene {
     this.movementKeys.right.on('down', this.moveRight);
     this.cameras.main.startFollow(this.player);
     (window as any).map = this.map;
+    (window as any).mapData = this.mapData;
     (window as any).tiledMap = this.tiledMap;
     /*
     const subscription = consumer.subscriptions.create({
@@ -130,9 +131,14 @@ export default class OrthoMap extends Phaser.Scene {
   }
 
   avoidCollision(oldX: number, oldY: number) {
-    const collision = this.map.layers.map(layer => {
+    let collision = this.map.layers.map(layer => {
       return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
-    }).flat().some(tile => tile.properties['collides']);
+    }).flat().some(tile => tile.index !== -1 && (tile.layer.name === 'Walls' || tile.properties['collides']));
+    const doors = (this.mapData.objects as any[]).find(objLayer => objLayer.name === 'Doors');
+    const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(this.player.x, this.player.y));
+    if (doorsHit.length > 0) {
+      collision = false;
+    }
     if (collision && !this.movementKeys.shift.isDown) {
       this.player.x = oldX;
       this.player.y = oldY;

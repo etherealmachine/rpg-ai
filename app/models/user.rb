@@ -8,6 +8,7 @@
 #  reset_password_token   :string
 #  reset_password_sent_at :datetime
 #  remember_created_at    :datetime
+#  api_token              :string           default("token")
 #  created_at             :datetime         not null
 #  updated_at             :datetime         not null
 #  provider               :string

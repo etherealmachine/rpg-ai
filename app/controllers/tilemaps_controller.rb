@@ -2,9 +2,15 @@ class TilemapsController < ApplicationController
   before_action :authenticate_user!, except: [:show]
 
   def create
-    file = params.require(:tilemap).require(:file)
-    @tilemap = Tilemap.new(user: current_user)
-    @tilemap.from_file!(file)
+    if params[:files]
+      @tilemap = Tilemap.new(user: current_user)
+      @tilemap.from_files!(params[:files].values)
+      return render json: {}
+    else
+      file = params.require(:tilemap).require(:file)
+      @tilemap = Tilemap.new(user: current_user)
+      @tilemap.from_file!(file)
+    end
     redirect_back fallback_location: "/", allow_other_host: false
   end
 

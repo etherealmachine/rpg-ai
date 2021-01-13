@@ -76,7 +76,7 @@ class TilemapLayer < ApplicationRecord
         (0..height-1).map do |y|
           (0..width-1).map do |x|
             tile = layer_tiles[[x, y]]&.first
-            if tile.nil?
+            if tile.nil? || tile.tilemap_tileset.tileset.nil?
               0
             else
               tile.index + tilemap.firstgid_map[tile.tilemap_tileset.tileset.id]

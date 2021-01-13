@@ -10,6 +10,7 @@
 #  spacing     :integer
 #  tilewidth   :integer
 #  tileheight  :integer
+#  properties  :string
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
 #

@@ -2,23 +2,28 @@
 #
 # Table name: tilemaps
 #
-#  id          :integer          not null, primary key
-#  user_id     :integer
-#  name        :string
-#  description :string
-#  orientation :string
-#  width       :integer
-#  height      :integer
-#  tilewidth   :integer
-#  tileheight  :integer
-#  created_at  :datetime         not null
-#  updated_at  :datetime         not null
+#  id            :integer          not null, primary key
+#  user_id       :integer
+#  name          :string
+#  description   :string
+#  orientation   :string
+#  width         :integer
+#  height        :integer
+#  hexsidelength :integer
+#  staggeraxis   :string
+#  staggerindex  :string
+#  tilewidth     :integer
+#  tileheight    :integer
+#  properties    :string
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
 #
 class Tilemap < ApplicationRecord
   belongs_to :user
   has_many :tilesets, class_name: TilemapTileset.name
   has_many :tilemap_layers
   has_one_attached :thumbnail
+  has_one_attached :definition
   has_many :tiles, class_name: TilemapTile.name
   has_many :objects, class_name: TilemapObject.name
   acts_as_taggable_on :tags
@@ -28,17 +33,22 @@ class Tilemap < ApplicationRecord
     tilemap_layers.destroy_all
     tiles.destroy_all
     Tilemap.transaction do
-      if file.content_type != "application/octet-stream"
+      unless ['application/octet-stream', 'application/xml'].include?(file.content_type)
         raise "Can't handle #{file.original_filename} with content type #{file.content_type}"
       end
       definition = Nokogiri::XML(file)
       map = definition.xpath("map").first
       self.name = map["name"] || file.original_filename
-      self.orientation = map["orientation"]
       self.width = map["width"]
       self.height = map["height"]
       self.tilewidth = map["tilewidth"]
       self.tileheight = map["tileheight"]
+      self.orientation = map["orientation"]
+      self.hexsidelength = map["hexsidelength"]
+      self.staggeraxis = map["staggeraxis"]
+      self.staggerindex = map["staggerindex"]
+      self.properties = JSON.generate(Hash[map.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }])
+      self.definition = file
       self.save!
       tilesets = map.xpath("tileset").map do |tileset|
         tilemap_tileset = TilemapTileset.new(
@@ -74,7 +84,6 @@ class Tilemap < ApplicationRecord
         layer = TilemapLayer.new(tilemap: self, name: objectgroup["name"])
         layer.save!
         objectgroup.xpath("object").each.map do |obj|
-          props = Hash[obj.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]
           {
             tilemap_id: id,
             tilemap_layer_id: layer.id,
@@ -82,13 +91,29 @@ class Tilemap < ApplicationRecord
             y: obj["y"],
             width: obj["width"],
             height: obj["height"],
-            properties: JSON.generate(props),
+            properties: JSON.generate(Hash[obj.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]),
             created_at: Time.now,
             updated_at: Time.now,
           }
         end.flatten
       end.flatten
       TilemapObject.insert_all!(objects)
+    end
+    self.reload
+  end
+
+  def from_files!(files)
+    tilemap_file = files.find { |file| ['application/octet-stream', 'application/xml'].include?(file.content_type) && file.original_filename.ends_with?('.tmx') }
+    self.from_file!(tilemap_file)
+    self.tilesets.each do |tilemap_tileset|
+      tileset_file = files.find { |file| file.original_filename == tilemap_tileset.source }
+      source = Nokogiri::XML(tileset_file).xpath('tileset/image').first['source']
+      tileset_file.rewind
+      tileset_image_file = files.find { |file| file.original_filename == source }
+      tileset = Tileset.new(user: user)
+      tileset.from_files!([tileset_file, tileset_image_file])
+      tilemap_tileset.tileset = tileset
+      tilemap_tileset.save!
     end
   end
 
@@ -100,8 +125,10 @@ class Tilemap < ApplicationRecord
       type: "map",
       version: "1.2",
       tiledversion: "1.4.3",
+      renderorder: "right-down",
       width: width,
       height: height,
+      infinite: 0,
       tilewidth: tilewidth,
       tileheight: tileheight,
       compressionlevel: -1,
@@ -109,10 +136,11 @@ class Tilemap < ApplicationRecord
       tilesets: tilesets,
       layers: tilemap_layers,
       nextlayerid: tilemap_layers.count,
-      nextobjectid: 0,
-      orientation: "orthogonal",
-      properties: [],
-      renderorder: "right-down",
+      orientation: orientation,
+      hexsidelength: hexsidelength,
+      staggeraxis: staggeraxis,
+      staggerindex: staggerindex,
+      properties: JSON.parse(properties).map { |k, v| { name: k, value: v } },
     }
   end
 
@@ -121,13 +149,16 @@ class Tilemap < ApplicationRecord
       root.map(
         version: "1.2",
         tiledversion: "1.4.3",
-        orientation: "orthogonal",
         renderorder: "right-down",
         width: width,
         height: height,
+        infinite: 0,
         tilewidth: tilewidth,
         tileheight: tileheight,
-        infinite: 0,
+        orientation: orientation,
+        hexsidelength: hexsidelength,
+        staggeraxis: staggeraxis,
+        staggerindex: staggerindex,
         nextlayerid: tilemap_layers.count,
         nextobjectid: 1,
       ) do |map|
@@ -151,7 +182,7 @@ class Tilemap < ApplicationRecord
     @firstgid_map ||= begin
       firstgid = 1
       map = {}
-      tilesets.each do |tileset|
+      tilesets.filter { |tileset| tileset.tileset.present? }.each do |tileset|
         map[tileset.tileset.id] = firstgid
         firstgid += tileset.tileset.columns * tileset.tileset.rows
       end

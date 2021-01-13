@@ -11,7 +11,7 @@ class TilemapTileset < ApplicationRecord
   belongs_to :tilemap
   belongs_to :tileset, optional: true
 
-  after_update :update_tilemap_thumbnail
+  after_update :queue_tilemap_thumbnail_update
 
   include Rails.application.routes.url_helpers
 
@@ -52,10 +52,8 @@ class TilemapTileset < ApplicationRecord
     end
   end
 
-  def update_tilemap_thumbnail
-    if tilemap.tilesets.all? { |tileset| tileset.tileset.present? }
-      tilemap.thumbnail.attach(io: StringIO.new(tilemap.as_image.to_blob), filename: 'thumbnail.png')
-    end
+  def queue_tilemap_thumbnail_update
+    UpdateTilemapThumbnailJob.perform_later(tilemap)
   end
 
 end

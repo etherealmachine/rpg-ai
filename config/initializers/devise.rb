@@ -310,4 +310,10 @@ Devise.setup do |config|
   # config.sign_in_after_change_password = true
 
   config.omniauth :google_oauth2, "419473349182-fieet85ejr3gr3htec5nt4ua8p0sb8ej.apps.googleusercontent.com", "RLUizF3jWwt8q4SY5HlG-YDO"
+
+  config.warden do |manager|
+    Warden::Strategies.add(:api_token, ApiTokenStrategy)
+    manager.default_strategies(scope: :user).unshift :api_token
+  end
+
 end

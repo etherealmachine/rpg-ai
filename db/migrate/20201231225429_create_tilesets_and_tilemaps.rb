@@ -8,6 +8,9 @@ class CreateTilesetsAndTilemaps < ActiveRecord::Migration[6.1]
       t.integer :spacing
       t.integer :tilewidth
       t.integer :tileheight
+      adapter_type = connection.adapter_name.downcase.to_sym
+      t.jsonb :properties if adapter_type == :postgres
+      t.string :properties if adapter_type == :sqlite 
       t.timestamps
     end
     add_foreign_key :tilesets, :users, on_delete: :cascade
@@ -28,8 +31,14 @@ class CreateTilesetsAndTilemaps < ActiveRecord::Migration[6.1]
       t.string :orientation
       t.integer :width
       t.integer :height
+      t.integer :hexsidelength
+      t.string :staggeraxis
+      t.string :staggerindex
       t.integer :tilewidth
       t.integer :tileheight
+      adapter_type = connection.adapter_name.downcase.to_sym
+      t.jsonb :properties if adapter_type == :postgres
+      t.string :properties if adapter_type == :sqlite 
       t.timestamps
     end
     add_foreign_key :tilemaps, :users, on_delete: :cascade

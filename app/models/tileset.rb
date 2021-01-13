@@ -10,12 +10,14 @@
 #  spacing     :integer
 #  tilewidth   :integer
 #  tileheight  :integer
+#  properties  :string
 #  created_at  :datetime         not null
 #  updated_at  :datetime         not null
 #
 class Tileset < ApplicationRecord
   belongs_to :user
   has_one_attached :image
+  has_one_attached :definition
   has_many :tiles, class_name: TilesetTile.name
   acts_as_taggable_on :tags
 
@@ -23,7 +25,7 @@ class Tileset < ApplicationRecord
     tiles = []
     files.each do |file|
       case file.content_type
-      when "application/octet-stream"
+      when "application/octet-stream", "application/xml"
         definition = Nokogiri::XML(file)
         ts = definition.xpath('tileset').first
         self.name = ts["name"] || File.basename(file.original_filename)
@@ -31,11 +33,19 @@ class Tileset < ApplicationRecord
         self.tileheight = ts["tileheight"].to_i
         self.margin = ts["margin"].to_i || 0
         self.spacing = ts["spacing"].to_i || 0
+        self.properties = JSON.generate(Hash[ts.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }])
         ts.xpath('tile').each do |tile_def|
           tiles << tile_def
         end
+        self.definition = file
       when "image/png"
         self.image = file
+      when "image/png;base64"
+        self.image.attach(
+          io: StringIO.new(Base64.decode64(file.read)),
+          filename: file.original_filename,
+          content_type: 'image/png',
+        )
       else
         raise "Can't handle #{file.original_filename} with content type #{file.content_type}"
       end
@@ -68,19 +78,20 @@ class Tileset < ApplicationRecord
 
   def as_json(options={})
     {
-      "columns": columns,
-      "image": rails_blob_url(image),
-      "imageheight": image.metadata[:width],
-      "imagewidth": image.metadata[:height],
-      "margin": margin,
-      "name": name,
-      "spacing": spacing,
-      "tilecount": columns*rows,
-      "tiledversion": "1.4.3",
-      "tileheight": tilewidth,
-      "tilewidth": tileheight,
-      "type": "tileset",
-      "version": "1.2",
+      columns: columns,
+      image: rails_blob_url(image),
+      imageheight: image.metadata[:width],
+      imagewidth: image.metadata[:height],
+      margin: margin,
+      name: name,
+      spacing: spacing,
+      tilecount: columns*rows,
+      tiledversion: "1.4.3",
+      tileheight: tilewidth,
+      tilewidth: tileheight,
+      type: "tileset",
+      version: "1.2",
+      properties: JSON.parse(properties).map { |k, v| { name: k, value: v } },
     }
   end
 
