@@ -9,6 +9,6 @@ Rails.application.routes.draw do
   resources :tags
   post 'upload', to: 'upload#upload'
   get 'about', to: 'home#about'
-  get 'copyright', to: 'home#copyright'
+  get 'terms_of_use', to: 'home#terms_of_use'
   root to: "home#index"
 end

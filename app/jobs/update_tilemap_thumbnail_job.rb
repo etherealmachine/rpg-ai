@@ -4,7 +4,7 @@ class UpdateTilemapThumbnailJob < ApplicationJob
   def perform(tilemap)
     if tilemap.tilesets.all? { |tileset| tileset.tileset.present? }
       tilemap.tilesets.each do |tileset|
-        tileset.tileset.image.analyzed unless tileset.tileset.image.analyzed?
+        tileset.tileset.image.analyze unless tileset.tileset.image.analyzed?
       end
       tilemap.thumbnail.attach(io: StringIO.new(tilemap.as_image.to_blob), filename: 'thumbnail.png')
     end

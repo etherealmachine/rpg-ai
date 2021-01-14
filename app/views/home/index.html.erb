@@ -1,26 +1,43 @@
-<div class="m-2 p-4 bg-light">
-  <h1 class="display-4">Explore</h1>
-
-  <% @tilesets.each do |tileset| %>
-    <h1><%= tileset.name %></h1>
-    <div><% tileset.tags.each do |tag| %>
-      <span class="badge bg-info"><%= tag %></span>
-    <% end %></div>
-    <p><%= tileset.description %></p>
-    <%= image_tag tileset.image, width: 300 %>
-  <% end %>
-
-  <% @tilemaps.each do |tilemap| %>
-    <h1><%= tilemap.name %></h1>
-    <div><% tilemap.tags.each do |tag| %>
-      <span class="badge bg-info"><%= tag %></span>
-    <% end %></div>
-    <p><%= tilemap.description %></p>
-    <%= image_tag tilemap.thumbnail, width: 300 %>
-    <p><%= tilemap.width %>x<%= tilemap.height %></p>
-    <%= link_to "Visit", tilemap_path(tilemap.id) %>
-  <% end %>
-
-  <h1 class="display-4">Build</h1>
-
+<div class="container p-5">
+  <div>
+    <h1 class="display-4">Explore</h1>
+    <h2 class="display-6">Maps</h1>
+    <div class="d-flex">
+      <% @tilemaps.each do |tilemap| %>
+        <div class="mx-4 d-flex flex-column">
+          <div class="d-flex flex-column align-items-center p-2" style="border:1px solid rgba(0,0,0,.125)">
+            <%= image_tag tilemap.thumbnail, height: 200, style: "max-width: 300px" if tilemap.thumbnail.present? %>
+            <% tilemap.tags.each do |tag| %>
+              <span class="badge bg-info"><%= tag %></span>
+            <% end %>
+          </div>
+          <h3><%= tilemap.name %></h3>
+          <div class="d-flex justify-content-between" style="width: 100%">
+            <%= link_to "Visit", tilemap_path(tilemap), class: "btn btn-primary"%>
+            <%= link_to "Download", tilemap_path(tilemap, format: "xml"), class: "btn btn-primary" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    <h2 class="display-6 mt-4">Tilesets</h1>
+    <div class="d-flex">
+      <% @tilesets.each do |tileset| %>
+        <div class="mx-4 d-flex flex-column">
+          <div class="d-flex flex-column align-items-center p-2" style="border:1px solid rgba(0,0,0,.125)">
+            <%= image_tag tileset.image, height: 200, style: "max-width: 300px" %>
+            <% tileset.tags.each do |tag| %>
+              <span class="badge bg-info"><%= tag %></span>
+            <% end %>
+          </div>
+          <h3><%= tileset.name %></h3>
+          <div class="d-flex mt-2 justify-content-between" style="width: 100%">
+            <%= link_to "Download", tileset_path(tileset, format: "zip"), class: "btn btn-primary" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="mt-4">
+    <h1 class="display-4">Build</h1>
+  </div>
 </div>

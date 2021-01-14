@@ -33,6 +33,7 @@ class TilemapsController < ApplicationController
   end
 
   def show
+    @fullwidth = true
     @no_footer = true
     @tilemap = Tilemap.find(params[:id])
     respond_to do |format| 

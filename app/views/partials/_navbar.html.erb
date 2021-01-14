@@ -1,8 +1,22 @@
-<nav class="d-flex justify-content-between navbar navbar-expand-lg navbar-light bg-light px-4">
-  <a class="navbar-brand" href="/">Worlds</a>
+<nav class="d-flex align-items-center justify-content-between navbar navbar-expand-lg navbar-light bg-light px-4">
+  <div class="d-flex align-items-center">
+    <a class="navbar-brand" href="/">Worlds</a>
+    <%= link_to "Maps", tilemaps_path, class: "mx-4 btn btn-light" %>
+    <%= link_to "Tilesets", tilesets_path, class: "mx-4 btn btn-light" %>
+  </div>
   <% if current_user %>
-    <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "btn btn-primary" %>
+    <div class="dropdown">
+      <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fa fa-bars"></i>
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <li><%= link_to "My Profile", profile_path(current_user), class: "dropdown-item" %></li>
+        <li>
+          <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "dropdown-item" %>
+        </li>
+      </ul>
+    </div>
   <% else %>
-    <%= link_to "Sign in with Google", user_google_oauth2_omniauth_authorize_path %>
+    <%= render partial: "devise/shared/google_oauth2", locals: { path: user_google_oauth2_omniauth_authorize_path  } %>
   <% end %>
 </nav>
