@@ -29,6 +29,18 @@
     </div>
     <p><%= tileset.description %></p>
     <%= image_tag tileset.image, width: 300 %>
+    <% if tileset.columns % 1 != 0 %>
+      <p class="alert alert-warning" role="alert">
+        The width of the tileset image doesn't align with the margin, spacing, and tile width.
+        Fix the width and re-upload the image.
+      </p>
+    <% end %>
+    <% if tileset.rows % 1 != 0 %>
+      <div class="alert alert-warning" role="alert">
+        The height of the tileset image doesn't align with the margin, spacing, and tile height.
+        Fix the width and re-upload the image.
+      </div>
+    <% end %>
     <div>
       <%= link_to "Edit", edit_tileset_path(tileset.id) %>
       <%= link_to "Delete", tileset, method: "DELETE", class: "btn btn-danger" %>

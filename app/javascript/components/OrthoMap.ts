@@ -66,10 +66,7 @@ export default class OrthoMap extends Phaser.Scene {
       layers.forEach((layer, i) => {
         this.map.createLayer(layer.name, tilesets);
         if (i === 1) {
-          this.player = this.add.sprite(
-            (this.mapData.tileWidth * this.mapData.width) / 2 + 8,
-            (this.mapData.tileHeight * this.mapData.height) / 2 + 8,
-            "Avatars", 0);
+          this.player = this.add.sprite(0, 0, "Avatars", 0);
         }
       });
     }
@@ -89,6 +86,14 @@ export default class OrthoMap extends Phaser.Scene {
     (window as any).map = this.map;
     (window as any).mapData = this.mapData;
     (window as any).tiledMap = this.tiledMap;
+    const spawn = this.findObject(['spawn']);
+    if (spawn) {
+      const x = spawn.x + Math.random() * spawn.width;
+      const y = spawn.y + Math.random() * spawn.height;
+      this.player.setPosition(
+        Math.floor(x / this.mapData.tileWidth) * this.mapData.tileWidth + (this.mapData.tileWidth / 2),
+        Math.floor(y / this.mapData.tileHeight) * this.mapData.tileHeight + (this.mapData.tileHeight / 2));
+    }
     /*
     const subscription = consumer.subscriptions.create({
       channel: "TilemapChannel",
@@ -100,33 +105,68 @@ export default class OrthoMap extends Phaser.Scene {
     });
     (window as any).subscription = subscription;
     */
+
+    //	Shapes drawn to the Graphics object must be filled.
+    //mask.beginFill(0xffffff);
+
+    //	Here we'll draw a circle
+    //mask.drawCircle(100, 100, 100);
+
+    //	And apply it to the Sprite
+    //sprite.mask = mask;
     this.updateVisibility();
+  }
+
+  findObject(properties: string[]) {
+    for (let layer of (this.mapData.objects as any[])) {
+      for (let obj of layer.objects) {
+        if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
+          return obj;
+        }
+      }
+    }
+  }
+
+  findObjects(properties: string[]) {
+    const matches = [];
+    for (let layer of (this.mapData.objects as any[])) {
+      for (let obj of layer.objects) {
+        if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
+          matches.push(obj);
+        }
+      }
+    }
+    return matches;
   }
 
   updateVisibility() {
     this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.visible = false)));
     const px = Math.floor(this.player.x / this.map.tileWidth);
     const py = Math.floor(this.player.y / this.map.tileHeight);
-    const radius = 10;
+
     const wallLayer = this.map.layers.find(layer => layer.name === "Walls");
-    for (let x = px - radius; x < px + radius; x++) {
-      for (let y = py - radius; y < py + radius; y++) {
-        if (Math.sqrt((px - x) * (px - x) + (py - y) * (py - y)) < radius) {
-          const line = new Phaser.Geom.Line(px, py, x, y);
-          const points = Phaser.Geom.Line.BresenhamPoints(line);
-          for (let i = 0; i < points.length; i++) {
-            const point = points[i];
-            this.map.layers.forEach(layer => {
-              if (point.y in layer.data && point.x in layer.data[point.y]) {
-                layer.data[point.y][point.x].visible = true;
-              }
-            });
-            if (point.y in wallLayer.data && point.x in wallLayer.data[point.y] && wallLayer.data[point.y][point.x].index >= 0) {
-              break;
-            }
+    let [x, y] = [0, 0];
+    let [dx, dy] = [0, -1];
+    for (let i = 0; i < this.mapData.width * this.mapData.height; i++) {
+      const line = new Phaser.Geom.Line(px, py, px + x, py + y);
+      const points = Phaser.Geom.Line.BresenhamPoints(line);
+      for (let j = 0; j < points.length; j++) {
+        const point = points[j];
+        this.map.layers.forEach(layer => {
+          if (point.y in layer.data && point.x in layer.data[point.y]) {
+            layer.data[point.y][point.x].visible = true;
           }
+        });
+        if (point.y in wallLayer.data && point.x in wallLayer.data[point.y] && wallLayer.data[point.y][point.x].index >= 0) {
+          break;
         }
       }
+
+      if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
+        [dx, dy] = [-dy, dx];
+      }
+      x += dx;
+      y += dy;
     }
   }
 

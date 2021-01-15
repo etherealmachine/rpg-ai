@@ -11,8 +11,6 @@ class TilemapTileset < ApplicationRecord
   belongs_to :tilemap
   belongs_to :tileset, optional: true
 
-  after_update :queue_tilemap_thumbnail_update
-
   include Rails.application.routes.url_helpers
 
   def as_json(options={})
@@ -50,10 +48,6 @@ class TilemapTileset < ApplicationRecord
         end
       end
     end
-  end
-
-  def queue_tilemap_thumbnail_update
-    UpdateTilemapThumbnailJob.perform_later(tilemap)
   end
 
 end

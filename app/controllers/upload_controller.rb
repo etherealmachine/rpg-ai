@@ -33,6 +33,7 @@ class UploadController < ApplicationController
         tilemap_tileset.tileset = tileset
         tilemap_tileset.save!
       end
+      tilemap
     end
 
     tilesets = tileset_files.map do |tileset_file|
@@ -44,10 +45,15 @@ class UploadController < ApplicationController
       source = Nokogiri::XML(tileset_file).xpath('tileset/image').first['source']
       tileset_file.rewind
       tileset_image = tileset_images.find { |file| file.original_filename == source }
+      tileset_image.rewind
       if tileset.nil?
         tileset = Tileset.new(user: current_user)
       end
       tileset.from_files!([tileset_file, tileset_image])
+    end
+
+    tilemaps.each do |tilemap|
+      UpdateTilemapThumbnailJob.perform_later(tilemap)
     end
 
     return render json: {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <tileset version="1.4" tiledversion="1.4.3" name="kenney_caves" tilewidth="16" tileheight="16" spacing="1" tilecount="540" columns="30">
- <image source="kenney_caves.png" width="510" height="305"/>
+ <image source="kenney_caves.png" width="509" height="305"/>
  <tile id="0">
   <properties>
    <property name="collides" type="bool" value="true"/>

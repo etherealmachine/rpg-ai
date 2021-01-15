@@ -197,8 +197,8 @@ class Tilemap < ApplicationRecord
             mx, my = [tile.x*w+x, tile.y*h+y]
             minx, miny = [[minx, mx].min, [miny, my].min]
             maxx, maxy = [[maxx, mx].max, [maxy, my].max]
-            tx = (tile.index % ts.columns) * (w+ts.spacing) + x + ts.margin
-            ty = (tile.index / ts.columns) * (h+ts.spacing) + y + ts.margin
+            tx = (tile.index % ts.columns.to_i) * (w+ts.spacing) + x + ts.margin*2
+            ty = (tile.index / ts.columns.to_i) * (h+ts.spacing) + y + ts.margin*2
             png[mx,my] = ChunkyPNG::Color.compose(
               tileset_png[tx,ty],
               png[mx,my],

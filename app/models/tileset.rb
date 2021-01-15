@@ -50,7 +50,7 @@ class Tileset < ApplicationRecord
         raise "Can't handle #{file.original_filename} with content type #{file.content_type}"
       end
     end
-    raise "No image attached" unless self.image.present?
+    raise "No image attached" unless self.image.attached?
     Tileset.transaction do
       self.save!
       TilesetTile.insert_all!(tiles.map do |tile|
@@ -71,7 +71,7 @@ class Tileset < ApplicationRecord
       AnalyzeImageJob.perform_later(self, :image)
       raise 'image not yet analyzed'
     end
-    ((image.metadata[:width] - margin) + spacing) / (tilewidth + spacing)
+    @columns ||= (image.metadata[:width] - margin * 2) / (tilewidth + spacing).to_f
   end
 
   def rows
@@ -79,7 +79,7 @@ class Tileset < ApplicationRecord
       AnalyzeImageJob.perform_later(self, :image)
       raise 'image not yet analyzed'
     end
-    ((image.metadata[:height] - margin) + spacing) / (tileheight + spacing)
+    @rows ||= (image.metadata[:height] - margin * 2) / (tileheight + spacing).to_f
   end
 
   include Rails.application.routes.url_helpers

@@ -36,11 +36,16 @@ function Tilemap(props: { tilemap: any }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!ref.current) return;
+    const W = window.innerWidth;
+    const H = window.innerHeight - ref.current.offsetTop;
     const gameConfig = {
       parent: ref.current,
-      width: ref.current.offsetWidth,
-      height: ref.current.offsetHeight,
       pixelArt: true,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        width: W,
+        height: H,
+      },
     }
     const phaser = new Phaser.Game(gameConfig);
     phaser.scene.add('OrthoMap', OrthoMap, true, { tilemap: props.tilemap });
@@ -48,8 +53,13 @@ function Tilemap(props: { tilemap: any }) {
       (document.activeElement as any).blur();
       ref.current.focus();
     });
+    window.addEventListener('resize', () => {
+      const W = window.innerWidth;
+      const H = window.innerHeight - ref.current.offsetTop;
+      ref.current.setAttribute('style', `width: ${W}px; height: ${H}px`)
+    });
   });
-  return <div style={{ height: "100%", width: "100%" }} ref={ref} />;
+  return <div style={{ width: "100%", height: "100%" }} ref={ref} />;
 }
 
 export default Tilemap;
