@@ -1,5 +1,9 @@
 class TilesetsController < ApplicationController
-  before_action :authenticate_user!, except: [:show]
+  before_action :authenticate_user!, except: [:index, :show]
+
+  def index
+    @tilesets = Tileset.all
+  end
 
   def create
     files = params.require(:tileset).require(:files)

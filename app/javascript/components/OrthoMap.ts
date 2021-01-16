@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import EasyStar from 'easystarjs';
+
 import consumer from '../channels/consumer';
 
 export default class OrthoMap extends Phaser.Scene {
@@ -17,6 +19,8 @@ export default class OrthoMap extends Phaser.Scene {
     right: Phaser.Input.Keyboard.Key
     shift: Phaser.Input.Keyboard.Key
   }
+  pathFinder: EasyStar.js
+  marker: Phaser.GameObjects.Graphics
 
   init(args: { tilemap: any }) {
     this.tiledMap = args.tilemap;
@@ -24,7 +28,7 @@ export default class OrthoMap extends Phaser.Scene {
   }
 
   preload() {
-    fetch('/tilesets/8?format=json')
+    fetch('/tilesets/3?format=json')
       .then(response => response.json())
       .then(data => this.load.spritesheet("Avatars", data["image"], { frameWidth: data["tilewidth"], frameHeight: data["tileheight"] }));
     this.mapData.tilesets.forEach(tileset => {
@@ -94,6 +98,33 @@ export default class OrthoMap extends Phaser.Scene {
         Math.floor(x / this.mapData.tileWidth) * this.mapData.tileWidth + (this.mapData.tileWidth / 2),
         Math.floor(y / this.mapData.tileHeight) * this.mapData.tileHeight + (this.mapData.tileHeight / 2));
     }
+    this.pathFinder = new EasyStar.js();
+    const grid = [];
+    for (let y = 0; y < this.map.height; y++) {
+      let col = [];
+      for (var x = 0; x < this.map.width; x++) {
+        let floor = false;
+        let collision = false;
+        this.map.layers.forEach(layer => {
+          if (layer.name === 'Floor' && layer.data[y][x].index !== -1) floor = true;
+          if (layer.name === 'Walls' && layer.data[y][x].index !== -1) collision = true;
+          if (layer.data[y][x].properties['collides']) collision = true;
+        });
+        const doors = (this.mapData.objects as any[]).find(objLayer => objLayer.name === 'Doors');
+        const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(x * this.map.tileWidth, y * this.map.tileHeight));
+        if (floor && (!collision || doorsHit.length > 0)) {
+          col.push(0);
+        } else {
+          col.push(1);
+        }
+      }
+      grid.push(col);
+    }
+    this.pathFinder.setGrid(grid);
+    this.pathFinder.setAcceptableTiles([0]);
+    this.pathFinder.enableDiagonals();
+    this.pathFinder.enableCornerCutting();
+    this.input.on('pointerup', this.handleClick);
     /*
     const subscription = consumer.subscriptions.create({
       channel: "TilemapChannel",
@@ -105,16 +136,46 @@ export default class OrthoMap extends Phaser.Scene {
     });
     (window as any).subscription = subscription;
     */
-
-    //	Shapes drawn to the Graphics object must be filled.
-    //mask.beginFill(0xffffff);
-
-    //	Here we'll draw a circle
-    //mask.drawCircle(100, 100, 100);
-
-    //	And apply it to the Sprite
-    //sprite.mask = mask;
     this.updateVisibility();
+
+    this.marker = this.add.graphics();
+    this.marker.lineStyle(1, 0xffffff, 1);
+    this.marker.strokeRect(0, 0, this.map.tileWidth, this.map.tileHeight);
+  }
+
+  handleClick = (pointer: Phaser.Input.Pointer) => {
+    const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main);
+    if (!('x' in worldPoint && 'y' in worldPoint)) {
+      return;
+    }
+    const toX = this.map.worldToTileX(worldPoint.x);
+    const toY = this.map.worldToTileY(worldPoint.y);
+    const fromX = Math.floor(this.player.x / this.map.tileWidth);
+    const fromY = Math.floor(this.player.y / this.map.tileHeight);
+    this.pathFinder.findPath(fromX, fromY, toX, toY, path => {
+      if (path === null) {
+        console.log('no path');
+      } else {
+        this.moveCharacter(path);
+      }
+    });
+    this.pathFinder.calculate();
+  }
+
+  moveCharacter = (path: { x: number, y: number }[]) => {
+    const tweens = [];
+    for (let i = 0; i < path.length - 1; i++) {
+      const ex = path[i + 1].x;
+      const ey = path[i + 1].y;
+      tweens.push({
+        targets: this.player,
+        x: { value: ex * this.map.tileWidth + this.map.tileWidth / 2, duration: 200 },
+        y: { value: ey * this.map.tileHeight + this.map.tileHeight / 2, duration: 200 }
+      });
+    }
+    this.tweens.timeline({
+      tweens: tweens
+    });
   }
 
   findObject(properties: string[]) {
@@ -153,6 +214,10 @@ export default class OrthoMap extends Phaser.Scene {
       for (let j = 0; j < points.length; j++) {
         const point = points[j];
         this.map.layers.forEach(layer => {
+          if (layer.name.includes("Secret")) {
+            // TODO: Reveal secrets
+            return;
+          }
           if (point.y in layer.data && point.x in layer.data[point.y]) {
             layer.data[point.y][point.x].visible = true;
           }
@@ -221,6 +286,17 @@ export default class OrthoMap extends Phaser.Scene {
 
   update(time: number, delta: number) {
     this.controls?.update(delta);
+    if (this.tweens.isTweening(this.player)) {
+      this.updateVisibility();
+    }
+
+    const worldPoint = this.input.activePointer.positionToCamera(this.cameras.main);
+    if ('x' in worldPoint && 'y' in worldPoint) {
+      const pointerTileX = this.map.worldToTileX(worldPoint.x);
+      const pointerTileY = this.map.worldToTileY(worldPoint.y);
+      this.marker.x = this.map.tileToWorldX(pointerTileX);
+      this.marker.y = this.map.tileToWorldY(pointerTileY);
+    }
   }
 
 }

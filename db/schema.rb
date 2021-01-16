@@ -69,10 +69,15 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
 
   create_table "tilemap_layers", force: :cascade do |t|
     t.integer "tilemap_id"
+    t.integer "tilemap_layer_id"
     t.string "name"
     t.integer "width"
     t.integer "height"
+    t.string "properties"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
     t.index ["tilemap_id"], name: "index_tilemap_layers_on_tilemap_id"
+    t.index ["tilemap_layer_id"], name: "index_tilemap_layers_on_tilemap_layer_id"
   end
 
   create_table "tilemap_objects", force: :cascade do |t|
@@ -110,6 +115,8 @@ ActiveRecord::Schema.define(version: 2021_01_05_215012) do
     t.integer "tilemap_id"
     t.integer "tileset_id"
     t.string "source"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
     t.index "\"tilemap\"", name: "index_tilemap_tilesets_on_tilemap"
     t.index ["tilemap_id"], name: "index_tilemap_tilesets_on_tilemap_id"
     t.index ["tileset_id"], name: "index_tilemap_tilesets_on_tileset_id"

@@ -1,6 +1,6 @@
 <nav class="d-flex align-items-center justify-content-between navbar navbar-expand-lg navbar-light bg-light px-4">
   <div class="d-flex align-items-center">
-    <a class="navbar-brand" href="/">Worlds</a>
+    <a class="navbar-brand" href="/">RPG.ai</a>
     <%= link_to "Maps", tilemaps_path, class: "mx-4 btn btn-light" %>
     <%= link_to "Tilesets", tilesets_path, class: "mx-4 btn btn-light" %>
   </div>
@@ -10,7 +10,7 @@
         <i class="fa fa-bars"></i>
       </button>
       <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-        <li><%= link_to "My Profile", profile_path(current_user), class: "dropdown-item" %></li>
+        <li><%= link_to "My Profile", profile_path, class: "dropdown-item" %></li>
         <li>
           <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "dropdown-item" %>
         </li>

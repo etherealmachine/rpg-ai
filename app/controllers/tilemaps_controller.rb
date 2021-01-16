@@ -1,5 +1,9 @@
 class TilemapsController < ApplicationController
-  before_action :authenticate_user!, except: [:show]
+  before_action :authenticate_user!, except: [:index, :show]
+
+  def index
+    @tilemaps = Tilemap.all
+  end
 
   def create
     if params[:files]

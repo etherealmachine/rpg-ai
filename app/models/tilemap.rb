@@ -50,56 +50,67 @@ class Tilemap < ApplicationRecord
       self.properties = JSON.generate(Hash[map.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }])
       self.definition = file
       self.save!
-      tilesets = map.xpath("tileset").map do |tileset|
+      @gids = map.xpath("tileset").map do |tileset|
         tilemap_tileset = TilemapTileset.new(
           tilemap: self,
           source: File.basename(tileset["source"]))
         tilemap_tileset.save!
         { firstgid: tileset["firstgid"].to_i, tilemap_tileset: tilemap_tileset }
       end
-      tiles = map.xpath("layer").each.map do |layer|
-        tile_ids = layer.text.split(',').map { |tile_id| tile_id.strip.to_i }
-        name, width, height = layer["name"], layer["width"].to_i, layer["height"].to_i
-        layer = TilemapLayer.new(tilemap: self, name: name, width: width, height: height)
-        layer.save!
-        tile_ids.each_with_index.map do |tileset_index, tilemap_index|
-          next if tileset_index == 0
-          gidindex = tilesets.find_index { |tileset| tileset_index < tileset[:firstgid] }
-          gidindex = gidindex.nil? ? tilesets.count - 1 : gidindex - 1
-          tileset = tilesets[gidindex]
-          {
-            tilemap_id: id,
-            tilemap_layer_id: layer.id,
-            x: tilemap_index % width,
-            y: tilemap_index / width,
-            tilemap_tileset_id: tileset[:tilemap_tileset].id,
-            index: tileset_index - tileset[:firstgid],
-            created_at: Time.now,
-            updated_at: Time.now,
-          }
-        end.flatten
-      end.flatten.filter { |t| t.present? }
-      TilemapTile.insert_all!(tiles)
-      objects = map.xpath("objectgroup").each.map do |objectgroup|
-        layer = TilemapLayer.new(tilemap: self, name: objectgroup["name"])
-        layer.save!
-        objectgroup.xpath("object").each.map do |obj|
-          {
-            tilemap_id: id,
-            tilemap_layer_id: layer.id,
-            x: obj["x"],
-            y: obj["y"],
-            width: obj["width"],
-            height: obj["height"],
-            properties: JSON.generate(Hash[obj.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]),
-            created_at: Time.now,
-            updated_at: Time.now,
-          }
-        end.flatten
-      end.flatten
-      TilemapObject.insert_all!(objects)
+      parse_group(map, nil)
     end
     self.reload
+  end
+
+  def parse_group(group, parent)
+    group.xpath("group").each do |g|
+      parse_group(g, TilemapLayer.new(tilemap: self, name: g['name'], tilemap_layer: parent))
+    end
+    tiles = group.xpath("layer").each.map { |layer| parse_layer(layer, parent) }.flatten
+    TilemapTile.insert_all!(tiles) if tiles.any?
+    objects = group.xpath("objectgroup").each.map { |objects| parse_objects(objects, parent) }.flatten
+    TilemapObject.insert_all!(objects) if objects.any?
+  end
+
+  def parse_layer(layer, parent)
+    tile_ids = layer.text.split(',').map { |tile_id| tile_id.strip.to_i }
+    name, width, height = layer["name"], layer["width"].to_i, layer["height"].to_i
+    layer = TilemapLayer.new(tilemap: self, name: name, width: width, height: height, tilemap_layer: parent)
+    layer.save!
+    tile_ids.each_with_index.map do |tileset_index, tilemap_index|
+      next if tileset_index == 0
+      gidindex = @gids.find_index { |tileset| tileset_index < tileset[:firstgid] }
+      gidindex = gidindex.nil? ? @gids.count - 1 : gidindex - 1
+      tileset = @gids[gidindex]
+      {
+        tilemap_id: id,
+        tilemap_layer_id: layer.id,
+        x: tilemap_index % width,
+        y: tilemap_index / width,
+        tilemap_tileset_id: tileset[:tilemap_tileset].id,
+        index: tileset_index - tileset[:firstgid],
+        created_at: Time.now,
+        updated_at: Time.now,
+      }
+    end.flatten.filter { |t| t.present? }
+  end
+
+  def parse_objects(objectgroup, parent)
+    layer = TilemapLayer.new(tilemap: self, name: objectgroup["name"], tilemap_layer: parent)
+    layer.save!
+    objectgroup.xpath("object").each.map do |obj|
+      {
+        tilemap_id: id,
+        tilemap_layer_id: layer.id,
+        x: obj["x"],
+        y: obj["y"],
+        width: obj["width"],
+        height: obj["height"],
+        properties: JSON.generate(Hash[obj.xpath('properties/property').map { |prop| [prop['name'], prop['value']] }]),
+        created_at: Time.now,
+        updated_at: Time.now,
+      }
+    end.flatten
   end
 
   include Rails.application.routes.url_helpers
@@ -153,10 +164,7 @@ class Tilemap < ApplicationRecord
             ts.as_xml(tileset)
           end
         end
-        tilemap_layers.filter { |layer| layer.is_tilelayer? }.each do |tilemap_layer|
-          tilemap_layer.as_xml(map)
-        end
-        tilemap_layers.filter { |layer| layer.is_objectlayer? }.each do |tilemap_layer|
+        tilemap_layers.each do |tilemap_layer|
           tilemap_layer.as_xml(map)
         end
       end

@@ -1,0 +1,21 @@
+<div class="container p-5">
+  <div>
+    <h1 class="display-4">Tilesets</h1>
+    <div class="d-flex">
+      <% @tilesets.each do |tileset| %>
+        <div class="mx-4 d-flex flex-column">
+          <div class="d-flex flex-column align-items-center p-2" style="border:1px solid rgba(0,0,0,.125)">
+            <%= image_tag tileset.image, height: 200, style: "max-width: 300px" %>
+            <% tileset.tags.each do |tag| %>
+              <span class="badge bg-info"><%= tag %></span>
+            <% end %>
+          </div>
+          <h3><%= tileset.name %></h3>
+          <div class="d-flex mt-2 justify-content-between" style="width: 100%">
+            <%= link_to "Download", tileset_path(tileset, format: "zip"), class: "btn btn-primary" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

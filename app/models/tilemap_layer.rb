@@ -2,14 +2,20 @@
 #
 # Table name: tilemap_layers
 #
-#  id         :integer          not null, primary key
-#  tilemap_id :integer
-#  name       :string
-#  width      :integer
-#  height     :integer
+#  id               :integer          not null, primary key
+#  tilemap_id       :integer
+#  tilemap_layer_id :integer
+#  name             :string
+#  width            :integer
+#  height           :integer
+#  properties       :string
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
 #
 class TilemapLayer < ApplicationRecord
   belongs_to :tilemap
+  belongs_to :tilemap_layer, optional: true
+  has_many :tilemap_layers
   has_many :tilemap_tiles
   has_many :tilemap_objects
 
@@ -25,23 +31,32 @@ class TilemapLayer < ApplicationRecord
       opacity: 1,
       data: tiledata.flatten,
       objects: tilemap_objects,
+      layers: tilemap_layers,
     }
   end
 
   def layer_type
-    is_tilelayer? ? 'tilelayer' : 'objectgroup'
-  end
-
-  def is_tilelayer?
-    tiledata.any?
-  end
-
-  def is_objectlayer?
-    tilemap_objects.any?
+    if tilemap_layers.any?
+      'group'
+    elsif tilemap_objects.any?
+      'objectgroup'
+    else
+      'tilelayer'
+    end
   end
 
   def as_xml(frag)
-    if is_tilelayer?
+    if tilemap_layers.any?
+      frag.group(
+        id: id,
+        name: name,
+      ) do |group|
+        tilemap_layers.each do |tilemap_layer|
+          tilemap_layer.as_xml(group)
+        end
+      end
+    end
+    if tiledata.any?
       frag.layer(
         id: id,
         name: name,
@@ -49,13 +64,13 @@ class TilemapLayer < ApplicationRecord
         height: height,
         x: 0,
         y: 0,
-        opacity: 1,
       ) do |layer|
         layer.data(encoding: "csv") do |data|
           data.text(tiledata.map { |row| row.join(',') }.join('\n'))
         end
       end
-    elsif is_objectlayer?
+    end
+    if tilemap_objects.any?
       frag.objectgroup(
         id: id,
         name: name,

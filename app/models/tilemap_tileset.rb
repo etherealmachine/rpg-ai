@@ -6,6 +6,8 @@
 #  tilemap_id :integer
 #  tileset_id :integer
 #  source     :string
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
 #
 class TilemapTileset < ApplicationRecord
   belongs_to :tilemap
