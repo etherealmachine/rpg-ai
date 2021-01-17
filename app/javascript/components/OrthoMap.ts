@@ -21,6 +21,7 @@ export default class OrthoMap extends Phaser.Scene {
   }
   pathFinder: EasyStar.js
   marker: Phaser.GameObjects.Graphics
+  wallLayer: Phaser.Tilemaps.LayerData
 
   init(args: { tilemap: any }) {
     this.tiledMap = args.tilemap;
@@ -98,6 +99,7 @@ export default class OrthoMap extends Phaser.Scene {
         Math.floor(x / this.mapData.tileWidth) * this.mapData.tileWidth + (this.mapData.tileWidth / 2),
         Math.floor(y / this.mapData.tileHeight) * this.mapData.tileHeight + (this.mapData.tileHeight / 2));
     }
+    this.wallLayer = this.map.layers.find(layer => layer.name === "Walls");
     this.pathFinder = new EasyStar.js();
     const grid = [];
     for (let y = 0; y < this.map.height; y++) {
@@ -136,6 +138,7 @@ export default class OrthoMap extends Phaser.Scene {
     });
     (window as any).subscription = subscription;
     */
+    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.properties['seen'] = false)));
     this.updateVisibility();
 
     this.marker = this.add.graphics();
@@ -201,37 +204,43 @@ export default class OrthoMap extends Phaser.Scene {
   }
 
   updateVisibility() {
-    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => tile.visible = false)));
+    this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => {
+      tile.tint = 0xffffff;
+      if (!tile.properties['seen']) tile.visible = false;
+      else tile.tint = 0xaaaaaa;
+    })));
+    for (let x = 0; x < this.map.width; x++) {
+      this.updateVisibilityAlongLine(x, 0);
+      this.updateVisibilityAlongLine(x, this.map.height - 1);
+    }
+    for (let y = 0; y < this.map.width; y++) {
+      this.updateVisibilityAlongLine(0, y);
+      this.updateVisibilityAlongLine(this.map.width - 1, y);
+    }
+  }
+
+  updateVisibilityAlongLine(toX: number, toY: number) {
     const px = Math.floor(this.player.x / this.map.tileWidth);
     const py = Math.floor(this.player.y / this.map.tileHeight);
-
-    const wallLayer = this.map.layers.find(layer => layer.name === "Walls");
-    let [x, y] = [0, 0];
-    let [dx, dy] = [0, -1];
-    for (let i = 0; i < this.mapData.width * this.mapData.height; i++) {
-      const line = new Phaser.Geom.Line(px, py, px + x, py + y);
-      const points = Phaser.Geom.Line.BresenhamPoints(line);
-      for (let j = 0; j < points.length; j++) {
-        const point = points[j];
-        this.map.layers.forEach(layer => {
-          if (layer.name.includes("Secret")) {
-            // TODO: Reveal secrets
-            return;
-          }
-          if (point.y in layer.data && point.x in layer.data[point.y]) {
-            layer.data[point.y][point.x].visible = true;
-          }
-        });
-        if (point.y in wallLayer.data && point.x in wallLayer.data[point.y] && wallLayer.data[point.y][point.x].index >= 0) {
-          break;
+    const line = new Phaser.Geom.Line(px, py, toX, toY);
+    const points = Phaser.Geom.Line.BresenhamPoints(line);
+    for (let j = 0; j < points.length; j++) {
+      const point = points[j];
+      this.map.layers.forEach(layer => {
+        if (layer.name.includes("Secret")) {
+          // TODO: Reveal secrets
+          return;
         }
+        if (point.y in layer.data && point.x in layer.data[point.y]) {
+          const tile = layer.data[point.y][point.x];
+          tile.visible = true;
+          tile.properties['seen'] = true;
+          tile.tint = 0xffffff;
+        }
+      });
+      if (point.y in this.wallLayer.data && point.x in this.wallLayer.data[point.y] && this.wallLayer.data[point.y][point.x].index >= 0) {
+        return;
       }
-
-      if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
-        [dx, dy] = [-dy, dx];
-      }
-      x += dx;
-      y += dy;
     }
   }
 
