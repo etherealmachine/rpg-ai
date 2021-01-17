@@ -56,6 +56,7 @@ export default class OrthoMap extends Phaser.Scene {
     };
     this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(controlConfig);
     this.cameras.main.setBackgroundColor('#ddd');
+    this.cameras.main.setZoom(2, 2);
     this.map = this.make.tilemap(this.mapData);
     const tilesets = this.mapData.tilesets.map(tileset => {
       return this.map.addTilesetImage(
@@ -127,6 +128,26 @@ export default class OrthoMap extends Phaser.Scene {
     this.pathFinder.enableDiagonals();
     this.pathFinder.enableCornerCutting();
     this.input.on('pointerup', this.handleClick);
+    const title = this.add.text(
+      this.scale.canvas.width / 2,
+      275,
+      this.mapData.name,
+      {
+        color: '#000000',
+        fontFamily: 'Georgia',
+        fontSize: '24px',
+        resolution: window.devicePixelRatio,
+      },
+    );
+    title.setScrollFactor(0, 0);
+    title.setOrigin(0.5);
+    this.add.tween({
+      targets: title,
+      duration: 5000,
+      ease: 'Linear',
+      delay: 1000,
+      alpha: 0,
+    });
     /*
     const subscription = consumer.subscriptions.create({
       channel: "TilemapChannel",
