@@ -22,16 +22,15 @@ export default class OrthoMap extends Phaser.Scene {
   pathFinder: EasyStar.js
   marker: Phaser.GameObjects.Graphics
   wallLayer: Phaser.Tilemaps.LayerData
+  npcs: any[]
 
-  init(args: { tilemap: any }) {
+  init(args: { tilemap: any, character: { name: string, sprite: string } }) {
     this.tiledMap = args.tilemap;
     this.mapData = Phaser.Tilemaps.Parsers.Tiled.ParseJSONTiled(args.tilemap.name, args.tilemap, false);
+    this.textures.addBase64('character', args.character.sprite);
   }
 
   preload() {
-    fetch('/tilesets/3?format=json')
-      .then(response => response.json())
-      .then(data => this.load.spritesheet("Avatars", data["image"], { frameWidth: data["tilewidth"], frameHeight: data["tileheight"] }));
     this.mapData.tilesets.forEach(tileset => {
       const tilesetDef = this.tiledMap.tilesets.find((t: any) => t.name == tileset.name);
       this.load.spritesheet(
@@ -44,10 +43,6 @@ export default class OrthoMap extends Phaser.Scene {
   create() {
     const controlConfig = {
       camera: this.cameras.main,
-      //left: this.cursors.left,
-      //right: this.cursors.right,
-      //up: this.cursors.up,
-      //down: this.cursors.down,
       acceleration: 0.5,
       drag: 0.01,
       maxSpeed: 2.0,
@@ -72,7 +67,7 @@ export default class OrthoMap extends Phaser.Scene {
       layers.forEach((layer, i) => {
         this.map.createLayer(layer.name, tilesets);
         if (i === 1) {
-          this.player = this.add.sprite(0, 0, "Avatars", 0);
+          this.player = this.add.sprite(0, 0, "character", 0);
         }
       });
     }
@@ -113,7 +108,7 @@ export default class OrthoMap extends Phaser.Scene {
           if (layer.name === 'Walls' && layer.data[y][x].index !== -1) collision = true;
           if (layer.data[y][x].properties['collides']) collision = true;
         });
-        const doors = (this.mapData.objects as any[]).find(objLayer => objLayer.name === 'Doors');
+        const doors = (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).find(objLayer => objLayer.name === 'Doors');
         const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(x * this.map.tileWidth, y * this.map.tileHeight));
         if (floor && (!collision || doorsHit.length > 0)) {
           col.push(0);
@@ -130,7 +125,7 @@ export default class OrthoMap extends Phaser.Scene {
     this.input.on('pointerup', this.handleClick);
     const title = this.add.text(
       this.scale.canvas.width / 2,
-      275,
+      375,
       this.mapData.name,
       {
         color: '#000000',
@@ -139,7 +134,7 @@ export default class OrthoMap extends Phaser.Scene {
         resolution: window.devicePixelRatio,
       },
     );
-    title.setScrollFactor(0, 0);
+    title.setScrollFactor(0);
     title.setOrigin(0.5);
     this.add.tween({
       targets: title,
@@ -165,6 +160,10 @@ export default class OrthoMap extends Phaser.Scene {
     this.marker = this.add.graphics();
     this.marker.lineStyle(1, 0xffffff, 1);
     this.marker.strokeRect(0, 0, this.map.tileWidth, this.map.tileHeight);
+
+    (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).filter(layer => layer.name === "NPCs").forEach(layer => {
+      console.log(layer);
+    });
   }
 
   handleClick = (pointer: Phaser.Input.Pointer) => {
@@ -203,7 +202,7 @@ export default class OrthoMap extends Phaser.Scene {
   }
 
   findObject(properties: string[]) {
-    for (let layer of (this.mapData.objects as any[])) {
+    for (let layer of (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[])) {
       for (let obj of layer.objects) {
         if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
           return obj;
@@ -214,7 +213,7 @@ export default class OrthoMap extends Phaser.Scene {
 
   findObjects(properties: string[]) {
     const matches = [];
-    for (let layer of (this.mapData.objects as any[])) {
+    for (let layer of (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[])) {
       for (let obj of layer.objects) {
         if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
           matches.push(obj);
@@ -269,7 +268,7 @@ export default class OrthoMap extends Phaser.Scene {
     let collision = this.map.layers.map(layer => {
       return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
     }).flat().some(tile => tile.index !== -1 && (tile.layer.name === 'Walls' || tile.properties['collides']));
-    const doors = (this.mapData.objects as any[]).find(objLayer => objLayer.name === 'Doors');
+    const doors = (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).find(objLayer => objLayer.name === 'Doors');
     const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(this.player.x, this.player.y));
     if (doorsHit.length > 0) {
       collision = false;
