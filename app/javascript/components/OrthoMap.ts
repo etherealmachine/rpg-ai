@@ -3,6 +3,15 @@ import EasyStar from 'easystarjs';
 
 import consumer from '../channels/consumer';
 
+interface Object {
+  id: number
+  x: number
+  y: number
+  width: number
+  height: number
+  properties: { name: string, value: string }[]
+}
+
 export default class OrthoMap extends Phaser.Scene {
   tiledMap: any;
   mapData: Phaser.Tilemaps.MapData;
@@ -10,7 +19,6 @@ export default class OrthoMap extends Phaser.Scene {
 
   cursors: Phaser.Types.Input.Keyboard.CursorKeys
   controls: Phaser.Cameras.Controls.SmoothedKeyControl
-  objects: Phaser.GameObjects.Group[] = []
   player: Phaser.GameObjects.Sprite
   movementKeys: {
     up: Phaser.Input.Keyboard.Key
@@ -21,8 +29,12 @@ export default class OrthoMap extends Phaser.Scene {
   }
   pathFinder: EasyStar.js
   marker: Phaser.GameObjects.Graphics
-  wallLayer: Phaser.Tilemaps.LayerData
-  npcs: any[]
+  wallLayers: Phaser.Tilemaps.LayerData[]
+
+  doors: Phaser.GameObjects.GameObject[]
+  secretDoors: Phaser.GameObjects.GameObject[]
+  npcs: Phaser.GameObjects.GameObject[]
+  objects: Phaser.GameObjects.GameObject[]
 
   init(args: { tilemap: any, character: { name: string, sprite: string } }) {
     this.tiledMap = args.tilemap;
@@ -37,6 +49,44 @@ export default class OrthoMap extends Phaser.Scene {
         tileset.name,
         tilesetDef.image,
         { frameWidth: tilesetDef.tilewidth, frameHeight: tilesetDef.tileheight });
+    });
+  }
+
+  addDoors(objects: Object[]) {
+    this.doors = objects.map(obj => {
+      const door = this.add.graphics({ x: obj.x, y: obj.y });
+      door.fillStyle(0x000000, 0.1);
+      door.fillRect(0, 0, obj.width, obj.height)
+      obj.properties.forEach(prop => door.setData(prop.name, prop.value));
+      door.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
+      return door;
+    });
+  }
+
+  addSecretDoors(objects: Object[]) {
+    this.secretDoors = objects.map(obj => {
+      const secretDoor = this.add.graphics({ x: obj.x, y: obj.y });
+      secretDoor.fillStyle(0x00ff00, 0.1);
+      secretDoor.fillRect(0, 0, obj.width, obj.height)
+      obj.properties.forEach(prop => secretDoor.setData(prop.name, prop.value));
+      secretDoor.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
+      return secretDoor;
+    });
+  }
+
+  addNPCs(objects: Object[]) {
+    this.npcs = objects.map(obj => {
+      /*
+      const tiles = this.map.layers.filter(layer => layer.name.includes("NPCs")).map(layer => {
+        return this.map.getTilesWithinWorldXY(obj.x, obj.y, obj.width, obj.height, { isNotEmpty: true }, this.cameras.main, layer.name);
+      }).flat();
+      */
+      const npc = this.add.graphics({ x: obj.x, y: obj.y });
+      npc.fillStyle(0xff0000, 0.1);
+      npc.fillRect(0, 0, obj.width, obj.height)
+      obj.properties.forEach(prop => npc.setData(prop.name, prop.value));
+      npc.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
+      return npc;
     });
   }
 
@@ -61,16 +111,36 @@ export default class OrthoMap extends Phaser.Scene {
         tileset.tileMargin, tileset.tileSpacing,
         tileset.firstgid);
     });
-    const layers = this.mapData.layers;
-    if (layers instanceof Array) {
-      this.map.layers = layers;
-      layers.forEach((layer, i) => {
+
+    if (this.mapData.layers instanceof Array) {
+      this.mapData.layers.forEach((layer, i) => {
+        const [group, _] = layer.name.split('/');
+        layer.name = group + "/" + i;
+      })
+      this.map.layers = this.mapData.layers;
+      this.map.layers.forEach((layer, i) => {
         this.map.createLayer(layer.name, tilesets);
         if (i === 1) {
           this.player = this.add.sprite(0, 0, "character", 0);
         }
       });
     }
+
+    (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).forEach(layer => {
+      const [group, _] = layer.name.split('/');
+      switch (group) {
+        case "Doors":
+          this.addDoors(layer.objects);
+          break;
+        case "Secret Doors":
+          this.addSecretDoors(layer.objects);
+          break;
+        case "NPCs":
+          this.addNPCs(layer.objects);
+          break;
+      }
+    });
+
     this.movementKeys = {
       up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
@@ -84,18 +154,15 @@ export default class OrthoMap extends Phaser.Scene {
     this.movementKeys.left.on('down', this.moveLeft);
     this.movementKeys.right.on('down', this.moveRight);
     this.cameras.main.startFollow(this.player);
-    (window as any).map = this.map;
-    (window as any).mapData = this.mapData;
-    (window as any).tiledMap = this.tiledMap;
-    const spawn = this.findObject(['spawn']);
+    const spawn = this.doors.find(door => door.data.values.spawn);
     if (spawn) {
-      const x = spawn.x + Math.random() * spawn.width;
-      const y = spawn.y + Math.random() * spawn.height;
+      const x = spawn.data.values.rect.x + Math.random() * spawn.data.values.rect.width;
+      const y = spawn.data.values.rect.y + Math.random() * spawn.data.values.rect.height;
       this.player.setPosition(
         Math.floor(x / this.mapData.tileWidth) * this.mapData.tileWidth + (this.mapData.tileWidth / 2),
         Math.floor(y / this.mapData.tileHeight) * this.mapData.tileHeight + (this.mapData.tileHeight / 2));
     }
-    this.wallLayer = this.map.layers.find(layer => layer.name === "Walls");
+    this.wallLayers = this.map.layers.filter(layer => layer.name.includes("Walls"));
     this.pathFinder = new EasyStar.js();
     const grid = [];
     for (let y = 0; y < this.map.height; y++) {
@@ -104,12 +171,12 @@ export default class OrthoMap extends Phaser.Scene {
         let floor = false;
         let collision = false;
         this.map.layers.forEach(layer => {
-          if (layer.name === 'Floor' && layer.data[y][x].index !== -1) floor = true;
-          if (layer.name === 'Walls' && layer.data[y][x].index !== -1) collision = true;
+          if (layer.name.includes('Ground') && layer.data[y][x].index !== -1) floor = true;
+          if (layer.name.includes('Walls') && layer.data[y][x].index !== -1) collision = true;
           if (layer.data[y][x].properties['collides']) collision = true;
         });
-        const doors = (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).find(objLayer => objLayer.name === 'Doors');
-        const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(x * this.map.tileWidth, y * this.map.tileHeight));
+        const doorsHit = this.doors.filter(
+          obj => obj.data.values.rect.contains(x * this.map.tileWidth, y * this.map.tileHeight));
         if (floor && (!collision || doorsHit.length > 0)) {
           col.push(0);
         } else {
@@ -130,12 +197,13 @@ export default class OrthoMap extends Phaser.Scene {
       {
         color: '#000000',
         fontFamily: 'Georgia',
-        fontSize: '24px',
+        fontSize: '48px',
         resolution: window.devicePixelRatio,
       },
     );
     title.setScrollFactor(0);
     title.setOrigin(0.5);
+    title.setScale(1 / this.cameras.main.zoom, 1 / this.cameras.main.zoom);
     this.add.tween({
       targets: title,
       duration: 5000,
@@ -161,9 +229,10 @@ export default class OrthoMap extends Phaser.Scene {
     this.marker.lineStyle(1, 0xffffff, 1);
     this.marker.strokeRect(0, 0, this.map.tileWidth, this.map.tileHeight);
 
-    (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).filter(layer => layer.name === "NPCs").forEach(layer => {
-      console.log(layer);
-    });
+    (window as any).map = this.map;
+    (window as any).mapData = this.mapData;
+    (window as any).tiledMap = this.tiledMap;
+    (window as any).scene = this;
   }
 
   handleClick = (pointer: Phaser.Input.Pointer) => {
@@ -201,28 +270,6 @@ export default class OrthoMap extends Phaser.Scene {
     });
   }
 
-  findObject(properties: string[]) {
-    for (let layer of (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[])) {
-      for (let obj of layer.objects) {
-        if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
-          return obj;
-        }
-      }
-    }
-  }
-
-  findObjects(properties: string[]) {
-    const matches = [];
-    for (let layer of (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[])) {
-      for (let obj of layer.objects) {
-        if (properties.every(prop => obj.properties.find(p => p.name === prop))) {
-          matches.push(obj);
-        }
-      }
-    }
-    return matches;
-  }
-
   updateVisibility() {
     this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => {
       tile.tint = 0xffffff;
@@ -258,18 +305,15 @@ export default class OrthoMap extends Phaser.Scene {
           tile.tint = 0xffffff;
         }
       });
-      if (point.y in this.wallLayer.data && point.x in this.wallLayer.data[point.y] && this.wallLayer.data[point.y][point.x].index >= 0) {
-        return;
-      }
+      if (this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0)) return;
     }
   }
 
   avoidCollision(oldX: number, oldY: number) {
     let collision = this.map.layers.map(layer => {
       return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
-    }).flat().some(tile => tile.index !== -1 && (tile.layer.name === 'Walls' || tile.properties['collides']));
-    const doors = (this.mapData.objects as Phaser.Types.Tilemaps.ObjectLayerConfig[]).find(objLayer => objLayer.name === 'Doors');
-    const doorsHit = doors.objects.filter(obj => new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height).contains(this.player.x, this.player.y));
+    }).flat().some(tile => tile.index !== -1 && (tile.layer.name.includes('Walls') || tile.properties['collides']));
+    const doorsHit = this.doors.filter(obj => obj.data.values.rect.contains(this.player.x, this.player.y));
     if (doorsHit.length > 0) {
       collision = false;
     }

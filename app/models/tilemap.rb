@@ -116,6 +116,7 @@ class Tilemap < ApplicationRecord
   include Rails.application.routes.url_helpers
 
   def as_json(options={})
+    layers = tilemap_layers.where(tilemap_layer_id: nil)
     {
       id: id,
       name: name,
@@ -131,8 +132,8 @@ class Tilemap < ApplicationRecord
       compressionlevel: -1,
       infinite: false,
       tilesets: tilesets,
-      layers: tilemap_layers,
-      nextlayerid: tilemap_layers.count,
+      layers: layers,
+      nextlayerid: layers.count,
       orientation: orientation,
       hexsidelength: hexsidelength,
       staggeraxis: staggeraxis,
@@ -142,6 +143,7 @@ class Tilemap < ApplicationRecord
   end
 
   def as_xml
+    layers = tilemap_layers.where(tilemap_layer_id: nil)
     Nokogiri::XML(Nokogiri::XML::Builder.new(encoding: 'UTF-8') do |root|
       root.map(
         version: "1.2",
@@ -156,16 +158,16 @@ class Tilemap < ApplicationRecord
         hexsidelength: hexsidelength,
         staggeraxis: staggeraxis,
         staggerindex: staggerindex,
-        nextlayerid: tilemap_layers.count,
+        nextlayerid: layers.count,
         nextobjectid: 1,
       ) do |map|
         firstgid_map.each do |tileset_id, firstgid|
           ts = tilesets.find(tileset_id)
-          map.tileset(firstgid: firstgid, source: ts.source) do |tileset|
+          map.tileset(firstgid: firstgid.to_i, source: ts.source) do |tileset|
             ts.as_xml(tileset)
           end
         end
-        tilemap_layers.each do |tilemap_layer|
+        layers.each do |tilemap_layer|
           tilemap_layer.as_xml(map)
         end
       end

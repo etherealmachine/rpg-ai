@@ -32,42 +32,47 @@ export interface Tileset {
   }
 }
 
+function setupPhaser(parent: HTMLElement, width: number, height: number, args: any) {
+  const gameConfig = {
+    parent: parent,
+    pixelArt: true,
+    scale: {
+      mode: Phaser.Scale.FIT,
+      width: width,
+      height: height,
+      zoom: 1 / window.devicePixelRatio,
+    },
+  }
+  const phaser = new Phaser.Game(gameConfig);
+  phaser.scene.add('OrthoMap', OrthoMap, false, args);
+  return phaser;
+}
+
 function Tilemap(props: { tilemap: any }) {
-  const [phaser, setPhaser] = useState<Phaser.Game | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!ref.current) return;
-    if (phaser !== null) return;
-    const W = window.innerWidth;
-    const H = window.innerHeight - ref.current.offsetTop;
-    const gameConfig = {
-      parent: ref.current,
-      pixelArt: true,
-      scale: {
-        mode: Phaser.Scale.NONE,
-        width: W,
-        height: H,
-        zoom: 1 / window.devicePixelRatio,
-      },
-    }
-    const newPhaser = new Phaser.Game(gameConfig);
-    newPhaser.scene.add('OrthoMap', OrthoMap, false, { tilemap: props.tilemap });
+    if ((window as any).phaser !== undefined) return;
     ref.current.addEventListener('click', () => {
       (document.activeElement as any).blur();
       ref.current.focus();
     });
     const onResize = () => {
+      let phaser = (window as any).phaser as Phaser.Game | undefined;
       const W = window.innerWidth;
       const H = window.innerHeight - ref.current.offsetTop;
       ref.current.parentElement.setAttribute('style', `width: ${W}px; height: ${H}px`);
       ref.current.setAttribute('style', `width: ${W}px; height: ${H}px`);
+      if (phaser === undefined) {
+        phaser = setupPhaser(ref.current, W, H, { tilemap: props.tilemap });
+        (window as any).phaser = phaser;
+      }
       phaser.scale.setZoom(1 / window.devicePixelRatio);
       phaser.scale.resize(W, H);
     };
     window.addEventListener('resize', onResize);
     setTimeout(onResize, 0);
-    setPhaser(newPhaser);
-  }, [phaser]);
+  });
   const characters = {
     'Caster': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAASdJREFUOI1jYKAQMCZPNf3PwMDAMCfrFCM5BrAwMDAwiCnxMqRMM/sPM2T1hIL/2BSHFkzAsIQFXWD1hIL/1qZ6WG1bPaHgP7ohTPyHWRg0jgkw8B/GMIsowIRLYs/OrVjZeA0ojrSC+93F3ZsBG7s40up/caTV/x8/fvzHMMDZxpjh+7vHOG37/u4xg7ONMYOzjTHDvrmlDAwMWAJRRFwK7mSYzTC+iLgUitpFdcH/UVzw5uUzBqfkbgYRcSm4QXt2boXznZK7Gd68fIZiCIYLYE7DZiOyHNyA4pwUBgYGBoaLt+dg9zgBwMzw7XXDt/fPGV6++8IgIczLwMXDi1fDt6+f4ZhTSBbTC8QAWOAePX2JPAOOnr7EwMAAyRsYBqCHMjaAnB8ALTJoyQMLhpYAAAAASUVORK5CYII=',
     'Cleric': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAR1JREFUOI1jYBhowMjAwMDw//9/FMHVEwr+Y1McWjCBkaABqycU/Lc21cNq29HTlzAMYSLRxRgApwF7dm7FykYHjAwMDAzfv3//X53oxMDAwMBgYW7GgM8LJ06eYmBgYGBonb+PgYODg5GRgYGBYeuUHHggvHn5jMHF3Runq0TEpeB8r+zJjIwLa4P+IwvCDGFgYIAbBPMCNnVM6AJOyd0MIuJSDCLiUgx7dm6F2yoiLsXglNwNNxwGWNCduW9uKZztkNLPwMDAwHBlczeGHAzgjAUd31KsbHTAwikky/Dm5WOcCrABmDc4hWQhLnBx98YIeZiz0dno6lnCCicyrurPx5r2cYGjpy8xMDBA8gZKXlhUF0yUQXFNa+H5AQDpfGnnFHMeOQAAAABJRU5ErkJggg==',
@@ -75,6 +80,7 @@ function Tilemap(props: { tilemap: any }) {
   };
   const [character, setCharacter] = useState<string | null>(null);
   const onCharacterSelect = (name: string, sprite: string) => (event: React.MouseEvent<HTMLButtonElement>) => {
+    const phaser = (window as any).phaser as Phaser.Game | undefined;
     phaser.scene.start('OrthoMap', { tilemap: props.tilemap, character: { name, sprite } });
     setCharacter(name);
   };
@@ -89,8 +95,8 @@ function Tilemap(props: { tilemap: any }) {
           <div className="modal-body">
             <div className="d-flex">
               {Object.entries(characters).map(([name, sprite]) => <div key={name} className="d-flex flex-column align-items-center mx-2">
-                <button className="btn btn-secondary d-flex align-items-center" style={{ width: '100px', height: '100px' }} onClick={onCharacterSelect(name, sprite)}>
-                  <img width="90" height="90" style={{ imageRendering: 'pixelated' }} src={sprite} />
+                <button className="btn btn-secondary d-flex align-items-center justify-content-center" style={{ width: '100px', height: '100px' }} onClick={onCharacterSelect(name, sprite)}>
+                  <img width="80" height="80" style={{ imageRendering: 'pixelated' }} src={sprite} />
                 </button>
                 <label className="mt-2">{name}</label>
               </div>)}

@@ -21,7 +21,7 @@ class TilemapTileset < ApplicationRecord
       version: "1.2",
       tiledversion: "1.4.3",
       name: tileset.name,
-      firstgid: tilemap.firstgid_map[tileset.id],
+      firstgid: tilemap.firstgid_map[tileset.id].to_i,
       image: rails_blob_url(tileset.image),
       imagewidth: tileset.image.metadata[:width],
       imageheight: tileset.image.metadata[:height],
