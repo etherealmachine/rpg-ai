@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import EasyStar from 'easystarjs';
 
 import consumer from '../channels/consumer';
+import { isThisTypeNode } from 'typescript';
 
 interface Object {
   id: number
@@ -35,11 +36,13 @@ export default class OrthoMap extends Phaser.Scene {
   secretDoors: Phaser.GameObjects.GameObject[]
   npcs: Phaser.GameObjects.GameObject[]
   objects: Phaser.GameObjects.GameObject[]
+  onSelect: (selection: string) => void
 
-  init(args: { tilemap: any, character: { name: string, sprite: string } }) {
+  init(args: { tilemap: any, character: { name: string, sprite: string }, onSelect: (selection: string) => void }) {
     this.tiledMap = args.tilemap;
     this.mapData = Phaser.Tilemaps.Parsers.Tiled.ParseJSONTiled(args.tilemap.name, args.tilemap, false);
     this.textures.addBase64('character', args.character.sprite);
+    this.onSelect = args.onSelect;
   }
 
   preload() {
@@ -54,9 +57,18 @@ export default class OrthoMap extends Phaser.Scene {
 
   addDoors(objects: Object[]) {
     this.doors = objects.map(obj => {
-      const door = this.add.graphics({ x: obj.x, y: obj.y });
-      door.fillStyle(0x000000, 0.1);
-      door.fillRect(0, 0, obj.width, obj.height)
+      const door = this.add.rectangle(obj.x, obj.y, obj.width, obj.height, 0x000000, 0.1);
+      door.setOrigin(0, 0);
+      door.setInteractive();
+      door.on('pointerover', () => {
+        door.setFillStyle(0xff0000, 0.1);
+      });
+      door.on('pointerout', () => {
+        door.setFillStyle(0x000000, 0.1);
+      });
+      door.on('pointerdown', () => {
+        this.onSelect('This is a door');
+      });
       obj.properties.forEach(prop => door.setData(prop.name, prop.value));
       door.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
       return door;

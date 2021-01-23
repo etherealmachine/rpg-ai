@@ -37,7 +37,7 @@ function setupPhaser(parent: HTMLElement, width: number, height: number, args: a
     parent: parent,
     pixelArt: true,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.RESIZE,
       width: width,
       height: height,
       zoom: 1 / window.devicePixelRatio,
@@ -67,8 +67,6 @@ function Tilemap(props: { tilemap: any }) {
         phaser = setupPhaser(ref.current, W, H, { tilemap: props.tilemap });
         (window as any).phaser = phaser;
       }
-      phaser.scale.setZoom(1 / window.devicePixelRatio);
-      phaser.scale.resize(W, H);
     };
     window.addEventListener('resize', onResize);
     setTimeout(onResize, 0);
@@ -79,13 +77,27 @@ function Tilemap(props: { tilemap: any }) {
     'Adventurer': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAXRJREFUOI2lk6FLA3EUxz83F8bK0oaHoANZGKgrU2cc+GPBIkv+AUaDaDkWDAZ3RTCIyWa0aDDIhAWLysoshjGD4U6HZSg4MDyD/H7evBMRHzz4vu+77/e994OD/4aIICLU63URkT9pRIQ4gOu6opTCdV0BrFarFelULBat70NiGti2DcBP4p96cQ183zekPWhHGviJQoiLfSfuL48AuDg/M5zGuhe5gT5Bx2JlKRLnt2rmjLvtHSsWJACurm8i19e91PSUyfxWTcwJ+g0KOZuql6DqJYxQ14WcHTKNh5hABE0AvOQsy90HAE4mxwGwNlYWJOjc7viRk7zkLEopUzcaDSYTj8RK83O0Oz6LlaUh8evbu0ktTqfTJpVSdAejnydsrq2GJmazEwbfvnzxmUyGXq83/Aa7+4ehtZ+fvK8iOWZgUAxgiQjHe+sCcHDaJpVKAVCdGfn1DRzHsYZ+jnK5LNqg3+/TbDatIF8qlcy3juNYAB/bqp9bkLjuagAAAABJRU5ErkJggg==',
   };
   const [character, setCharacter] = useState<string | null>(null);
+  const [selection, setSelection] = useState<string | null>(null);
   const onCharacterSelect = (name: string, sprite: string) => (event: React.MouseEvent<HTMLButtonElement>) => {
     const phaser = (window as any).phaser as Phaser.Game | undefined;
-    phaser.scene.start('OrthoMap', { tilemap: props.tilemap, character: { name, sprite } });
+    phaser.scene.start('OrthoMap', {
+      tilemap: props.tilemap,
+      character: { name, sprite },
+      onSelect: setSelection,
+    });
     setCharacter(name);
   };
   return <div style={{ width: "100%", height: "100%" }}>
     <div style={{ width: "100%", height: "100%" }} ref={ref} />
+    {selection &&
+      <div className="card" style={{ position: 'absolute', top: ref.current ? window.innerHeight - ref.current.offsetHeight + 12 : 0, right: 12 }}>
+        <div className="card-body">
+          <h5 className="card-title">Card title</h5>
+          <p className="card-text">{selection}</p>
+          <button className="btn btn-primary">Go somewhere</button>
+        </div>
+      </div>
+    }
     <div className={"modal" + (character ? "" : " d-block")} tabIndex={-1}>
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
