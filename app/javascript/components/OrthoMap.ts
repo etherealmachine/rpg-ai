@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import EasyStar from 'easystarjs';
 
 import consumer from '../channels/consumer';
-import { isThisTypeNode } from 'typescript';
 
 interface Object {
   id: number
@@ -36,9 +35,9 @@ export default class OrthoMap extends Phaser.Scene {
   secretDoors: Phaser.GameObjects.GameObject[]
   npcs: Phaser.GameObjects.GameObject[]
   objects: Phaser.GameObjects.GameObject[]
-  onSelect: (selection: string) => void
+  onSelect: (selection: any) => void
 
-  init(args: { tilemap: any, character: { name: string, sprite: string }, onSelect: (selection: string) => void }) {
+  init(args: { tilemap: any, character: { name: string, sprite: string }, onSelect: (selection: any) => void }) {
     this.tiledMap = args.tilemap;
     this.mapData = Phaser.Tilemaps.Parsers.Tiled.ParseJSONTiled(args.tilemap.name, args.tilemap, false);
     this.textures.addBase64('character', args.character.sprite);
@@ -66,11 +65,33 @@ export default class OrthoMap extends Phaser.Scene {
       door.on('pointerout', () => {
         door.setFillStyle(0x000000, 0.1);
       });
-      door.on('pointerdown', () => {
-        this.onSelect('This is a door');
+      door.on('pointerdown', (pointer, x, y, event: Event) => {
+        event.stopPropagation();
+        this.onSelect({
+          actions: [
+            {
+              name: 'Toggle Open',
+              handler: () => {
+                door.setData('open', !door.data.values.open);
+                this.updatePathing();
+              },
+            }
+          ],
+          ...door.data.values,
+        });
       });
-      obj.properties.forEach(prop => door.setData(prop.name, prop.value));
       door.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
+      obj.properties.forEach(({ name, value }) => {
+        if (value === 'true') {
+          door.setData(name, true);
+        } else if (value === 'false') {
+          door.setData(name, false);
+        } else if (!isNaN(parseInt(value))) {
+          door.setData(name, parseInt(value));
+        } else {
+          door.setData(name, value);
+        }
+      });
       return door;
     });
   }
@@ -88,11 +109,6 @@ export default class OrthoMap extends Phaser.Scene {
 
   addNPCs(objects: Object[]) {
     this.npcs = objects.map(obj => {
-      /*
-      const tiles = this.map.layers.filter(layer => layer.name.includes("NPCs")).map(layer => {
-        return this.map.getTilesWithinWorldXY(obj.x, obj.y, obj.width, obj.height, { isNotEmpty: true }, this.cameras.main, layer.name);
-      }).flat();
-      */
       const npc = this.add.graphics({ x: obj.x, y: obj.y });
       npc.fillStyle(0xff0000, 0.1);
       npc.fillRect(0, 0, obj.width, obj.height)
@@ -126,9 +142,10 @@ export default class OrthoMap extends Phaser.Scene {
 
     if (this.mapData.layers instanceof Array) {
       this.mapData.layers.forEach((layer, i) => {
-        const [group, _] = layer.name.split('/');
+        const [group, props] = layer.name.split('/');
         layer.name = group + "/" + i;
-      })
+        if (props !== "null") layer.name += "/" + props;
+      });
       this.map.layers = this.mapData.layers;
       this.map.layers.forEach((layer, i) => {
         this.map.createLayer(layer.name, tilesets);
@@ -176,31 +193,10 @@ export default class OrthoMap extends Phaser.Scene {
     }
     this.wallLayers = this.map.layers.filter(layer => layer.name.includes("Walls"));
     this.pathFinder = new EasyStar.js();
-    const grid = [];
-    for (let y = 0; y < this.map.height; y++) {
-      let col = [];
-      for (var x = 0; x < this.map.width; x++) {
-        let floor = false;
-        let collision = false;
-        this.map.layers.forEach(layer => {
-          if (layer.name.includes('Ground') && layer.data[y][x].index !== -1) floor = true;
-          if (layer.name.includes('Walls') && layer.data[y][x].index !== -1) collision = true;
-          if (layer.data[y][x].properties['collides']) collision = true;
-        });
-        const doorsHit = this.doors.filter(
-          obj => obj.data.values.rect.contains(x * this.map.tileWidth, y * this.map.tileHeight));
-        if (floor && (!collision || doorsHit.length > 0)) {
-          col.push(0);
-        } else {
-          col.push(1);
-        }
-      }
-      grid.push(col);
-    }
-    this.pathFinder.setGrid(grid);
     this.pathFinder.setAcceptableTiles([0]);
     this.pathFinder.enableDiagonals();
     this.pathFinder.enableCornerCutting();
+    this.updatePathing();
     this.input.on('pointerup', this.handleClick);
     const title = this.add.text(
       this.scale.canvas.width / 2,
@@ -282,6 +278,70 @@ export default class OrthoMap extends Phaser.Scene {
     });
   }
 
+  /*
+  visible() {
+    const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+    const wall = this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0);
+      this.map.layers.forEach(layer => {
+        if (layer.name.includes("Secret")) {
+          // TODO: Reveal secrets
+          return;
+        }
+        if (point.y in layer.data && point.x in layer.data[point.y]) {
+          const tile = layer.data[point.y][point.x];
+          tile.visible = true;
+          if (!tile.layer.name.startsWith('NPC')) {
+            tile.properties['seen'] = true;
+          }
+          tile.tint = 0xffffff;
+        }
+      });
+
+                const tiles = this.map.layers.map(layer => this.map.getTilesWithinShape(door.data.values.rect, { isNotEmpty: true }, null, layer.name)).flat();
+                tiles.forEach(tile => {
+                  if (tile.layer.name.startsWith('Doors')) {
+                    if (tile.layer.name.includes('closed') && door.data.values.open) tile.visible = false;
+                    else if (tile.layer.name.includes('open') && !door.data.values.open) tile.visible = false;
+                  }
+                });
+  }
+
+  collides() {
+    this.map.layers.forEach(layer => {
+      if (layer.name.includes('Ground') && layer.data[y][x].index !== -1) floor = true;
+      if (layer.name.includes('Walls') && layer.data[y][x].index !== -1) collision = true;
+      if (layer.data[y][x].properties['collides']) collision = true;
+    });
+    const doors = this.doors.filter(door => (door.data.values.rect as Phaser.Geom.Rectangle).contains(x * this.map.tileWidth, y * this.map.tileHeight));
+    const openDoor = doors.some(door => door.data.values.open);
+  }
+  */
+
+  updatePathing() {
+    const grid = [];
+    for (let y = 0; y < this.map.height; y++) {
+      let col = [];
+      for (var x = 0; x < this.map.width; x++) {
+        let floor = false;
+        let collision = false;
+        this.map.layers.forEach(layer => {
+          if (layer.name.includes('Ground') && layer.data[y][x].index !== -1) floor = true;
+          if (layer.name.includes('Walls') && layer.data[y][x].index !== -1) collision = true;
+          if (layer.data[y][x].properties['collides']) collision = true;
+        });
+        const doors = this.doors.filter(door => (door.data.values.rect as Phaser.Geom.Rectangle).contains(x * this.map.tileWidth, y * this.map.tileHeight));
+        const openDoor = doors.some(door => door.data.values.open);
+        if (!floor || (collision && !openDoor)) {
+          col.push(1);
+        } else {
+          col.push(0);
+        }
+      }
+      grid.push(col);
+    }
+    this.pathFinder.setGrid(grid);
+  }
+
   updateVisibility() {
     this.map.layers.forEach(layer => layer.data.forEach(row => row.forEach(tile => {
       tile.tint = 0xffffff;
@@ -313,11 +373,15 @@ export default class OrthoMap extends Phaser.Scene {
         if (point.y in layer.data && point.x in layer.data[point.y]) {
           const tile = layer.data[point.y][point.x];
           tile.visible = true;
-          tile.properties['seen'] = true;
+          if (!tile.layer.name.startsWith('NPC')) {
+            tile.properties['seen'] = true;
+          }
           tile.tint = 0xffffff;
         }
       });
-      if (this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0)) return;
+      const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+      const wall = this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0);
+      if (wall || closedDoor) return;
     }
   }
 
@@ -325,9 +389,9 @@ export default class OrthoMap extends Phaser.Scene {
     let collision = this.map.layers.map(layer => {
       return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
     }).flat().some(tile => tile.index !== -1 && (tile.layer.name.includes('Walls') || tile.properties['collides']));
-    const doorsHit = this.doors.filter(obj => obj.data.values.rect.contains(this.player.x, this.player.y));
-    if (doorsHit.length > 0) {
-      collision = false;
+    const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(this.player.x * this.map.tileWidth + 0.5 * this.map.tileWidth, this.player.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+    if (closedDoor) {
+      collision = true;
     }
     if (collision && !this.movementKeys.shift.isDown) {
       this.player.x = oldX;
