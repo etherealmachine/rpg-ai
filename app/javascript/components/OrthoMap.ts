@@ -109,10 +109,11 @@ export default class OrthoMap extends Phaser.Scene {
 
   addNPCs(objects: Object[]) {
     this.npcs = objects.map(obj => {
+      //const texture = new Phaser.GameObjects.RenderTexture(this.scene.scene, 0, 0, 16, 16);
       const npc = this.add.graphics({ x: obj.x, y: obj.y });
+      obj.properties.forEach(prop => npc.setData(prop.name, prop.value));
       npc.fillStyle(0xff0000, 0.1);
       npc.fillRect(0, 0, obj.width, obj.height)
-      obj.properties.forEach(prop => npc.setData(prop.name, prop.value));
       npc.setData('rect', new Phaser.Geom.Rectangle(obj.x, obj.y, obj.width, obj.height));
       return npc;
     });
@@ -278,45 +279,6 @@ export default class OrthoMap extends Phaser.Scene {
     });
   }
 
-  /*
-  visible() {
-    const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
-    const wall = this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0);
-      this.map.layers.forEach(layer => {
-        if (layer.name.includes("Secret")) {
-          // TODO: Reveal secrets
-          return;
-        }
-        if (point.y in layer.data && point.x in layer.data[point.y]) {
-          const tile = layer.data[point.y][point.x];
-          tile.visible = true;
-          if (!tile.layer.name.startsWith('NPC')) {
-            tile.properties['seen'] = true;
-          }
-          tile.tint = 0xffffff;
-        }
-      });
-
-                const tiles = this.map.layers.map(layer => this.map.getTilesWithinShape(door.data.values.rect, { isNotEmpty: true }, null, layer.name)).flat();
-                tiles.forEach(tile => {
-                  if (tile.layer.name.startsWith('Doors')) {
-                    if (tile.layer.name.includes('closed') && door.data.values.open) tile.visible = false;
-                    else if (tile.layer.name.includes('open') && !door.data.values.open) tile.visible = false;
-                  }
-                });
-  }
-
-  collides() {
-    this.map.layers.forEach(layer => {
-      if (layer.name.includes('Ground') && layer.data[y][x].index !== -1) floor = true;
-      if (layer.name.includes('Walls') && layer.data[y][x].index !== -1) collision = true;
-      if (layer.data[y][x].properties['collides']) collision = true;
-    });
-    const doors = this.doors.filter(door => (door.data.values.rect as Phaser.Geom.Rectangle).contains(x * this.map.tileWidth, y * this.map.tileHeight));
-    const openDoor = doors.some(door => door.data.values.open);
-  }
-  */
-
   updatePathing() {
     const grid = [];
     for (let y = 0; y < this.map.height; y++) {
@@ -379,21 +341,36 @@ export default class OrthoMap extends Phaser.Scene {
           tile.tint = 0xffffff;
         }
       });
-      const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+      const closedDoor = this.doors.find(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+      const openDoor = this.doors.find(door => door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(point.x * this.map.tileWidth + 0.5 * this.map.tileWidth, point.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
+      if (closedDoor) {
+        const tiles = this.map.layers.map(layer => this.map.getTilesWithinShape(closedDoor.data.values.rect, { isNotEmpty: true }, null, layer.name)).flat();
+        tiles.forEach(tile => {
+          if (tile.layer.name.startsWith('Doors') && tile.layer.name.includes('open')) tile.visible = false;
+        });
+      } else if (openDoor) {
+        const tiles = this.map.layers.map(layer => this.map.getTilesWithinShape(openDoor.data.values.rect, { isNotEmpty: true }, null, layer.name)).flat();
+        tiles.forEach(tile => {
+          if (tile.layer.name.startsWith('Doors') && tile.layer.name.includes('closed')) tile.visible = false;
+        });
+      }
       const wall = this.wallLayers.some(layer => point.y in layer.data && point.x in layer.data[point.y] && layer.data[point.y][point.x].index >= 0);
       if (wall || closedDoor) return;
     }
   }
 
-  avoidCollision(oldX: number, oldY: number) {
-    let collision = this.map.layers.map(layer => {
-      return this.map.getTilesWithinWorldXY(this.player.x - 8, this.player.y - 8, 16, 16, null, null, layer.name);
-    }).flat().some(tile => tile.index !== -1 && (tile.layer.name.includes('Walls') || tile.properties['collides']));
+  collides(x: number, y: number): boolean {
     const closedDoor = this.doors.some(door => !door.data.values.open && (door.data.values.rect as Phaser.Geom.Rectangle).contains(this.player.x * this.map.tileWidth + 0.5 * this.map.tileWidth, this.player.y * this.map.tileHeight + 0.5 * this.map.tileHeight));
     if (closedDoor) {
-      collision = true;
+      return true
     }
-    if (collision && !this.movementKeys.shift.isDown) {
+    return this.map.layers.map(layer => {
+      return this.map.getTilesWithinWorldXY(x, y, 16, 16, null, null, layer.name);
+    }).flat().some(tile => tile.index !== -1 && (tile.layer.name.includes('Walls') || tile.properties['collides']));
+  }
+
+  avoidCollision(oldX: number, oldY: number) {
+    if (this.collides(this.player.x - 0.5 * this.map.tileWidth, this.player.y + 0.5 * this.map.tileHeight)) {
       this.player.x = oldX;
       this.player.y = oldY;
     } else {
@@ -403,33 +380,33 @@ export default class OrthoMap extends Phaser.Scene {
 
   moveUp = () => {
     const [oldX, oldY] = [this.player.x, this.player.y];
-    this.player.y -= 16
-    if (this.movementKeys.left.isDown) this.player.x -= 16;
-    if (this.movementKeys.right.isDown) this.player.x += 16;
+    this.player.y -= this.map.tileHeight;
+    if (this.movementKeys.left.isDown) this.player.x -= this.map.tileWidth;
+    if (this.movementKeys.right.isDown) this.player.x += this.map.tileWidth;
     this.avoidCollision(oldX, oldY);
   }
 
   moveDown = () => {
     const [oldX, oldY] = [this.player.x, this.player.y];
-    this.player.y += 16
-    if (this.movementKeys.left.isDown) this.player.x -= 16;
-    if (this.movementKeys.right.isDown) this.player.x += 16;
+    this.player.y += this.map.tileHeight;
+    if (this.movementKeys.left.isDown) this.player.x -= this.map.tileWidth;
+    if (this.movementKeys.right.isDown) this.player.x += this.map.tileWidth;
     this.avoidCollision(oldX, oldY);
   }
 
   moveLeft = () => {
     const [oldX, oldY] = [this.player.x, this.player.y];
-    this.player.x -= 16;
-    if (this.movementKeys.up.isDown) this.player.y -= 16;
-    if (this.movementKeys.down.isDown) this.player.y += 16;
+    this.player.x -= this.map.tileWidth;
+    if (this.movementKeys.up.isDown) this.player.y -= this.map.tileHeight;
+    if (this.movementKeys.down.isDown) this.player.y += this.map.tileHeight;
     this.avoidCollision(oldX, oldY);
   }
 
   moveRight = () => {
     const [oldX, oldY] = [this.player.x, this.player.y];
-    this.player.x += 16;
-    if (this.movementKeys.up.isDown) this.player.y -= 16;
-    if (this.movementKeys.down.isDown) this.player.y += 16;
+    this.player.x += this.map.tileWidth;
+    if (this.movementKeys.up.isDown) this.player.y -= this.map.tileHeight;
+    if (this.movementKeys.down.isDown) this.player.y += this.map.tileHeight;
     this.avoidCollision(oldX, oldY);
   }
 
