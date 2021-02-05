@@ -12,13 +12,6 @@
 
 ActiveRecord::Schema.define(version: 2021_02_01_211644) do
 
-  create_table "abilities", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -47,85 +40,27 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "alignments", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "background_items", id: false, force: :cascade do |t|
-    t.integer "background_id", null: false
-    t.integer "item_id", null: false
-  end
-
-  create_table "background_languages", id: false, force: :cascade do |t|
-    t.integer "background_id", null: false
-    t.integer "language_id", null: false
-  end
-
-  create_table "background_proficiencies", id: false, force: :cascade do |t|
-    t.integer "background_id", null: false
-    t.integer "skill_id", null: false
-  end
-
   create_table "backgrounds", force: :cascade do |t|
     t.string "name"
     t.json "description"
+    t.json "proficiencies"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "character_class_levels", force: :cascade do |t|
-    t.integer "character_class_id"
-    t.integer "level"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-    t.index ["character_class_id"], name: "index_character_class_levels_on_character_class_id"
-  end
-
-  create_table "character_class_proficiencies", id: false, force: :cascade do |t|
-    t.integer "character_class_id", null: false
-    t.integer "skill_id", null: false
   end
 
   create_table "character_classes", force: :cascade do |t|
     t.string "name"
-    t.json "description"
     t.integer "hit_die"
-    t.integer "ability_id"
+    t.json "proficiencies"
+    t.string "spell_ability"
+    t.json "levels"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["ability_id"], name: "index_character_classes_on_ability_id"
-  end
-
-  create_table "character_classes_spells", id: false, force: :cascade do |t|
-    t.integer "spell_id", null: false
-    t.integer "character_class_id", null: false
-  end
-
-  create_table "conditions", force: :cascade do |t|
-    t.string "name"
-    t.string "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "damage_types", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "damage_types_items", id: false, force: :cascade do |t|
-    t.integer "item_id", null: false
-    t.integer "damage_type_id", null: false
   end
 
   create_table "feats", force: :cascade do |t|
     t.string "name"
+    t.string "prerequisite"
     t.json "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
@@ -135,172 +70,76 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
     t.string "name"
     t.boolean "magical"
     t.boolean "attunement"
+    t.boolean "stealth"
     t.string "rarity"
     t.integer "range"
+    t.integer "strength"
     t.string "damage"
+    t.string "damage_2"
     t.decimal "value"
     t.decimal "weight"
     t.integer "armor_class"
+    t.string "damage_type"
     t.json "description"
+    t.json "properties"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "languages", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "monster_abilities", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "ability_id", null: false
-    t.integer "score"
-  end
-
-  create_table "monster_condition_immunities", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "condition_id", null: false
-  end
-
-  create_table "monster_immunities", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "damage_type_id", null: false
-  end
-
-  create_table "monster_languages", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "language_id", null: false
-  end
-
-  create_table "monster_resistances", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "damage_type_id", null: false
-  end
-
-  create_table "monster_saves", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "ability_id", null: false
-    t.integer "bonus"
-  end
-
-  create_table "monster_senses", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "sense_id", null: false
-    t.integer "distance"
-  end
-
-  create_table "monster_skills", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "skill_id", null: false
-    t.integer "bonus"
-  end
-
-  create_table "monster_spell_slots", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "spell_slot_id", null: false
-  end
-
-  create_table "monster_spells", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "spell_id", null: false
-  end
-
-  create_table "monster_types", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "monster_types_monsters", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "monster_type_id", null: false
-  end
-
-  create_table "monster_vulnerabilities", id: false, force: :cascade do |t|
-    t.integer "monster_id", null: false
-    t.integer "damage_type_id", null: false
   end
 
   create_table "monsters", force: :cascade do |t|
     t.string "name"
+    t.json "description"
     t.integer "challenge_rating"
     t.integer "armor_class"
     t.string "hit_points"
     t.integer "passive_perception"
-    t.integer "size_id"
+    t.string "size"
     t.integer "speed"
-    t.integer "alignment_id"
-    t.json "description"
+    t.string "alignment"
+    t.json "types"
+    t.json "languages"
+    t.json "abilities"
+    t.json "skills"
+    t.json "senses"
+    t.json "saves"
+    t.json "resistances"
+    t.json "vulnerabilities"
+    t.json "immunities"
+    t.json "traits"
+    t.json "actions"
+    t.json "attacks"
+    t.json "reactions"
+    t.json "legendaries"
+    t.json "spells"
+    t.json "spell_slots"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["alignment_id"], name: "index_monsters_on_alignment_id"
-    t.index ["size_id"], name: "index_monsters_on_size_id"
   end
 
   create_table "races", force: :cascade do |t|
     t.string "name"
-    t.json "description"
-    t.integer "size_id"
+    t.json "traits"
+    t.json "abilities"
+    t.json "proficiencies"
+    t.string "size"
     t.integer "speed"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["size_id"], name: "index_races_on_size_id"
-  end
-
-  create_table "senses", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "sizes", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "skills", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.integer "ability_id"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-    t.index ["ability_id"], name: "index_skills_on_ability_id"
-  end
-
-  create_table "spell_components", id: false, force: :cascade do |t|
-    t.integer "spell_id", null: false
-    t.integer "item_id", null: false
-  end
-
-  create_table "spell_schools", force: :cascade do |t|
-    t.string "name"
-    t.json "description"
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
-  end
-
-  create_table "spell_slots", force: :cascade do |t|
-    t.integer "level"
-    t.integer "slots"
   end
 
   create_table "spells", force: :cascade do |t|
     t.string "name"
     t.integer "level"
-    t.integer "casting_time"
-    t.integer "duration"
-    t.integer "range"
-    t.integer "spell_school_id"
+    t.string "casting_time"
+    t.string "duration"
+    t.string "range"
+    t.string "components"
+    t.string "classes"
+    t.string "school"
+    t.boolean "ritual"
     t.json "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["spell_school_id"], name: "index_spells_on_spell_school_id"
   end
 
   create_table "taggings", force: :cascade do |t|
@@ -450,10 +289,6 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "character_class_levels", "character_classes"
-  add_foreign_key "character_classes", "abilities"
-  add_foreign_key "skills", "abilities"
-  add_foreign_key "spells", "spell_schools"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tilemap_layers", "tilemaps", on_delete: :cascade
   add_foreign_key "tilemap_objects", "tilemap_layers", on_delete: :cascade
