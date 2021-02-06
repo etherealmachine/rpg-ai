@@ -4,10 +4,9 @@
 #
 #  id            :integer          not null, primary key
 #  name          :string
-#  description   :json
 #  hit_die       :integer
-#  abilities     :json
 #  proficiencies :json
+#  spell_ability :string
 #  levels        :json
 #  created_at    :datetime         not null
 #  updated_at    :datetime         not null

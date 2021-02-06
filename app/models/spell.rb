@@ -11,6 +11,7 @@
 #  components   :string
 #  classes      :string
 #  school       :string
+#  ritual       :boolean
 #  description  :json
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null

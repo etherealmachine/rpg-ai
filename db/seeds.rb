@@ -53,14 +53,18 @@ end
 
 def load_feat(item)
   text = item["text"].kind_of?(Array) ? item["text"].filter { |t| t.present? } : [item["text"]]
-  Feat.create!(name: item["name"], prerequisite: item["prerequisite"], description: text)
+  feat = Feat.find_or_create_by!(name: item["name"])
+  feat.prerequisite = item["prerequisite"]
+  feat.description = text
+  feat.save!
 
   # Unused
   item["modifier"]
 end
 
 def load_background(item)
-  background = Background.create!(name: item["name"], description: item["trait"].kind_of?(Array) ? item["trait"] : [item["trait"]])
+  background = Background.find_or_create_by!(name: item["name"])
+  background.description = item["trait"].kind_of?(Array) ? item["trait"] : [item["trait"]]
   background.proficiencies = item["proficiency"].split(', ').map do |skill|
     if skill == "Sleight of Hand"
       skill = "Slight of Hand"
@@ -71,30 +75,28 @@ def load_background(item)
 end
 
 def load_race(item)
-  Race.create!(
-    name: item["name"],
-    size: item["size"],
-    speed: item["speed"],
-    traits: item["trait"],
-    abilities: item["ability"],
-    proficiencies: item["proficiency"]&.split(',')&.map(&:strip)
-  )
+  race = Race.find_or_create_by!(name: item["name"])
+  race.size = item["size"]
+  race.speed = item["speed"]
+  race.traits = item["trait"]
+  race.abilities = item["ability"]
+  race.proficiencies = item["proficiency"]&.split(',')&.map(&:strip)
+  race.save!
 end
 
 def load_spell(item)
   text = item["text"].kind_of?(Array) ? item["text"].filter { |t| t.present? } : [item["text"]]
-  spell = Spell.create!(
-    name: item["name"],
-    level: item["level"],
-    casting_time: item["time"],
-    duration: item["duration"],
-    range: item["range"],
-    school: item["school"],
-    components: item["components"],
-    classes: item["classes"],
-    ritual: item["ritual"] ? item["ritual"] == "YES" : nil,
-    description: text
-  )
+  spell = Spell.find_or_create_by!(name: item["name"])
+  spell.level = item["level"]
+  spell.casting_time = item["time"]
+  spell.duration = item["duration"]
+  spell.range = item["range"]
+  spell.school = item["school"]
+  spell.components = item["components"]
+  spell.classes = item["classes"]
+  spell.ritual = item["ritual"] ? item["ritual"] == "YES" : nil
+  spell.description = text
+  spell.save!
 
   # Unused
   item["roll"]
@@ -111,52 +113,61 @@ def load_monster(item)
   end
   immunities = item["immune"]&.split(',')&.map(&:strip)
   conditionImmunities = item["conditionImmune"]&.split(',')&.map(&:strip)
-  m = Monster.create!(
-    name: item["name"],
-    size: item["size"],
-    speed: item["speed"],
-    challenge_rating: item["cr"],
-    armor_class: item["ac"],
-    alignment: item["alignment"],
-    hit_points: item["hp"],
-    passive_perception: item["passive"],
-    languages: item["languages"]&.split(',')&.map(&:strip),
-    types: item["type"]&.split(',')&.map(&:strip),
-    abilities: {
-      str: item["str"],
-      dex: item["dex"],
-      con: item["con"],
-      int: item["int"],
-      wis: item["wis"],
-      cha: item["cha"],
-    },
-    skills: skills.nil? ? nil : Hash[skills],
-    resistances: item["resist"]&.split(',')&.map(&:strip),
-    vulnerabilities: item["vulnerable"]&.split(',')&.map(&:strip),
-    immunities: immunities ? immunities.concat(conditionImmunities || []) : conditionImmunities,
-    saves: saves.nil? ? nil : Hash[saves],
-    senses: item["senses"]&.split(',')&.map(&:strip),
-    traits: item["trait"],
-    actions: item["action"],
-    attacks: item["attack"],
-    spells: item["spells"]&.split(',')&.map(&:strip),
-    spell_slots: item["slots"]&.split(',')&.map(&:strip)&.map(&:to_i),
-    reactions: item["reaction"],
-    legendaries: item["legendary"]
-  )
+  m = Monster.find_or_create_by!(name: item["name"])
+  m.size = item["size"]
+  m.speed = item["speed"]
+  m.challenge_rating = item["cr"]
+  m.armor_class = item["ac"]
+  m.alignment = item["alignment"]
+  m.hit_points = item["hp"]
+  m.passive_perception = item["passive"]
+  m.languages = item["languages"]&.split(',')&.map(&:strip)
+  m.types = item["type"]&.split(',')&.map(&:strip)
+  m.abilities = {
+    str: item["str"],
+    dex: item["dex"],
+    con: item["con"],
+    int: item["int"],
+    wis: item["wis"],
+    cha: item["cha"],
+  }
+  m.skills = skills.nil? ? nil : Hash[skills]
+  m.resistances = item["resist"]&.split(',')&.map(&:strip)
+  m.vulnerabilities = item["vulnerable"]&.split(',')&.map(&:strip)
+  m.immunities = immunities ? immunities.concat(conditionImmunities || []) : conditionImmunities
+  m.saves = saves.nil? ? nil : Hash[saves]
+  m.senses = item["senses"]&.split(',')&.map(&:strip)
+  m.traits = item["trait"]
+  if m.traits.present? && !m.traits.kind_of?(Array)
+    m.traits = [m.traits]
+  end
+  m.actions = item["action"]
+  if m.actions.present? && !m.actions.kind_of?(Array)
+    m.actions = [m.actions]
+  end
+  m.spells = item["spells"]&.split(',')&.map(&:strip)
+  m.spell_slots = item["slots"]&.split(',')&.map(&:strip)&.map(&:to_i)
+  m.reactions = item["reaction"]
+  if m.reactions.present? && !m.reactions.kind_of?(Array)
+    m.reactions = [m.reactions]
+  end
+  m.legendaries = item["legendary"]
+  if m.legendaries.present? && !m.legendaries.kind_of?(Array)
+    m.legendaries = [m.legendaries]
+  end
+  m.save!
 
   # Unused
   item["description"]
 end
 
 def load_character_class(item)
-  CharacterClass.create!(
-    name: item["name"],
-    hit_die: item["hd"],
-    spell_ability: item["spellAbility"],
-    proficiencies: item["proficiency"]&.split(',')&.map(&:strip),
-    levels: item["autolevel"]
-  )
+  c = CharacterClass.create!(name: item["name"])
+  c.hit_die = item["hd"]
+  c.spell_ability = item["spellAbility"]
+  c.proficiencies = item["proficiency"]&.split(',')&.map(&:strip)
+  c.levels = item["autolevel"]
+  c.save!
 end
 
 class HashKeyLogger

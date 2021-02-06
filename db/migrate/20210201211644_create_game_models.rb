@@ -81,7 +81,6 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.json :immunities
       t.json :traits
       t.json :actions
-      t.json :attacks
       t.json :reactions
       t.json :legendaries
       t.json :spells

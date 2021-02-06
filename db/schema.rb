@@ -107,7 +107,6 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
     t.json "immunities"
     t.json "traits"
     t.json "actions"
-    t.json "attacks"
     t.json "reactions"
     t.json "legendaries"
     t.json "spells"
