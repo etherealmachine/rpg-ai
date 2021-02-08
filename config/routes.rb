@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   resources :tilemaps
   resources :tilemap_tilesets, only: [:update]
   resources :monsters, only: [:index, :show]
+  resources :spells, only: [:index, :show]
   resources :tags
   post 'upload', to: 'upload#upload'
   get 'about', to: 'home#about'

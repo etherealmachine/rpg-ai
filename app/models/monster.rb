@@ -25,10 +25,14 @@
 #  actions            :json
 #  reactions          :json
 #  legendaries        :json
-#  spells             :json
 #  spell_slots        :json
 #  created_at         :datetime         not null
 #  updated_at         :datetime         not null
 #
 class Monster < ApplicationRecord
+  has_and_belongs_to_many :spells
+
+  def spells_by_level
+    spells.group_by(&:level)
+  end
 end

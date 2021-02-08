@@ -109,10 +109,14 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
     t.json "actions"
     t.json "reactions"
     t.json "legendaries"
-    t.json "spells"
     t.json "spell_slots"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "monsters_spells", id: false, force: :cascade do |t|
+    t.integer "monster_id", null: false
+    t.integer "spell_id", null: false
   end
 
   create_table "races", force: :cascade do |t|

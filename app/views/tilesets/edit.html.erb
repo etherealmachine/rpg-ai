@@ -8,7 +8,6 @@
   <%= form.file_field :files, accept: ".tsx,.png", class: "form-control", multiple: true %>
   <%= form.submit "Save", class: "btn btn-success" %>
 <% end %>
-
 <%= form_with(model: @tileset, method: "DELETE") do |form| %>
   <%= form.submit "Delete" %>
 <% end %>

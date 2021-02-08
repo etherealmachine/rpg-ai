@@ -83,9 +83,9 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.json :actions
       t.json :reactions
       t.json :legendaries
-      t.json :spells
       t.json :spell_slots
       t.timestamps
     end
+    create_join_table :monsters, :spells
   end
 end

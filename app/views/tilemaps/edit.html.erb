@@ -1,7 +1,5 @@
 <div class="container mt-4">
-
   <h1><%= @tilemap.name %></h1>
-
   <%= form_with(model: @tilemap, class: "form") do |form| %>
     <%= form.text_field :description, placeholder: "Description", class: "form-control" %>
     <div>
@@ -11,7 +9,6 @@
     <%= form.file_field :file, accept: ".tmx", class: "form-control" %>
     <%= form.submit "Save", class: "btn btn-success" %>
   <% end %>
-
   <% @tilemap.tilesets.each do |tileset| %>
     <%= form_with(model: tileset, class: "row row-cols-lg-auto g-3 align-items-center") do |form| %>
       <div class="col-12">
@@ -29,9 +26,7 @@
       </div>
     <% end %>
   <% end %>
-
   <%= form_with(model: @tilemap, method: "DELETE") do |form| %>
     <%= form.submit "Delete", class: "btn btn-danger" %>
   <% end %>
-
 </div>

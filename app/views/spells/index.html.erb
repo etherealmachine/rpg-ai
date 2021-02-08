@@ -1,0 +1,10 @@
+<div class="container p-5">
+  <div>
+    <h1 class="display-4">Spells</h1>
+    <div class="d-flex flex-row flex-wrap">
+      <% @spells.each do |spell| %>
+        <%= render partial: 'card', locals: { spell: spell } %>
+      <% end %>
+    </div>
+  </div>
+</div>

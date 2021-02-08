@@ -1,0 +1,10 @@
+<div class="container p-5">
+  <div>
+    <h1 class="display-4">Monsters</h1>
+    <div class="d-flex flex-row flex-wrap">
+      <% @monsters.each do |monster| %>
+        <%= render partial: 'card', locals: { monster: monster } %>
+      <% end %>
+    </div>
+  </div>
+</div>

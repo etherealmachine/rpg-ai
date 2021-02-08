@@ -86,7 +86,7 @@ end
 
 def load_spell(item)
   text = item["text"].kind_of?(Array) ? item["text"].filter { |t| t.present? } : [item["text"]]
-  spell = Spell.find_or_create_by!(name: item["name"])
+  spell = Spell.find_or_create_by!(name: item["name"].titleize)
   spell.level = item["level"]
   spell.casting_time = item["time"]
   spell.duration = item["duration"]
@@ -145,7 +145,13 @@ def load_monster(item)
   if m.actions.present? && !m.actions.kind_of?(Array)
     m.actions = [m.actions]
   end
-  m.spells = item["spells"]&.split(',')&.map(&:strip)
+  m.spells = item["spells"]&.split(/[,.]/)&.map(&:strip)&.map do |spell|
+    if spell == 'symbol teleport'
+      [Spell.find_or_create_by!(name: 'Symbol'), Spell.find_or_create_by!(name: 'Teleport')]
+    else
+      Spell.find_or_create_by!(name: spell.titleize)
+    end
+  end.flatten if item["spells"]
   m.spell_slots = item["slots"]&.split(',')&.map(&:strip)&.map(&:to_i)
   m.reactions = item["reaction"]
   if m.reactions.present? && !m.reactions.kind_of?(Array)
