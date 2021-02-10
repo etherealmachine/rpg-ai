@@ -14,3 +14,8 @@
  *= require_self
  *= require font-awesome
  */
+
+ .parchment {
+  background-image: url("/images/parchment.jpg");
+  background-repeat: repeat;
+ }

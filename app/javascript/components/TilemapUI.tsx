@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Character from './Character';
+import Character from './CharacterCard';
 import Interactable from './Interactable';
 
 function TilemapUI(props: { tilemap: any }) {

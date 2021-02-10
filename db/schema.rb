@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_02_01_211644) do
+ActiveRecord::Schema.define(version: 2021_02_08_180238) do
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -58,6 +58,51 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
     t.datetime "updated_at", precision: 6, null: false
   end
 
+  create_table "character_equipment", id: false, force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "item_id", null: false
+    t.boolean "equipped"
+    t.integer "charges"
+    t.json "notes"
+  end
+
+  create_table "character_feats", id: false, force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "feat_id", null: false
+    t.integer "level"
+  end
+
+  create_table "character_levels", id: false, force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "character_class_id", null: false
+    t.integer "level"
+  end
+
+  create_table "character_spells", id: false, force: :cascade do |t|
+    t.integer "character_id", null: false
+    t.integer "spell_id", null: false
+    t.boolean "memorized"
+  end
+
+  create_table "characters", force: :cascade do |t|
+    t.string "name"
+    t.integer "initiative"
+    t.integer "hit_points"
+    t.json "conditions"
+    t.integer "monster_id"
+    t.integer "race_id"
+    t.integer "background_id"
+    t.json "proficiencies"
+    t.string "alignment"
+    t.json "abilities"
+    t.json "spell_slots"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["background_id"], name: "index_characters_on_background_id"
+    t.index ["monster_id"], name: "index_characters_on_monster_id"
+    t.index ["race_id"], name: "index_characters_on_race_id"
+  end
+
   create_table "feats", force: :cascade do |t|
     t.string "name"
     t.string "prerequisite"
@@ -89,7 +134,7 @@ ActiveRecord::Schema.define(version: 2021_02_01_211644) do
   create_table "monsters", force: :cascade do |t|
     t.string "name"
     t.json "description"
-    t.integer "challenge_rating"
+    t.decimal "challenge_rating"
     t.integer "armor_class"
     t.string "hit_points"
     t.integer "passive_perception"

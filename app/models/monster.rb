@@ -5,7 +5,7 @@
 #  id                 :integer          not null, primary key
 #  name               :string
 #  description        :json
-#  challenge_rating   :integer
+#  challenge_rating   :decimal(, )
 #  armor_class        :integer
 #  hit_points         :string
 #  passive_perception :integer
@@ -33,6 +33,6 @@ class Monster < ApplicationRecord
   has_and_belongs_to_many :spells
 
   def spells_by_level
-    spells.group_by(&:level)
+    spells.group_by(&:level).sort_by { |k, v| k || 0 }
   end
 end

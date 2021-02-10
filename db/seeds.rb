@@ -116,7 +116,12 @@ def load_monster(item)
   m = Monster.find_or_create_by!(name: item["name"])
   m.size = item["size"]
   m.speed = item["speed"]
-  m.challenge_rating = item["cr"]
+  if item["cr"].kind_of?(String)
+    num, denom = item["cr"].split('/')
+    m.challenge_rating = num.to_f / denom.to_f
+  else
+    m.challenge_rating = item["cr"]
+  end
   m.armor_class = item["ac"]
   m.alignment = item["alignment"]
   m.hit_points = item["hp"]
@@ -222,3 +227,68 @@ Dir[Rails.root.join 'db', 'seed_data', '*.json'].each do |f|
     raise "Unused keys in #{key}: #{err.untouched_keys}" if err
   end
 end
+
+bart = Character.create!(
+  name: "Bartharaxxes the Bronze",
+  hit_points: 175,
+  race: Race.find_by(name: "Half-Orc"),
+  background: Background.find_by(name: "Acolyte"),
+  proficiencies: ['wisdom', 'charisma', 'insight', 'intimidation', 'religion'],
+  alignment: 'Lawful Good',
+  abilities: {
+    str: 15,
+    dex: 8,
+    con: 16,
+    int: 10,
+    wis: 18,
+    cha: 16,
+  },
+  spell_slots: [4, 3, 3, 3, 2])
+CharacterEquipment.create!(character: bart, item: Item.find_by!(name: 'Nine Lives Stealer Longsword'), equipped: true, charges: 4)
+
+[
+  Spell.find_by!(name: 'Detect Magic'),
+  Spell.find_by!(name: 'Divine Favor'),
+  Spell.find_by!(name: 'Shield Of Faith'),
+  Spell.find_by!(name: 'Cure Wounds'),
+  Spell.find_by!(name: 'Bane'),
+  Spell.find_by!(name: "Hunter's Mark"),
+  Spell.find_by!(name: 'Magic Weapon'),
+  Spell.find_by!(name: 'Zone Of Truth'),
+  Spell.find_by!(name: 'Hold Person'),
+  Spell.find_by!(name: 'Misty Step'),
+  Spell.find_by!(name: 'Dispel Magic'),
+  Spell.find_by!(name: 'Remove Curse'),
+  Spell.find_by!(name: 'Revivify'),
+  Spell.find_by!(name: 'Haste'),
+  Spell.find_by!(name: 'Protection From Energy'),
+  Spell.find_by!(name: 'Banishment'),
+  Spell.find_by!(name: 'Death Ward'),
+  Spell.find_by!(name: 'Dimension Door'),
+  Spell.find_by!(name: 'Raise Dead'),
+  Spell.find_by!(name: 'Hold Monster'),
+  Spell.find_by!(name: 'Scrying'),
+  Spell.find_by!(name: 'Geas'),
+].each do |spell|
+  CharacterSpell.create!(character: bart, spell: spell)
+end
+
+(1..20).each do |level|
+  CharacterLevel.create!(character: bart, character_class: CharacterClass.find_by(name: 'Paladin'), level: level)
+end
+
+Character.create!(
+  name: "Oguk",
+  monster: Monster.find_by!(name: "Orc"),
+  hit_points: Monster.find_by!(name: "Orc").hit_points.to_i
+)
+Character.create!(
+  name: "Xybtard",
+  monster: Monster.find_by!(name: "Goblin"),
+  hit_points: Monster.find_by!(name: "Goblin").hit_points.to_i
+)
+Character.create!(
+  name: "Chisel",
+  monster: Monster.find_by!(name: "Goblin"),
+  hit_points: Monster.find_by!(name: "Goblin").hit_points.to_i
+)
