@@ -65,6 +65,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.json :description
       t.decimal :challenge_rating
       t.integer :armor_class
+      t.string :armor_description
       t.string :hit_points
       t.integer :passive_perception
       t.string :size

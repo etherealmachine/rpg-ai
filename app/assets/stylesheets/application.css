@@ -19,3 +19,22 @@
   background-image: url("/images/parchment.jpg");
   background-repeat: repeat;
  }
+
+ .redish {
+  color: #822000 !important;
+ }
+
+ .redish-border {
+  border-color: #822000 !important;
+ }
+
+ .divider {
+  width: 100%;
+  height: 4px !important;
+  background-color: #822000;
+  opacity: 1 !important;
+ }
+
+ .spectral {
+  font-family: "Spectral SC", serif;
+ }

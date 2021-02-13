@@ -123,6 +123,7 @@ def load_monster(item)
     m.challenge_rating = item["cr"]
   end
   m.armor_class = item["ac"]
+  m.armor_description = item["ac"]
   m.alignment = item["alignment"]
   m.hit_points = item["hp"]
   m.passive_perception = item["passive"]
@@ -231,6 +232,7 @@ end
 bart = Character.create!(
   name: "Bartharaxxes the Bronze",
   hit_points: 175,
+  gold: 515,
   race: Race.find_by(name: "Half-Orc"),
   background: Background.find_by(name: "Acolyte"),
   proficiencies: ['wisdom', 'charisma', 'insight', 'intimidation', 'religion'],
@@ -245,6 +247,9 @@ bart = Character.create!(
   },
   spell_slots: [4, 3, 3, 3, 2])
 CharacterEquipment.create!(character: bart, item: Item.find_by!(name: 'Nine Lives Stealer Longsword'), equipped: true, charges: 4)
+CharacterEquipment.create!(character: bart, item: Item.find_by!(name: 'Shield +3'), equipped: true)
+CharacterEquipment.create!(character: bart, item: Item.find_by!(name: 'Chain Mail'), equipped: true)
+CharacterEquipment.create!(character: bart, item: Item.find_by!(name: 'Potion of Gaseous Form'), equipped: true)
 
 [
   Spell.find_by!(name: 'Detect Magic'),

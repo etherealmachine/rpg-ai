@@ -4,6 +4,7 @@ class CreateCharacter < ActiveRecord::Migration[6.1]
       t.string :name
       t.integer :initiative
       t.integer :hit_points
+      t.decimal :gold
       t.json :conditions
       t.references :monster
       t.references :race

@@ -6,6 +6,7 @@
 #  name          :string
 #  initiative    :integer
 #  hit_points    :integer
+#  gold          :decimal(, )
 #  conditions    :json
 #  monster_id    :integer
 #  race_id       :integer
