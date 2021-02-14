@@ -9,7 +9,7 @@
 #  duration     :string
 #  range        :string
 #  components   :string
-#  classes      :string
+#  classes      :json
 #  school       :string
 #  ritual       :boolean
 #  description  :json

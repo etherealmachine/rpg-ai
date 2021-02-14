@@ -19,6 +19,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.boolean :stealth
       t.string :rarity
       t.integer :range
+      t.integer :range_2
       t.integer :strength
       t.string :damage
       t.string :damage_2
@@ -54,7 +55,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.string :duration
       t.string :range
       t.string :components
-      t.string :classes
+      t.json :classes
       t.string :school
       t.boolean :ritual
       t.json :description

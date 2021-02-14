@@ -22,5 +22,4 @@
 #  updated_at  :datetime         not null
 #
 class Item < ApplicationRecord
-  has_and_belongs_to_many :damage_types
 end

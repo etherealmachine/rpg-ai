@@ -1,0 +1,10 @@
+<div class="container">
+  <div>
+    <h1 class="display-4">Items</h1>
+    <div class="d-flex flex-row flex-wrap">
+      <% @items.each do |item| %>
+        <%= react_component("ItemCard", { item: item }, style: "flex: 1; width: 100%; margin-bottom: 16px") %>
+      <% end %>
+    </div>
+  </div>
+</div>

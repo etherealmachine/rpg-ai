@@ -7,6 +7,7 @@
 #  description        :json
 #  challenge_rating   :decimal(, )
 #  armor_class        :integer
+#  armor_description  :string
 #  hit_points         :string
 #  passive_perception :integer
 #  size               :string

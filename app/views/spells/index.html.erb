@@ -1,9 +1,9 @@
-<div class="container p-5">
+<div class="container">
   <div>
     <h1 class="display-4">Spells</h1>
     <div class="d-flex flex-row flex-wrap">
       <% @spells.each do |spell| %>
-        <%= render partial: 'card', locals: { spell: spell } %>
+        <%= react_component("SpellCard", { spell: spell}, style: "flex: 1; width: 100%; margin-bottom: 16px") %>
       <% end %>
     </div>
   </div>

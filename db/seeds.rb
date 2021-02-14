@@ -28,7 +28,7 @@ def load_item(item)
   end
   rarity = text.lazy.map { |t| /Rarity: (\w+)/.match t }&.first&.[](1)
   i = Item.find_or_create_by!(name: item["name"])
-  i.range = item["range"]
+  i.range, i.range_2 = item["range"].split('/').map(&:strip) if item["range"]
   i.damage = item["dmg1"]
   i.damage_2 = item["dmg2"]
   i.magical = item["magic"] == 1 || attunement
@@ -93,7 +93,7 @@ def load_spell(item)
   spell.range = item["range"]
   spell.school = item["school"]
   spell.components = item["components"]
-  spell.classes = item["classes"]
+  spell.classes = item["classes"].split(',').map(&:strip)
   spell.ritual = item["ritual"] ? item["ritual"] == "YES" : nil
   spell.description = text
   spell.save!

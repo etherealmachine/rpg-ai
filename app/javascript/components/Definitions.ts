@@ -15,6 +15,36 @@ export const sizeString = {
   G: 'Gargantuan',
 }
 
+export const schoolString = {
+  EN: 'Enchantment',
+  C: 'Conjuration',
+  N: 'Necromancy',
+  EV: 'Evocation',
+  A: 'Abjuration',
+  T: 'Transmutation',
+  D: 'Divination',
+  I: 'Illusion',
+}
+
+export const damageTypeString = {
+  S: 'Slashing',
+  B: 'Bludgeoning',
+  P: 'Piercing',
+}
+
+export const itemPropertiesString = {
+  V: 'Versatile',
+  L: 'Light',
+  F: 'Finesse',
+  T: 'Thrown',
+  H: 'Heavy',
+  R: 'Range',
+  '2H': 'Two-Handed',
+  S: 'Special',
+  A: 'Ammunition',
+  LD: 'Loading',
+}
+
 export interface Feature {
   name: string
   text: string | string[]
@@ -49,4 +79,42 @@ export interface Monster {
   spell_slots?: number[]
   created_at: string
   updated_at: string
+}
+
+export interface Spell {
+  id: number
+  name?: string
+  level?: number
+  casting_time?: string
+  duration?: string
+  range?: string
+  components?: string
+  classes?: string[]
+  school?: string
+  ritual?: boolean
+  description?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Item {
+  id: number
+  name?: string
+  magical?: boolean
+  attunement?: boolean
+  stealth?: boolean
+  rarity?: string
+  range?: number
+  range_2?: number
+  strength?: number
+  damage?: string
+  damage_2?: string
+  value?: number
+  weight?: number
+  armor_class?: number
+  damage_type?: string
+  description?: string[]
+  properties?: string[]
+  created_at: number
+  updated_at: number
 }

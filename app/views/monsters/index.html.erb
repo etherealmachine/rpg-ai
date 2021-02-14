@@ -1,9 +1,9 @@
-<div class="container p-5">
+<div class="container">
   <div>
     <h1 class="display-4">Monsters</h1>
-    <div class="d-flex flex-row flex-wrap">
+    <div class="d-flex flex-column">
       <% @monsters.each do |monster| %>
-        <%= render partial: 'card', locals: { monster: monster } %>
+        <%= react_component("MonsterCard", { monster: monster }, style: "flex: 1; width: 100%; margin-bottom: 16px") %>
       <% end %>
     </div>
   </div>

@@ -1,6 +1,6 @@
 class MonstersController < ApplicationController
   def index
-    @monsters = Monster.limit(10).includes(:spells)
+    @monsters = Monster.limit(10)
   end
 
   def show
