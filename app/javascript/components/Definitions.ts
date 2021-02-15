@@ -118,3 +118,51 @@ export interface Item {
   created_at: number
   updated_at: number
 }
+
+export interface Abilities {
+  str: number
+  dex: number
+  con: number
+  int: number
+  wis: number
+  cha: number
+}
+
+export interface Race {
+  id: number
+  name: string
+  traits: Feature[]
+  abilities: Abilities
+  proficiencies: string[]
+  size: string
+  speed: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Background {
+  id: number
+  name?: string
+  description?: Feature[]
+  proficiencies?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Character {
+  id: number
+  name?: string
+  initiative?: number
+  hit_points?: number
+  gold?: number
+  conditions?: string[]
+  monster?: Monster
+  race?: Race
+  background?: Background
+  proficiencies?: string[]
+  alignment?: string
+  abilities: Abilities
+  spell_slots: number[]
+  created_at: string
+  updated_at: string
+}
