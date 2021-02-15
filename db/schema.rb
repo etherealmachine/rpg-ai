@@ -135,7 +135,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
 
   create_table "monsters", force: :cascade do |t|
     t.string "name"
-    t.json "description"
+    t.string "description"
     t.decimal "challenge_rating"
     t.integer "armor_class"
     t.string "armor_description"

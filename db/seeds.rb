@@ -114,6 +114,7 @@ def load_monster(item)
   immunities = item["immune"]&.split(',')&.map(&:strip)
   conditionImmunities = item["conditionImmune"]&.split(',')&.map(&:strip)
   m = Monster.find_or_create_by!(name: item["name"])
+  m.description = item["description"]
   m.size = item["size"]
   m.speed = item["speed"]
   if item["cr"].kind_of?(String)
@@ -168,9 +169,53 @@ def load_monster(item)
     m.legendaries = [m.legendaries]
   end
   m.save!
+end
 
-  # Unused
-  item["description"]
+def load_improved_initiative_monster(item, source)
+  m = Monster.find_or_create_by!(name: item["Name"])
+  m.description = item["Description"]
+  m.types = item["Type"].split(' ').concat([source])
+  m.size = m.types.shift[0]
+  m.armor_class = item["AC"]["Value"]
+  m.armor_description = item["AC"]["Notes"]
+  m.hit_points = "#{item['HP']['Value']} #{item['HP']['Notes']}"
+  m.speed = item["Speed"]
+  m.saves = item["Saves"]
+  m.senses = item["Senses"]
+  m.languages = item["Languages"]
+  if item["Challenge"].kind_of?(String)
+    num, denom = item["Challenge"].split('/')
+    m.challenge_rating = num.to_f / denom.to_f
+  else
+    m.challenge_rating = item["Challenge"]
+  end
+  m.abilities = {
+    str: item["Abilities"]["Str"],
+    dex: item["Abilities"]["Dex"],
+    con: item["Abilities"]["Con"],
+    int: item["Abilities"]["Int"],
+    wis: item["Abilities"]["Wis"],
+    cha: item["Abilities"]["Cha"],
+  }
+  m.vulnerabilities = item['DamageVulnerabilities']
+  m.resistances = item['DamageResistances']
+  m.immunities = (item['DamageImmunities'] || []).concat(item['ConditionImmunities'] || [])
+  m.immunities = nil if m.immunities.empty?
+  m.skills = item['Skills'] if item['Skills'].present?
+  m.traits = item['Traits'].map { |t| { name: t["Name"], text: t["Content"] } } if item['Traits'].any?
+  m.actions = item['Actions'].map { |t| { name: t["Name"], text: t["Content"] } } if item['Actions'].any?
+  m.reactions = item['Reactions'].map { |t| { name: t["Name"], text: t["Content"] } } if item['Reactions'].any?
+  m.legendaries = item['LegendaryActions'].map { |t| { name: t["Name"], text: t["Content"] } } if item['LegendaryActions'].any?
+  m.save!
+  
+  item['Id']
+  item['Path']
+  item['InitiativeModifier']
+  item['InitiativeAdvantage']
+  item['Player']
+  item['Source']
+  item['Version']
+  item['ImageURL']
 end
 
 def load_character_class(item)
@@ -206,26 +251,33 @@ end
 Dir[Rails.root.join 'db', 'seed_data', '*.json'].each do |f|
   data = JSON.parse(File.read(f))
   data.each do |key, things|
-    things = things.filter { |item| item.kind_of? Hash }.map { |item| HashKeyLogger.new(item) }
-    case key
-    when 'item'
-      things.each { |item| load_item(item) }
-    when 'feat'
-      things.each { |item| load_feat(item) }
-    when 'background'
-      things.each { |item| load_background(item) }
-    when 'race'
-      things.each { |item| load_race(item) }
-    when 'spell'
-      things.each { |item| load_spell(item) }
-    when 'monster'
-      things.each { |item| load_monster(item) }
-    when 'class'
-      things.each { |item| load_character_class(item) }
-    else raise "Can't handle #{key} from #{f}"
+    if key.include? 'ImprovedInitiative.Creatures'
+      item = HashKeyLogger.new(JSON.parse(things))
+      next if item.base_hash.kind_of? Array
+      load_improved_initiative_monster(item, File.basename(f, '.json'))
+      raise "Unused keys in #{key}: #{item.untouched_keys}" if item.untouched_keys.any?
+    else
+      things = things.filter { |item| item.kind_of? Hash }.map { |item| HashKeyLogger.new(item) }
+      case key
+      when 'item'
+        things.each { |item| load_item(item) }
+      when 'feat'
+        things.each { |item| load_feat(item) }
+      when 'background'
+        things.each { |item| load_background(item) }
+      when 'race'
+        things.each { |item| load_race(item) }
+      when 'spell'
+        things.each { |item| load_spell(item) }
+      when 'monster'
+        things.each { |item| load_monster(item) }
+      when 'class'
+        things.each { |item| load_character_class(item) }
+      else raise "Can't handle #{key} from #{f}"
+      end
+      err = things.find { |item| item.untouched_keys.any? }
+      raise "Unused keys in #{key}: #{err.untouched_keys}" if err
     end
-    err = things.find { |item| item.untouched_keys.any? }
-    raise "Unused keys in #{key}: #{err.untouched_keys}" if err
   end
 end
 

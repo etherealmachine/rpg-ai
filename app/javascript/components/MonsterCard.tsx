@@ -9,7 +9,7 @@ function MonsterCard(props: { monster: Monster }) {
       <div className="d-flex flex-column">
         <div className="d-flex flex-column">
           <h1 className="fw-bold fs-2 redish spectral">{monster.name}</h1>
-          <div className="fst-italic">{sizeString[monster.size]} {monster.types[0]}, {monster.alignment}</div>
+          <div className="fst-italic">{sizeString[monster.size]} {monster.types[0]}{monster.alignment && `, ${monster.alignment}`}</div>
         </div>
         <hr className="divider" />
         <div className="d-flex align-items-center">

@@ -63,7 +63,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
     end
     create_table :monsters do |t|
       t.string :name
-      t.json :description
+      t.string :description
       t.decimal :challenge_rating
       t.integer :armor_class
       t.string :armor_description
