@@ -4,7 +4,7 @@
 #
 #  id                 :integer          not null, primary key
 #  name               :string
-#  description        :json
+#  description        :string
 #  challenge_rating   :decimal(, )
 #  armor_class        :integer
 #  armor_description  :string

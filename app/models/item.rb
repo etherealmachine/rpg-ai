@@ -9,6 +9,7 @@
 #  stealth     :boolean
 #  rarity      :string
 #  range       :integer
+#  range_2     :integer
 #  strength    :integer
 #  damage      :string
 #  damage_2    :string
