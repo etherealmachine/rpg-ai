@@ -144,6 +144,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.string "size"
     t.integer "speed"
     t.string "alignment"
+    t.string "source"
     t.json "types"
     t.json "languages"
     t.json "abilities"

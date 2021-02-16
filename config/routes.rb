@@ -9,7 +9,7 @@ Rails.application.routes.draw do
   resources :monsters, only: [:index, :show]
   resources :spells, only: [:index, :show]
   resources :items, only: [:index, :show]
-  resources :encounters, only: [:index]
+  resources :encounters, only: [:index, :update]
   resources :tags
   post 'upload', to: 'upload#upload'
   get 'about', to: 'home#about'

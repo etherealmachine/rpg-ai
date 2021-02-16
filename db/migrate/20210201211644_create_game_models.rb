@@ -72,6 +72,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.string :size
       t.integer :speed
       t.string :alignment
+      t.string :source
       t.json :types
       t.json :languages
       t.json :abilities

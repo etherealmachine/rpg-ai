@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Character from './CharacterCard';
 import Interactable from './Interactable';
 
 function TilemapUI(props: { tilemap: any }) {
@@ -21,7 +20,6 @@ function TilemapUI(props: { tilemap: any }) {
   };
   return <div>
     <div style={{ position: 'absolute', top: 12, left: 12 }}>
-      <Character />
       {selection && <Interactable {...selection} />}
     </div>
     <div className={"modal" + (character ? "" : " d-block")} tabIndex={-1}>

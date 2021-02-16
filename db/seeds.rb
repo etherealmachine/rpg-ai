@@ -130,6 +130,7 @@ def load_monster(item)
   m.passive_perception = item["passive"]
   m.languages = item["languages"]&.split(',')&.map(&:strip)
   m.types = item["type"]&.split(',')&.map(&:strip)
+  m.source = m.types.pop
   m.abilities = {
     str: item["str"],
     dex: item["dex"],
@@ -174,8 +175,9 @@ end
 def load_improved_initiative_monster(item, source)
   m = Monster.find_or_create_by!(name: item["Name"])
   m.description = item["Description"]
-  m.types = item["Type"].split(' ').concat([source])
+  m.types = item["Type"].split(' ')
   m.size = m.types.shift[0]
+  m.source = source
   m.armor_class = item["AC"]["Value"]
   m.armor_description = item["AC"]["Notes"]
   m.hit_points = "#{item['HP']['Value']} #{item['HP']['Notes']}"
