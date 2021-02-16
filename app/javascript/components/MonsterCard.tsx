@@ -4,12 +4,16 @@ import FeatureDescription from './FeatureDescription';
 
 function MonsterCard(props: { monster: Monster }) {
   const { monster } = props;
+  console.log(monster);
   return <div className="card parchment">
     <div className="card-body">
       <div className="d-flex flex-column">
-        <div className="d-flex flex-column">
-          <h1 className="fw-bold fs-2 redish spectral">{monster.name}</h1>
-          <div className="fst-italic">{sizeString[monster.size]} {monster.types[0]}{monster.alignment && `, ${monster.alignment}`}</div>
+        <div className="d-flex justify-content-between">
+          <div className="d-flex flex-column">
+            <h1 className="fw-bold fs-2 redish spectral">{monster.name}</h1>
+            <div className="fst-italic">{sizeString[monster.size]} {monster.types[0]}{monster.alignment ? `, ${monster.alignment}` : ''}</div>
+          </div>
+          <img width="200" src={`/images/HSI/${monster.name}.jpg`} alt={`Image of ${monster.name}`} />
         </div>
         <hr className="divider" />
         <div className="d-flex align-items-center">

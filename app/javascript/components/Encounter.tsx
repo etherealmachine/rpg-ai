@@ -158,7 +158,7 @@ function Encounter(props: { id: number, searchTerms: string[], characters: Chara
         </div>
       </div>
       <div className="flex-grow-1 d-flex justify-content-center">
-        <img src="/images/hsi_map.png" alt="Map of Hot Springs Island" />
+        <img src="/images/HSI/Map.png" alt="Map of Hot Springs Island" />
       </div>
     </div>
   </div >;
