@@ -4,6 +4,7 @@
 #
 #  id            :integer          not null, primary key
 #  name          :string
+#  source_id     :integer
 #  traits        :json
 #  abilities     :json
 #  proficiencies :json
@@ -13,4 +14,5 @@
 #  updated_at    :datetime         not null
 #
 class Race < ApplicationRecord
+  belongs_to :source
 end

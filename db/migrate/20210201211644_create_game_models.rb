@@ -1,19 +1,27 @@
 class CreateGameModels < ActiveRecord::Migration[6.1]
   def change
+    create_table :sources do |t|
+      t.string :name
+      t.references :user
+      t.timestamps
+    end
     create_table :feats do |t|
       t.string :name
+      t.references :source
       t.string :prerequisite
       t.json :description
       t.timestamps
     end
     create_table :backgrounds do |t|
       t.string :name
+      t.references :source
       t.json :description
       t.json :proficiencies
       t.timestamps
     end
     create_table :items do |t|
       t.string :name
+      t.references :source
       t.boolean :magical
       t.boolean :attunement
       t.boolean :stealth
@@ -33,6 +41,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
     end
     create_table :races do |t|
       t.string :name
+      t.references :source
       t.json :traits
       t.json :abilities
       t.json :proficiencies
@@ -42,6 +51,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
     end
     create_table :character_classes do |t|
       t.string :name
+      t.references :source
       t.integer :hit_die
       t.json :proficiencies
       t.string :spell_ability
@@ -50,6 +60,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
     end
     create_table :spells do |t|
       t.string :name
+      t.references :source
       t.integer :level
       t.string :casting_time
       t.string :duration
@@ -63,6 +74,7 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
     end
     create_table :monsters do |t|
       t.string :name
+      t.references :source
       t.string :description
       t.decimal :challenge_rating
       t.integer :armor_class
@@ -72,7 +84,6 @@ class CreateGameModels < ActiveRecord::Migration[6.1]
       t.string :size
       t.integer :speed
       t.string :alignment
-      t.string :source
       t.json :types
       t.json :languages
       t.json :abilities

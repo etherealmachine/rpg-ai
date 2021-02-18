@@ -4,6 +4,7 @@
 #
 #  id          :integer          not null, primary key
 #  name        :string
+#  source_id   :integer
 #  magical     :boolean
 #  attunement  :boolean
 #  stealth     :boolean
@@ -23,4 +24,5 @@
 #  updated_at  :datetime         not null
 #
 class Item < ApplicationRecord
+  belongs_to :source
 end

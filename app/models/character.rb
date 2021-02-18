@@ -4,6 +4,7 @@
 #
 #  id            :integer          not null, primary key
 #  name          :string
+#  user_id       :integer
 #  initiative    :integer
 #  hit_points    :integer
 #  gold          :decimal(, )
@@ -19,6 +20,7 @@
 #  updated_at    :datetime         not null
 #
 class Character < ApplicationRecord
+  belongs_to :user
   belongs_to :race, optional: true
   belongs_to :background, optional: true
   belongs_to :monster, optional: true

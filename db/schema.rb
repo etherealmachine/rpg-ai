@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_02_08_180238) do
+ActiveRecord::Schema.define(version: 2021_02_18_015459) do
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -42,20 +42,24 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
 
   create_table "backgrounds", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.json "description"
     t.json "proficiencies"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_backgrounds_on_source_id"
   end
 
   create_table "character_classes", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.integer "hit_die"
     t.json "proficiencies"
     t.string "spell_ability"
     t.json "levels"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_character_classes_on_source_id"
   end
 
   create_table "character_equipment", id: false, force: :cascade do |t|
@@ -86,6 +90,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
 
   create_table "characters", force: :cascade do |t|
     t.string "name"
+    t.integer "user_id"
     t.integer "initiative"
     t.integer "hit_points"
     t.decimal "gold"
@@ -102,18 +107,22 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.index ["background_id"], name: "index_characters_on_background_id"
     t.index ["monster_id"], name: "index_characters_on_monster_id"
     t.index ["race_id"], name: "index_characters_on_race_id"
+    t.index ["user_id"], name: "index_characters_on_user_id"
   end
 
   create_table "feats", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.string "prerequisite"
     t.json "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_feats_on_source_id"
   end
 
   create_table "items", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.boolean "magical"
     t.boolean "attunement"
     t.boolean "stealth"
@@ -131,10 +140,12 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.json "properties"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_items_on_source_id"
   end
 
   create_table "monsters", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.string "description"
     t.decimal "challenge_rating"
     t.integer "armor_class"
@@ -144,7 +155,6 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.string "size"
     t.integer "speed"
     t.string "alignment"
-    t.string "source"
     t.json "types"
     t.json "languages"
     t.json "abilities"
@@ -161,6 +171,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.json "spell_slots"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_monsters_on_source_id"
   end
 
   create_table "monsters_spells", id: false, force: :cascade do |t|
@@ -170,6 +181,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
 
   create_table "races", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.json "traits"
     t.json "abilities"
     t.json "proficiencies"
@@ -177,10 +189,31 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.integer "speed"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_races_on_source_id"
+  end
+
+  create_table "random_tables", force: :cascade do |t|
+    t.string "name"
+    t.integer "source_id"
+    t.string "roll"
+    t.json "columns"
+    t.json "table"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_random_tables_on_source_id"
+  end
+
+  create_table "sources", force: :cascade do |t|
+    t.string "name"
+    t.integer "user_id"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["user_id"], name: "index_sources_on_user_id"
   end
 
   create_table "spells", force: :cascade do |t|
     t.string "name"
+    t.integer "source_id"
     t.integer "level"
     t.string "casting_time"
     t.string "duration"
@@ -192,6 +225,7 @@ ActiveRecord::Schema.define(version: 2021_02_08_180238) do
     t.json "description"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.index ["source_id"], name: "index_spells_on_source_id"
   end
 
   create_table "taggings", force: :cascade do |t|

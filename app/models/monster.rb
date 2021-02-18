@@ -4,6 +4,7 @@
 #
 #  id                 :integer          not null, primary key
 #  name               :string
+#  source_id          :integer
 #  description        :string
 #  challenge_rating   :decimal(, )
 #  armor_class        :integer
@@ -31,6 +32,7 @@
 #  updated_at         :datetime         not null
 #
 class Monster < ApplicationRecord
+  belongs_to :source
   has_and_belongs_to_many :spells
 
   def spells_by_level

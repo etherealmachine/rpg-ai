@@ -4,6 +4,7 @@
 #
 #  id           :integer          not null, primary key
 #  name         :string
+#  source_id    :integer
 #  level        :integer
 #  casting_time :string
 #  duration     :string
@@ -17,4 +18,5 @@
 #  updated_at   :datetime         not null
 #
 class Spell < ApplicationRecord
+  belongs_to :source
 end
